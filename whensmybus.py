@@ -9,21 +9,8 @@ Three ways of doing it
     @whensmybus 135
 ...will check the Tweet for its geocoded tag and work out what bus is going where
 
-    @whensmybus 135 BP081
-...will check the Tweet for that bus and that particular bus stop ID (found usually underneath the sign)
-
-    @whensmybus 135 Limehouse Station
-....will check for the name of the corresponding bus stop & route. Better to use the name on the stop itself than a general area
-
-Will reply in the format
-
-@username 135 LIMEHOUSE STATION 1834 East; LIMEHOUSE STATION 1855 West
-
 My thanks go to Adrian Short for inspiring me to write this
 http://adrianshort.co.uk/2011/09/08/open-data-for-everyday-life/
-
-http://sourceforge.net/projects/sqlitebrowser/
-
 
 """
 # Standard parts of Python 2.6
@@ -53,16 +40,20 @@ TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
 VERSION_NUMBER = 0.10
 WHENSMYBUS_HOME = os.path.split(sys.argv[0])[0] + '/'
 
-# Exception we use to signal send an error to the user
 class WhensMyBusException(Exception):
+    """
+    Exception we use to signal send an error to the user, nothing out of the ordinary
+    """
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
-# Main class
 class WhensMyBus:
-
+    """
+    Main class devoted to checking for Tweets and replying to them. Instantiate with no variables
+    (all config is done in the file whensmybus.cfg) and then call check_tweets()
+    """
     def __init__(self):
 
         try:
@@ -99,9 +90,9 @@ class WhensMyBus:
         # Load up the databases - one for the geodata, and one used a generic settings
         dbfilename = 'whensmybus.geodata.db'
         logging.debug("Opening database %s" % dbfilename)
-        db = sqlite3.connect(WHENSMYBUS_HOME + dbfilename)
-        db.row_factory = sqlite3.Row
-        self.geodata = db.cursor()
+        dbs = sqlite3.connect(WHENSMYBUS_HOME + dbfilename)
+        dbs.row_factory = sqlite3.Row
+        self.geodata = dbs.cursor()
 
         dbfilename = 'whensmybus.settings.db'
         logging.debug("Opening database %s" % dbfilename)
@@ -128,16 +119,24 @@ class WhensMyBus:
             #sys.exit(1)
     
     def get_setting(self, setting_name):
+        """
+        Simple wrapper to fetch value of setting from settings database
+        """
         self.settings.execute("select setting_value from whensmybus_settings where setting_name = '%s'" % setting_name)
         row = self.settings.fetchone()
         return row and row[0]
 
     def update_setting(self, setting_name, setting_value):
+        """
+        Simple wrapper to set value of named setting in settings database
+        """
         self.settings.execute("insert or replace into whensmybus_settings (setting_name, setting_value) values ('%s', '%s')" % (setting_name, setting_value))
         self.settingsdb.commit()
         
-    """Check Tweets replied to"""
     def check_tweets(self):
+        """
+        Check Tweets replied to
+        """
     
         # Check For @ reply Tweets
         try:
@@ -146,7 +145,7 @@ class WhensMyBus:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
             sys.exit(1)
         
-        # FIXME: Rotate through pages if lots of them ?
+        # Rotates through pages if lots of replies
         tweets = self.api.mentions(since_id=last_answered_tweet)
         
         if not tweets:
@@ -178,9 +177,6 @@ class WhensMyBus:
                 
                 # Parse the message
                 if len(message) >= 1:
-                    # FIXME Use Tweetdeck's geolocation as well
-                    # http://twitter.com/#!/alliekeith
-                    # http://twitter.com/#!/NeilMackin
                     if tweet.coordinates:
                         logging.debug("Detect geolocation on Tweet, locating stops")
                         position = tweet.coordinates['coordinates'][::-1] # Twitter had longitude & latitude the wrong way round
@@ -197,8 +193,8 @@ class WhensMyBus:
                 else:
                     raise WhensMyBusException("I couldn't find any bus stops by that name")
             
-            except WhensMyBusException as w:
-                 reply = "@%s Sorry! %s" % (username, w.value)
+            except WhensMyBusException as exc:
+                reply = "@%s Sorry! %s" % (username, exc.value)
             
             # Reply back to the user
             logging.info("Replying back to user with: %s" % reply)
@@ -211,9 +207,11 @@ class WhensMyBus:
 
         self.report_twitter_limit_status()
 
-    """Takes a route number and lat/lng and works out closest bus stops in each direction"""
     def get_stops_by_geolocation(self, route_number, position):
-        
+        """
+        Takes a route number and lat/lng and works out closest bus stops in each direction
+        """
+
         logging.debug("Position in WGS84 determined as: %s %s" % tuple(position))
         
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36
@@ -259,11 +257,14 @@ class WhensMyBus:
             return relevant_stops
         else:
             raise WhensMyBusException("I could not find any stops near you")
-            return 
             
-    # Browser that fetches the JSON data from the TfL website
     def lookup_stops(self, relevant_stops, route_number):
-            
+        """
+        Function that fetches the JSON data from the TfL website, for a list of relevant_stops 
+        and a particular route_number, and returns the time(s) of buses on that route serving
+        that stop(s)
+        """
+
         opener = urllib2.build_opener()
         opener.addheaders = [('User-agent', 'When\'s My Bus? v. %s' % VERSION_NUMBER),
                              ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
@@ -285,16 +286,11 @@ class WhensMyBus:
                 response = opener.open(tfl_url)
                 json_data = response.read()
     
-            except urllib2.HTTPError, e:
-                logging.error("HTTP Error %s reading %s, aborting" % (e.code, tfl_url))
+            except urllib2.HTTPError, exc:
+                logging.error("HTTP Error %s reading %s, aborting" % (exc.code, tfl_url))
                 raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
-    
-            except httplib.HTTPException, e:
-                logging.error("HTTP Exception %s reading %s, aborting" % (e, tfl_url))
-                raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
-                            
-            except Exception, e:
-                logging.error("%s (%s) encountered for %s, aborting" % (e.__class__.__name__, e, tfl_url))
+            except Exception, exc:
+                logging.error("%s (%s) encountered for %s, aborting" % (exc.__class__.__name__, exc, tfl_url))
                 raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
     
             if json_data:
@@ -309,14 +305,14 @@ class WhensMyBus:
                     else:
                         relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number) and a['isRealTime'] and not a['isCancelled']]
                         if relevant_arrivals:
-                            a = relevant_arrivals[0]
+                            arrival = relevant_arrivals[0]
                             
-                            scheduled_time =  a['scheduledTime'].replace(':', '')
+                            scheduled_time =  arrival['scheduledTime'].replace(':', '')
                             if time.daylight:
                                 hour = (int(scheduled_time[0:2]) + 1) % 24
                                 scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
                                 
-                            time_info.append("%s to %s %s" % (stop_name, a['destination'], scheduled_time))
+                            time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
                         else:
                             time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
 
@@ -336,24 +332,29 @@ class WhensMyBus:
                         # " 2359" = 4
                         # = 72 maximum
                                         
-                except ValueError, e:
-                    logging.error("%s encountered when parsing %s - likely not JSON!" % (e, tfl_url))
+                except ValueError, exc:
+                    logging.error("%s encountered when parsing %s - likely not JSON!" % (exc, tfl_url))
         
         return time_info
 
     def report_twitter_limit_status(self):
-        json = self.api.rate_limit_status()
-        logging.debug("I have %s out of %s hits remaining this hour" % (json['remaining_hits'], json['hourly_limit']))
-        logging.debug("Next reset time is %s" % (json['reset_time']))
+        """
+        Helper function to tell us what our Twitter API hit count & limit is
+        """
+        status_json = self.api.rate_limit_status()
+        logging.debug("I have %s out of %s hits remaining this hour" % (status_json['remaining_hits'], status_json['hourly_limit']))
+        logging.debug("Next reset time is %s" % (status_json['reset_time']))
 
 
-# Helper function to convert a bus stop's heading to human-readable direction
 def heading_to_direction(heading):
-    dirs = ('North','NE','East','SE','South','SW','West','NW')
+    """
+    Helper function to convert a bus stop's heading (in degrees) to human-readable direction
+    """
+    dirs = ('North', 'NE', 'East', 'SE', 'South', 'SW', 'West', 'NW')
     i = ((int(heading)+22)%360)/45
     return dirs[i]
     
 if __name__ == "__main__":
-    wmb = WhensMyBus()
-    wmb.check_tweets()
-    # Some unit testing shit should go here
+    WMB = WhensMyBus()
+    WMB.check_tweets()
+    # Some unit testing should go here maybe?

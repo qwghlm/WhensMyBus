@@ -1,12 +1,8 @@
 
 whensmybus.settings.db
 
-whensmybus.pyc
+*.pyc
 
-whensmybus.cfg
+*.cfg
 
-logs/whensmybus.log
-
-geotools.pyc
-
-logs/whensmybus.log.2011-10-02
+logs/*.log
