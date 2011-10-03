@@ -1,0 +1,12 @@
+[whensmybus]
+username :        # Username goes here, no @ sign
+
+consumer_key :    # App OAuth key
+consumer_secret : # App OAuth secret
+
+key :             # User OAuth key  
+secret :          # User OAuth secret
+
+# Optional
+#debug_level : INFO|DEBUG
+#test_mode : False|True
