@@ -37,6 +37,7 @@ import sys
 import urllib2
 import ConfigParser
 import os
+import time
 
 # https://github.com/tweepy/tweepy
 import tweepy
@@ -122,10 +123,9 @@ class WhensMyBus:
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(key, secret)        
         self.api = tweepy.API(auth)
-        # Annoyingly, this uses up an API hit every time we check for credentials, so instead we exception-catch on checking @ replies
-        # if not self.api.verify_credentials():
-            # logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
-            # sys.exit(1)
+        #if not self.api.verify_credentials():
+            #logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
+            #sys.exit(1)
     
     def get_setting(self, setting_name):
         self.settings.execute("select setting_value from whensmybus_settings where setting_name = '%s'" % setting_name)
@@ -159,28 +159,36 @@ class WhensMyBus:
 
             try:
                 # Ignore mentions that are not direct replies
-                if not message.startswith('@%s' % self.username):
+                if not message.lower().startswith('@%s' % self.username):
                     logging.debug("Not a proper @ reply, skipping")
                     continue
                 
                 # Just get the guts of the message
-                message = message[len('@%s ' % self.username):]
+                message = message[len('@%s ' % self.username):].strip()
                 message = re.split(' +', message, 2)
                 
                 # Check to see if it's a valid bus number
                 route_number = message[0]
-                self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number,))
+                self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number.upper(),))
+                
                 if not len(self.geodata.fetchall()):
-                    raise WhensMyBusException("I couldn't recognise the number gave me (%s) as a London bus" % route_number)
+                    raise WhensMyBusException("I couldn't recognise the number you gave me (%s) as a London bus" % route_number)
+                
+                route_number = route_number.upper()
                 
                 # Parse the message
                 if len(message) >= 1:
+                    # FIXME Use Tweetdeck's geolocation as well
+                    # http://twitter.com/#!/alliekeith
+                    # http://twitter.com/#!/NeilMackin
                     if tweet.coordinates:
                         logging.debug("Detect geolocation on Tweet, locating stops")
                         position = tweet.coordinates['coordinates'][::-1] # Twitter had longitude & latitude the wrong way round
                         relevant_stops = self.get_stops_by_geolocation(route_number, position)
+                    elif tweet.place:
+                        raise WhensMyBusException("The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device")
                     else:
-                        raise WhensMyBusException("Your Tweet was not geotagged. Please enable geolocation!")
+                        raise WhensMyBusException("Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter")
                 
                 # If we have stops given to us
                 if relevant_stops:
@@ -195,8 +203,11 @@ class WhensMyBus:
             # Reply back to the user
             logging.info("Replying back to user with: %s" % reply)
             if not self.testing:
-                self.api.update_status(status=reply, in_reply_to_status_id=tweet.id)
-                self.update_setting('last_answered_tweet', tweet.id)
+                try:
+                    self.api.update_status(status=reply, in_reply_to_status_id=tweet.id)
+                    self.update_setting('last_answered_tweet', tweet.id)
+                except tweepy.error.TweepError:
+                    continue
 
         self.report_twitter_limit_status()
 
@@ -299,7 +310,13 @@ class WhensMyBus:
                         relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number) and a['isRealTime'] and not a['isCancelled']]
                         if relevant_arrivals:
                             a = relevant_arrivals[0]
-                            time_info.append("%s to %s %s" % (stop_name, a['destination'], a['scheduledTime'].replace(':', '')))
+                            
+                            scheduled_time =  a['scheduledTime'].replace(':', '')
+                            if time.daylight:
+                                hour = (int(scheduled_time[0:2]) + 1) % 24
+                                scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
+                                
+                            time_info.append("%s to %s %s" % (stop_name, a['destination'], scheduled_time))
                         else:
                             time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
 
