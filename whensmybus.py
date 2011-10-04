@@ -54,7 +54,7 @@ class WhensMyBusException(Exception):
     Exception we use to signal send an error to the user, nothing out of the ordinary
     """
     def __init__(self, value):
-        super(Exception, self).__init__(value)
+        super(WhensMyBusException, self).__init__(value)
         self.value = value
         
     def __str__(self):
@@ -81,7 +81,6 @@ class WhensMyBus:
             # Set up some basic logging to stdout that shows info or debug level depending on user config
             console = logging.StreamHandler(sys.stdout)
             console.setLevel(logging.__dict__[config.get('whensmybus', 'debug_level')])
-
             console.setFormatter(logging.Formatter('%(message)s'))
 
             # Set up some proper logging to file that catches debugs
@@ -150,19 +149,28 @@ class WhensMyBus:
         """
     
         # Check For @ reply Tweets
+        last_answered_tweet = self.get_setting('last_answered_tweet')
         try:
-            last_answered_tweet = self.get_setting('last_answered_tweet')
+            # Rotates through pages if lots of replies
+            if self.testing:
+                tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items(20)
+            else:
+                tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
+            
         except tweepy.error.TweepError:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
             sys.exit(1)
         
-        # Rotates through pages if lots of replies
-        tweets = self.api.mentions(since_id=last_answered_tweet)
+        # Convert iterator to array so we can reverse it
+        if self.testing:
+            tweets = [tweet for tweet in tweets][::-1]
         
         if not tweets:
             logging.info("No new Tweets, exiting...")
-        
-        for tweet in tweets[::-1]:
+        else:
+            logging.info("%s replies received!" % len(tweets))
+            
+        for tweet in tweets:
             message = tweet.text
             username = tweet.user.screen_name
             logging.info("Have a message from %s: %s", username, message)
