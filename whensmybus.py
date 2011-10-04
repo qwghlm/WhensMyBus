@@ -169,7 +169,7 @@ class WhensMyBus:
         if not tweets:
             logging.info("No new Tweets, exiting...")
         else:
-            logging.info("%s replies received!" % len(tweets))
+            logging.info("%s replies received!" , len(tweets))
             
         # Alright! Let's get going
         for tweet in tweets:
@@ -403,7 +403,7 @@ class WhensMyBus:
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
         if len(time_info) > 2:
-            logging.debug("Number of runs is %s, removing any non-existent entries" % len(time_info))
+            logging.debug("Number of runs is %s, removing any non-existent entries" , len(time_info))
             time_info = [t for t in time_info if t.find("None shown") == -1]
 
         return time_info
