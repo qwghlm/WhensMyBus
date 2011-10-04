@@ -6,3 +6,4 @@ whensmybus.settings.db
 *.cfg
 
 logs/*.log
+logs/*.log.*
