@@ -1,16 +1,25 @@
 #!/usr/bin/env python
 """
-@whensmybus
+
+When's My Bus?
 
 A Twitter bot that takes requests for a bus timetable and @ replies on Twitter
 
-Three ways of doing it
+e.g.
 
     @whensmybus 135
+
 ...will check the Tweet for its geocoded tag and work out what bus is going where
 
 My thanks go to Adrian Short for inspiring me to write this
 http://adrianshort.co.uk/2011/09/08/open-data-for-everyday-life/
+
+and Chris Veness for his geographic co-ordinate translation scripts
+http://www.movable-type.co.uk/scripts/latlong-gridref.html
+
+(c) 2011 Chris Applegate (chris AT qwghlm DOT co DOT uk)
+Released under the MIT License
+
 
 """
 # Standard parts of Python 2.6
