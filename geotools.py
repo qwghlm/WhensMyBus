@@ -1,10 +1,25 @@
+#!/usr/bin/env python
+#pylint: disable=C0103,R0914,R0913
+"""
+Geotools for WhensMyBus. With thanks to Chris Veness, as this is basically
+a translation of his JavaScript co-ordinate translation scripts
+http://www.movable-type.co.uk/scripts/latlong-gridref.html
+
+Original code (c) 2005-2010 Chris Veness
+Licensed under the Creative Commons BY-CC licence
+
+Python Translation (c) 2011 Chris Applegate  (chris AT qwghlm DOT co DOT uk)
+Released under the MIT License
+
+"""
 import math
 
-# convert Geodesic co-ordinates to an OS Eastings/Northings grid reference
 # http://www.movable-type.co.uk/scripts/latlong-gridref.html
-#
-#
 def LatLongToOSGrid(lat, lon):
+    """
+    convert Geodesic co-ordinates to an OS Eastings/Northings grid reference
+    """
+    
     lat = math.radians(lat)
     lon = math.radians(lon)
     
@@ -58,6 +73,9 @@ def LatLongToOSGrid(lat, lon):
     return (int(round(E)), int(round(N)))
 
 def gridrefNumToLet(e, n, digits=10):
+    """
+    Convert Easting & Northing to standard OS Grid Reference
+    """
     e100k = math.floor(e/100000.0)
     n100k = math.floor(n/100000.0)
     
@@ -77,8 +95,8 @@ def gridrefNumToLet(e, n, digits=10):
     letPair = chr(int(l1) + ord('A')) + chr(int(l2) + ord('A'))
     
     # strip 100km-grid indices from easting & northing, and reduce precision
-    e = math.floor((e%100000)/math.pow(10,5-digits/2))
-    n = math.floor((n%100000)/math.pow(10,5-digits/2))
+    e = math.floor((e%100000)/math.pow(10, 5-digits/2))
+    n = math.floor((n%100000)/math.pow(10, 5-digits/2))
     
     gridRef = letPair + str(int(e)).zfill(digits/2) + str(int(n)).zfill(digits/2)
     
@@ -86,6 +104,11 @@ def gridrefNumToLet(e, n, digits=10):
 
 
 def convertWGS84toOSGB36(lat, lon, height=0):
+    """
+    Convert a longitude and latitude from WGS84 (used by GPS) to OSGB36 (used by OS maps)
+    so as to convert from one model of the earth's spherality to another and make our 
+    geolocations *really* accurate
+    """
     # ellipse parameters
     e = { 'WGS84':    { 'a': 6378137.0,   'b': 6356752.3142, 'f': 1/298.257223563 },
               'Airy1830': { 'a': 6377563.396, 'b': 6356256.910,  'f': 1/299.3249646   } }
@@ -102,7 +125,9 @@ def convertWGS84toOSGB36(lat, lon, height=0):
 
 
 def convert(lat, lon, height, e1, t, e2):
-
+    """
+    General-purpose spheroid conversion function
+    """
     # -- convert polar to cartesian coordinates (using ellipse 1)
     lat = math.radians(lat)
     lon = math.radians(lon)
