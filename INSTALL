@@ -8,7 +8,7 @@ When's My Bus? installation instructions
 
 2. Download the code & data for WhensMyBus from Github:
 
-    > git clone git://github.com/qwghlm/WhensMyBus/
+    > git clone git://github.com/qwghlm/WhensMyBus.git
     > cd WhensMyBus
 
 All the geodata is there, you do however need to set up Twitter account and access keys separately
