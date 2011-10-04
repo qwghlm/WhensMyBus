@@ -162,8 +162,7 @@ class WhensMyBus:
             sys.exit(1)
         
         # Convert iterator to array so we can reverse it
-        if self.testing:
-            tweets = [tweet for tweet in tweets][::-1]
+        tweets = [tweet for tweet in tweets][::-1]
         
         if not tweets:
             logging.info("No new Tweets, exiting...")
