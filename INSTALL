@@ -1,0 +1,35 @@
+When's My Bus? installation instructions
+
+1. Install Tweepy from https://github.com/tweepy/tweepy
+
+    > git clone git://github.com/tweepy/tweepy.git
+    > cd tweepy
+    > python setup.py install (run as admin/root)
+
+2. Download the code & data for WhensMyBus from Github:
+
+    > git clone git://github.com/qwghlm/WhensMyBus/
+    > cd WhensMyBus
+
+All the geodata is there, you do however need to set up Twitter account and access keys separately
+
+3. Create a Twitter account for your application
+
+4. Log into https://dev.twitter.com/ and then click My Applications
+
+5. Create a new Application. Fill in the details, you don't need to fill in a Callback URL
+
+6. Once your App is set up, create an access token for your Account
+
+7. Edit the whensmybus.cfg.sample, fill in the username, consumer key & secret, user key & secret
+fields and save as whensmybus.cfg
+
+8. You can also change the debug_level to DEBUG (more messages) and test_mode to True (it will read
+Tweets, but not Tweet back at the users who made them)
+
+9. You now have a working bot! To get started, on the command line go:
+
+    > python whensmybus.py
+
+10. If you ever want to update the CSV file(s) in ./sourcedata/ and update the route & locations
+database, follow the instructions in csvtools.py
