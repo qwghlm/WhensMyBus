@@ -357,10 +357,10 @@ class WhensMyBus:
             # Handle browsing error
             except urllib2.HTTPError, exc:
                 logging.error("HTTP Error %s reading %s, aborting", exc.code, tfl_url)
-                raise WhensMyBusException("I can't access TfL's servers right now")
+                raise WhensMyBusException("I can't access TfL's servers right now - they appear to be down :(")
             except Exception, exc:
                 logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, tfl_url)
-                raise WhensMyBusException("I can't access TfL's servers right now")
+                raise WhensMyBusException("I can't access TfL's servers right now - they appear to be down :(")
     
             # Try to parse this as JSON
             if json_data:
@@ -371,7 +371,7 @@ class WhensMyBus:
                     if not arrivals:
                         # Handle TfL's JSON-encoded error message
                         if bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
-                            raise WhensMyBusException("I can't access TfL's servers right now")
+                            raise WhensMyBusException("I can't access TfL's servers right now - they appear to be down :(")
                         else:
                             logging.error("No arrival data for this stop right now")
                     else:
@@ -398,7 +398,7 @@ class WhensMyBus:
                 # Probably a 503 Error message in HTML if the JSON parser is choking and raises a ValueError
                 except ValueError, exc:
                     logging.error("%s encountered when parsing %s - likely not JSON!", exc, tfl_url)
-                    raise WhensMyBusException("I can't access TfL's servers right now")        
+                    raise WhensMyBusException("I can't access TfL's servers right now - they appear to be down :(")        
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
         if len(time_info) > 2:
