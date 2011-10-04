@@ -153,10 +153,11 @@ class WhensMyBus:
         try:
             # Rotates through pages if lots of replies
             if self.testing:
-                tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items(20)
+                tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items(5)
             else:
                 tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
             
+        # This is most likely to fail if OAuth is not correctly set up
         except tweepy.error.TweepError:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
             sys.exit(1)
@@ -164,11 +165,13 @@ class WhensMyBus:
         # Convert iterator to array so we can reverse it
         tweets = [tweet for tweet in tweets][::-1]
         
+        # No need to bother if no replies
         if not tweets:
             logging.info("No new Tweets, exiting...")
         else:
             logging.info("%s replies received!" % len(tweets))
             
+        # Alright! Let's get going
         for tweet in tweets:
             message = tweet.text
             username = tweet.user.screen_name
@@ -179,49 +182,67 @@ class WhensMyBus:
                     logging.debug("Not a proper @ reply, skipping")
                     continue
                 
-                # Just get the guts of the message
+                # Remove username to get the guts of the message, and split on spaces
                 message = message[len('@%s ' % self.username):].strip()
                 message = re.split(' +', message, 2)
                 
-                # Check to see if it's a valid bus number
+                # Check to see if it's a valid bus number by searching our table of routes
                 route_number = message[0]
                 self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number.upper(),))
-                
                 if not len(self.geodata.fetchall()):
-                    raise WhensMyBusException("I couldn't recognise the number you gave me (%s) as a London bus" % route_number)
-                
+                    # Only given an error if it contained a number
+                    if re.search('[0-9]', route_number):
+                        raise WhensMyBusException("I couldn't recognise the number you gave me (%s) as a London bus" % route_number)
+                    # Else it's most likely the person was saying "Thank you" so just skip replying entirely 
+                    else:
+                        logging.debug("@ reply didn't contain a number, skipping")
+                        continue
+                        
+                # In case the user has used lowercase letters, fix that (e.g. d3)
                 route_number = route_number.upper()
                 
                 # Parse the message
                 if len(message) >= 1:
+                
+                    # If we have co-ordinates on the Tweet
                     if tweet.coordinates:
                         logging.debug("Detect geolocation on Tweet, locating stops")
-                        position = tweet.coordinates['coordinates'][::-1] # Twitter had longitude & latitude the wrong way round
+                         # Twitter gives latitude then longitude, so need to reverse this
+                        position = tweet.coordinates['coordinates'][::-1]
                         relevant_stops = self.get_stops_by_geolocation(route_number, position)
+                        
+                    # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
                     elif tweet.place:
                         raise WhensMyBusException("The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device")
+                    
+                    # If there's no geoinformation at all then say so
                     else:
                         raise WhensMyBusException("Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter")
                 
-                # If we have stops given to us
+                # If we can find stops on this route nearby...
                 if relevant_stops:
                     time_info = self.lookup_stops(relevant_stops, route_number)
                     reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
                 else:
                     raise WhensMyBusException("I couldn't find any bus stops by that name")
             
+            # Handler for any of the many possible reasons that this could go wrong
             except WhensMyBusException as exc:
                 reply = "@%s Sorry! %s" % (username, exc.value)
             
-            # Reply back to the user
+            # Reply back to the user,  if not in testing mode
             logging.info("Replying back to user with: %s", reply)
             if not self.testing:
                 try:
-                    self.api.update_status(status=reply, in_reply_to_status_id=tweet.id)
+                    self.api.update_status(status=reply[0:140], in_reply_to_status_id=tweet.id)
+                    # So we can keep track of our since variable
                     self.update_setting('last_answered_tweet', tweet.id)
+                # This catches any errors, most typically if we send multiple Tweets to the same person with the same error
+                # In which case, not much we can do
                 except tweepy.error.TweepError:
                     continue
 
+        # Keep an eye on our rate limit, for science
         self.report_twitter_limit_status()
 
     def get_stops_by_geolocation(self, route_number, position):
@@ -229,9 +250,8 @@ class WhensMyBus:
         Takes a route number and lat/lng and works out closest bus stops in each direction
         """
 
+        # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert
         logging.debug("Position in WGS84 determined as: %s %s" % tuple(position))
-        
-        # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36
         position = convertWGS84toOSGB36(*position)
         logging.debug("Converted to OSGB36: %s %s" % tuple(position)[0:2])
 
@@ -239,7 +259,7 @@ class WhensMyBus:
         easting, northing = LatLongToOSGrid(position[0], position[1])
         gridref = gridrefNumToLet(easting, northing)
         
-        # Grid reference provides us a way with checking to see if in the UK - it returns blank string if not in UK bounds
+        # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
         if not gridref:
             raise WhensMyBusException("You do not appear to be located in the United Kingdom") # FIXME Narrow down to London?
             
@@ -247,11 +267,20 @@ class WhensMyBus:
             logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
             logging.debug("Translated into Grid Reference %s", gridref)
 
+        # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out the runs
+        # FIXME More than two runs will almost certainly break the 140 character limit, and we should work around that
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route='%s'" % route_number)
         max_runs = int(self.geodata.fetchone()[0])
         
         relevant_stops = []
         for run in range(1, max_runs+1):
+        
+            # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of hypotenuse in sqlite
+            # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
+            # and find the first row
+            #
+            # Also note the join from the routes table to locations table on the index Stop_Code_LBSL, and how we avoid
+            # TfL's "Virtual_Bus_Stop" (used for providing waypoints that buses don't stop at)
             query = """
                     SELECT (locations.Location_Easting - %d)*(locations.Location_Easting - %d) + (locations.Location_Northing - %d)*(locations.Location_Northing - %d) AS dist_squared,
                           Run,
@@ -265,6 +294,8 @@ class WhensMyBus:
                     LIMIT 1
                     """ % (easting, easting, northing, northing, route_number, run)
     
+            # Note we fetch the Sms_code not the Stop_Code_LBSL value out of this row - this is the ID used
+            # in TfL's system
             self.geodata.execute(query)
             row = self.geodata.fetchone()
             relevant_stops.append([row[key] for key in ('Stop_Name', 'Sms_Code', 'Run', 'Heading')])
@@ -273,6 +304,8 @@ class WhensMyBus:
             logging.debug("Have found stop numbers: %s", ', '.join([s[1] for s in relevant_stops]))
             return relevant_stops
         else:
+            # This may well never be raised - there will always be a nearest stop on a route for someone, even
+            # if it is 1000km away
             raise WhensMyBusException("I could not find any stops near you")
             
     def lookup_stops(self, relevant_stops, route_number):
@@ -282,16 +315,16 @@ class WhensMyBus:
         that stop(s)
         """
 
+        # That which fetches the JSON
         opener = urllib2.build_opener()
         opener.addheaders = [('User-agent', 'When\'s My Bus? v. %s' % VERSION_NUMBER),
                              ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
         time_info = []
 
-        # Make requests to TfL for timetables for those bus stops
-        # Parse requests and grab data for most relevant buses
+        # Values in tuple correspond to what was added in relevant_stops.append() above
         for (stop_name, stop_number, run, heading) in relevant_stops:
         
-            # Get rid of TfL's symbols for Tube, National Rail & DLR
+            # Get rid of TfL's ASCII symbols for Tube, National Rail & DLR
             for unwanted in ('<>', '#', '[DLR]'):
                 stop_name = stop_name.replace(unwanted, '')
             stop_name = string.capwords(stop_name.strip())
@@ -303,6 +336,7 @@ class WhensMyBus:
                 response = opener.open(tfl_url)
                 json_data = response.read()
     
+            # Handle browsing error
             except urllib2.HTTPError, exc:
                 logging.error("HTTP Error %s reading %s, aborting", exc.code, tfl_url)
                 raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
@@ -310,24 +344,34 @@ class WhensMyBus:
                 logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, tfl_url)
                 raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
     
+            # Try to parse this as JSON
             if json_data:
                 try:
                     bus_data = json.loads(json_data)
                     arrivals = bus_data.get('arrivals', [])
+                    
                     if not arrivals:
+                        # Handle TfL's JSON-encoded error message
                         if bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
                             raise WhensMyBusException("TfL's servers are down right now :( Try a bit later")
                         else:
                             logging.error("No arrival data for this stop right now")
                     else:
+                        # Do the user a favour - check for both number and possible Night Bus version of the bus
                         relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number) and a['isRealTime'] and not a['isCancelled']]
+
                         if relevant_arrivals:
+                            # Get the first arrival for now
                             arrival = relevant_arrivals[0]
-                            
+                            # Every character counts! :)
                             scheduled_time =  arrival['scheduledTime'].replace(':', '')
+                            
+                            # Short hack to get BST working
                             if time.daylight:
                                 hour = (int(scheduled_time[0:2]) + 1) % 24
                                 scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
+                                
+                            logging.debug("Just out of interest, the destination is %s with length %s", arrival['destination'], len(arrival['destination']))
                                 
                             time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
                         else:
@@ -349,9 +393,11 @@ class WhensMyBus:
                         # " 2359" = 4
                         # = 72 maximum
                                         
+                # Probably a 503 Error message in HTML if the JSON parser is choking and raises a ValueError
                 except ValueError, exc:
                     logging.error("%s encountered when parsing %s - likely not JSON!", exc, tfl_url)
-        
+                    raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")        
+
         return time_info
 
     def report_twitter_limit_status(self):
@@ -368,6 +414,7 @@ def heading_to_direction(heading):
     Helper function to convert a bus stop's heading (in degrees) to human-readable direction
     """
     dirs = ('North', 'NE', 'East', 'SE', 'South', 'SW', 'West', 'NW')
+    # North lies between -22 and +22, NE between 23 and 67, East between 68 and 112, etc 
     i = ((int(heading)+22)%360)/45
     return dirs[i]
     
