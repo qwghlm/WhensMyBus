@@ -7,3 +7,5 @@ whensmybus.settings.db
 
 logs/*.log
 logs/*.log.*
+
+datatests.py
