@@ -55,7 +55,7 @@ class WhensMyBusException(Exception):
     """
     def __init__(self, value):
         super(WhensMyBusException, self).__init__(value)
-        self.value = value
+        self.value = value[:115]
         
     def __str__(self):
         return repr(self.value)
@@ -230,11 +230,29 @@ class WhensMyBus:
             except WhensMyBusException as exc:
                 reply = "@%s Sorry! %s" % (username, exc.value)
             
-            # Reply back to the user,  if not in testing mode
-            logging.info("Replying back to user with: %s", reply)
+            # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
+            # Longest stop name is HANWORTH AIR PARK LEISURE CENTRE & LIBRARY = 42 
+            #
+            # Longest stop name (42) + " to " + Longest terminus name (15) + space + 4-digit time + semi-colon = 67 
+            #
+            # So at the moment highest possible length of a single route is 67 and so longest possible Tweet is:
+            # 22 + 67 + 66 = 155 characters
+
+            if len(reply) > 140:
+                replies = reply.split("; ", 2)
+                replies[0] = "%s..." % replies[0]
+                replies[1] = "@%s ...%s" % (username, replies[1])
+            else:
+                replies = [reply]
+
+            # Reply back to the user, if not in testing mode
+            for reply in replies:
+                logging.info("Replying back to user with: %s", reply)
+
             if not self.testing:
                 try:
-                    self.api.update_status(status=reply[0:140], in_reply_to_status_id=tweet.id)
+                    for reply in replies:                    
+                        self.api.update_status(status=reply, in_reply_to_status_id=tweet.id)
                     # So we can keep track of our since variable
                     self.update_setting('last_answered_tweet', tweet.id)
                 # This catches any errors, most typically if we send multiple Tweets to the same person with the same error
@@ -324,8 +342,8 @@ class WhensMyBus:
         # Values in tuple correspond to what was added in relevant_stops.append() above
         for (stop_name, stop_number, run, heading) in relevant_stops:
         
-            # Get rid of TfL's ASCII symbols for Tube, National Rail & DLR
-            for unwanted in ('<>', '#', '[DLR]'):
+            # Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram
+            for unwanted in ('<>', '#', '[DLR]', '>T<'):
                 stop_name = stop_name.replace(unwanted, '')
             stop_name = string.capwords(stop_name.strip())
         
@@ -339,10 +357,10 @@ class WhensMyBus:
             # Handle browsing error
             except urllib2.HTTPError, exc:
                 logging.error("HTTP Error %s reading %s, aborting", exc.code, tfl_url)
-                raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
+                raise WhensMyBusException("I can't access TfL's servers right now")
             except Exception, exc:
                 logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, tfl_url)
-                raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
+                raise WhensMyBusException("I can't access TfL's servers right now")
     
             # Try to parse this as JSON
             if json_data:
@@ -353,7 +371,7 @@ class WhensMyBus:
                     if not arrivals:
                         # Handle TfL's JSON-encoded error message
                         if bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
-                            raise WhensMyBusException("TfL's servers are down right now :( Try a bit later")
+                            raise WhensMyBusException("I can't access TfL's servers right now")
                         else:
                             logging.error("No arrival data for this stop right now")
                     else:
@@ -377,26 +395,15 @@ class WhensMyBus:
                         else:
                             time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
 
-                        # FIXME Need to deal with names that are too long
-                        # @username = 16
-                        # space = 1
-                        # route no = 4
-                        # " from " = 4
-                        # ";" = 1
-                        #  26 chars max
-                        
-                        # So we have 114 characters, or 57 per fragment to exploit
-                
-                        # Longest is HANWORTH AIR PARK LEISURE CENTRE & LIBRARY = 42 
-                        # " to " = 4
-                        # Longest terminus name = 20?
-                        # " 2359" = 4
-                        # = 72 maximum
-                                        
                 # Probably a 503 Error message in HTML if the JSON parser is choking and raises a ValueError
                 except ValueError, exc:
                     logging.error("%s encountered when parsing %s - likely not JSON!", exc, tfl_url)
-                    raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")        
+                    raise WhensMyBusException("I can't access TfL's servers right now")        
+
+        # If the number of runs is 3 or 4, get rid of any "None shown"
+        if len(time_info) > 2:
+            logging.debug("Number of runs is %s, removing any non-existent entries" % len(time_info))
+            time_info = [t for t in time_info if t.find("None shown") == -1]
 
         return time_info
 
