@@ -279,14 +279,15 @@ class WhensMyBus:
         
         # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
         if not gridref:
-            raise WhensMyBusException("You do not appear to be located in the United Kingdom") # FIXME Narrow down to London?
-            
+            raise WhensMyBusException("You do not appear to be located in the United Kingdom")
+        # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough
+        elif gridref[:2] not in ('TQ', 'TL', 'SU'):
+            raise WhensMyBusException("You do not appear to be located in the London Buses area")            
         else:
             logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
             logging.debug("Translated into Grid Reference %s", gridref)
 
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out the runs
-        # FIXME More than two runs will almost certainly break the 140 character limit, and we should work around that
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route='%s'" % route_number)
         max_runs = int(self.geodata.fetchone()[0])
         
