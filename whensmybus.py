@@ -20,6 +20,9 @@ http://www.movable-type.co.uk/scripts/latlong-gridref.html
 (c) 2011 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
+TODO
+ - Split out Tweet loop to separate function
+ - Unit testing
 
 """
 # Standard parts of Python 2.6
@@ -173,78 +176,10 @@ class WhensMyBus:
             
         # Alright! Let's get going
         for tweet in tweets:
-            message = tweet.text
-            username = tweet.user.screen_name
-            logging.info("Have a message from %s: %s", username, message)
-            try:
-                # Ignore mentions that are not direct replies
-                if not message.lower().startswith('@%s' % self.username):
-                    logging.debug("Not a proper @ reply, skipping")
-                    continue
-                
-                # Remove username to get the guts of the message, and split on spaces
-                message = message[len('@%s ' % self.username):].strip()
-                message = re.split(' +', message, 2)
-                
-                # Check to see if it's a valid bus number by searching our table of routes
-                route_number = message[0]
-                self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number.upper(),))
-                if not len(self.geodata.fetchall()):
-                    # Only given an error if it contained a number
-                    if re.search('[0-9]', route_number):
-                        raise WhensMyBusException("I couldn't recognise the number you gave me (%s) as a London bus" % route_number)
-                    # Else it's most likely the person was saying "Thank you" so just skip replying entirely 
-                    else:
-                        logging.debug("@ reply didn't contain a number, skipping")
-                        continue
-                        
-                # In case the user has used lowercase letters, fix that (e.g. d3)
-                route_number = route_number.upper()
-                
-                # Parse the message
-                if len(message) >= 1:
-                
-                    # If we have co-ordinates on the Tweet
-                    if tweet.coordinates:
-                        logging.debug("Detect geolocation on Tweet, locating stops")
-                         # Twitter gives latitude then longitude, so need to reverse this
-                        position = tweet.coordinates['coordinates'][::-1]
-                        relevant_stops = self.get_stops_by_geolocation(route_number, position)
-                        
-                    # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
-                    elif tweet.place:
-                        raise WhensMyBusException("The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device")
-                    
-                    # If there's no geoinformation at all then say so
-                    else:
-                        raise WhensMyBusException("Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter")
-                
-                # If we can find stops on this route nearby...
-                if relevant_stops:
-                    time_info = self.lookup_stops(relevant_stops, route_number)
-                    reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
-                else:
-                    raise WhensMyBusException("I couldn't find any bus stops by that name")
+            replies = self.process_tweet(tweet)
+            if not replies:
+                continue
             
-            # Handler for any of the many possible reasons that this could go wrong
-            except WhensMyBusException as exc:
-                reply = "@%s Sorry! %s" % (username, exc.value)
-            
-            # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
-            # Longest stop name is HANWORTH AIR PARK LEISURE CENTRE & LIBRARY = 42 
-            #
-            # Longest stop name (42) + " to " + Longest terminus name (15) + space + 4-digit time + semi-colon = 67 
-            #
-            # So at the moment highest possible length of a single route is 67 and so longest possible Tweet is:
-            # 22 + 67 + 66 = 155 characters
-
-            if len(reply) > 140:
-                replies = reply.split("; ", 2)
-                replies[0] = "%s..." % replies[0]
-                replies[1] = "@%s ...%s" % (username, replies[1])
-            else:
-                replies = [reply]
-
             # Reply back to the user, if not in testing mode
             for reply in replies:
                 logging.info("Replying back to user with: %s", reply)
@@ -261,7 +196,88 @@ class WhensMyBus:
                     continue
 
         # Keep an eye on our rate limit, for science
-        self.report_twitter_limit_status()
+        self.report_twitter_limit_status()        
+        
+        
+    def process_tweet(self, tweet):
+        """
+        Processes a single Tweet object and returns a list of replies to be sent back to that user        
+        """
+        username = tweet.user.screen_name
+        message = tweet.text
+        logging.info("Have a message from %s: %s", username, message)
+    
+        try:
+            # Ignore mentions that are not direct replies
+            if not message.lower().startswith('@%s' % self.username):
+                logging.debug("Not a proper @ reply, skipping")
+                return []
+            
+            # Remove username to get the guts of the message, and split on spaces
+            message = message[len('@%s ' % self.username):].strip()
+            message = re.split(' +', message, 2)
+            
+            # Check to see if it's a valid bus number by searching our table of routes
+            route_number = message[0]
+            self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number.upper(),))
+            if not len(self.geodata.fetchall()):
+                # Only given an error if it contained a number
+                if re.search('[0-9]', route_number):
+                    raise WhensMyBusException("I couldn't recognise the number you gave me (%s) as a London bus" % route_number)
+                # Else it's most likely the person was saying "Thank you" so just skip replying entirely 
+                else:
+                    logging.debug("@ reply didn't contain a number, skipping")
+                    return []
+                    
+            # In case the user has used lowercase letters, fix that (e.g. d3)
+            route_number = route_number.upper()
+            
+            # Parse the message
+            if len(message) >= 1:
+            
+                # If we have co-ordinates on the Tweet
+                if tweet.coordinates:
+                    logging.debug("Detect geolocation on Tweet, locating stops")
+                     # Twitter gives latitude then longitude, so need to reverse this
+                    position = tweet.coordinates['coordinates'][::-1]
+                    relevant_stops = self.get_stops_by_geolocation(route_number, position)
+                    
+                # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
+                elif tweet.place:
+                    raise WhensMyBusException("The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device")
+                
+                # If there's no geoinformation at all then say so
+                else:
+                    raise WhensMyBusException("Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter")
+            
+            # If we can find stops on this route nearby...
+            if relevant_stops:
+                time_info = self.lookup_stops(relevant_stops, route_number)
+                reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
+            else:
+                raise WhensMyBusException("I couldn't find any bus stops by that name")
+        
+        # Handler for any of the many possible reasons that this could go wrong
+        except WhensMyBusException as exc:
+            reply = "@%s Sorry! %s" % (username, exc.value)
+        
+        # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
+        # Longest stop name is HANWORTH AIR PARK LEISURE CENTRE & LIBRARY = 42 
+        #
+        # Longest stop name (42) + " to " + Longest terminus name (15) + space + 4-digit time + semi-colon = 67 
+        #
+        # So at the moment highest possible length of a single route is 67 and so longest possible Tweet is:
+        # 22 + 67 + 66 = 155 characters
+    
+        if len(reply) > 140:
+            replies = reply.split("; ", 2)
+            replies[0] = "%s..." % replies[0]
+            replies[1] = "@%s ...%s" % (username, replies[1])
+        else:
+            replies = [reply]
+            
+        return replies
+
 
     def get_stops_by_geolocation(self, route_number, position):
         """
