@@ -289,7 +289,7 @@ class WhensMyBus:
                           locations.Stop_Name
                     FROM routes
                     JOIN locations ON routes.Stop_Code_LBSL = locations.Stop_Code_LBSL
-                    WHERE Route='%s' AND Run='%s' AND routes.Virtual_Bus_Stop != 0 
+                    WHERE Route='%s' AND Run='%s' AND routes.Virtual_Bus_Stop = '0' 
                     ORDER BY dist_squared
                     LIMIT 1
                     """ % (easting, easting, northing, northing, route_number, run)
@@ -408,7 +408,6 @@ class WhensMyBus:
         logging.debug("I have %s out of %s hits remaining this hour", status_json['remaining_hits'], status_json['hourly_limit'])
         logging.debug("Next reset time is %s", (status_json['reset_time']))
 
-
 def heading_to_direction(heading):
     """
     Helper function to convert a bus stop's heading (in degrees) to human-readable direction
@@ -421,3 +420,4 @@ def heading_to_direction(heading):
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
+    
