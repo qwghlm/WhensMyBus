@@ -89,13 +89,13 @@ class WhensMyBus:
 
         # Load up the databases - one for the geodata, and one used a generic settings
         dbfilename = 'whensmybus.geodata.db'
-        logging.debug("Opening database %s" % dbfilename)
+        logging.debug("Opening database %s", dbfilename)
         dbs = sqlite3.connect(WHENSMYBUS_HOME + dbfilename)
         dbs.row_factory = sqlite3.Row
         self.geodata = dbs.cursor()
 
         dbfilename = 'whensmybus.settings.db'
-        logging.debug("Opening database %s" % dbfilename)
+        logging.debug("Opening database %s", dbfilename)
         self.settingsdb = sqlite3.connect(WHENSMYBUS_HOME + dbfilename)
         self.settingsdb.row_factory = sqlite3.Row
         self.settings = self.settingsdb.cursor()
@@ -154,8 +154,7 @@ class WhensMyBus:
         for tweet in tweets[::-1]:
             message = tweet.text
             username = tweet.user.screen_name
-            logging.info("Have a message from %s: %s" % (username, message))
-
+            logging.info("Have a message from %s: %s", username, message)
             try:
                 # Ignore mentions that are not direct replies
                 if not message.lower().startswith('@%s' % self.username):
@@ -197,7 +196,7 @@ class WhensMyBus:
                 reply = "@%s Sorry! %s" % (username, exc.value)
             
             # Reply back to the user
-            logging.info("Replying back to user with: %s" % reply)
+            logging.info("Replying back to user with: %s", reply)
             if not self.testing:
                 try:
                     self.api.update_status(status=reply, in_reply_to_status_id=tweet.id)
@@ -227,8 +226,8 @@ class WhensMyBus:
             raise WhensMyBusException("You do not appear to be located in the United Kingdom") # FIXME Narrow down to London?
             
         else:
-            logging.debug("Translated into OS Easting %s, Northing %s" % (easting, northing))
-            logging.debug("Translated into Grid Reference %s" % (gridref))
+            logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
+            logging.debug("Translated into Grid Reference %s", gridref)
 
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route='%s'" % route_number)
         max_runs = int(self.geodata.fetchone()[0])
@@ -253,7 +252,7 @@ class WhensMyBus:
             relevant_stops.append([row[key] for key in ('Stop_Name', 'Sms_Code', 'Run', 'Heading')])
         
         if relevant_stops:
-            logging.debug("Have found stop numbers: %s" % ', '.join([s[1] for s in relevant_stops]))
+            logging.debug("Have found stop numbers: %s", ', '.join([s[1] for s in relevant_stops]))
             return relevant_stops
         else:
             raise WhensMyBusException("I could not find any stops near you")
@@ -280,17 +279,17 @@ class WhensMyBus:
             stop_name = string.capwords(stop_name.strip())
         
             tfl_url = TFL_API_URL % stop_number
-            logging.debug("Getting %s" % tfl_url)
+            logging.debug("Getting %s", tfl_url)
     
             try:
                 response = opener.open(tfl_url)
                 json_data = response.read()
     
             except urllib2.HTTPError, exc:
-                logging.error("HTTP Error %s reading %s, aborting" % (exc.code, tfl_url))
+                logging.error("HTTP Error %s reading %s, aborting", exc.code, tfl_url)
                 raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
             except Exception, exc:
-                logging.error("%s (%s) encountered for %s, aborting" % (exc.__class__.__name__, exc, tfl_url))
+                logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, tfl_url)
                 raise WhensMyBusException("Sorry I can't access TfL's servers right now. Will try later")
     
             if json_data:
@@ -333,7 +332,7 @@ class WhensMyBus:
                         # = 72 maximum
                                         
                 except ValueError, exc:
-                    logging.error("%s encountered when parsing %s - likely not JSON!" % (exc, tfl_url))
+                    logging.error("%s encountered when parsing %s - likely not JSON!", exc, tfl_url)
         
         return time_info
 
@@ -342,8 +341,8 @@ class WhensMyBus:
         Helper function to tell us what our Twitter API hit count & limit is
         """
         status_json = self.api.rate_limit_status()
-        logging.debug("I have %s out of %s hits remaining this hour" % (status_json['remaining_hits'], status_json['hourly_limit']))
-        logging.debug("Next reset time is %s" % (status_json['reset_time']))
+        logging.debug("I have %s out of %s hits remaining this hour", status_json['remaining_hits'], status_json['hourly_limit'])
+        logging.debug("Next reset time is %s", (status_json['reset_time']))
 
 
 def heading_to_direction(heading):
