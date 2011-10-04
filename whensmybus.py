@@ -54,7 +54,9 @@ class WhensMyBusException(Exception):
     Exception we use to signal send an error to the user, nothing out of the ordinary
     """
     def __init__(self, value):
+        super(Exception, self).__init__(value)
         self.value = value
+        
     def __str__(self):
         return repr(self.value)
 
