@@ -375,4 +375,3 @@ def heading_to_direction(heading):
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
-    # Some unit testing should go here maybe?
