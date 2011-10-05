@@ -2,6 +2,8 @@ import unittest
 from whensmybus import WhensMyBus, WhensMyBusException
 import logging
 
+# http://docs.python.org/release/2.6/library/unittest.html
+
 class TestFakeTweet:
     def __init__(self, text):
         self.user = lambda:1
