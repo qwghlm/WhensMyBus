@@ -123,6 +123,11 @@ class WhensMyBus:
         self.settings.execute("create table if not exists whensmybus_settings (setting_name unique, setting_value)")
         self.settingsdb.commit()
 
+        # That which fetches the JSON
+        self.opener = urllib2.build_opener()
+        self.opener.addheaders = [('User-agent', 'When\'s My Bus? v. %s' % VERSION_NUMBER),
+                                  ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
+        
         # OAuth on Twitter
         self.username = config.get('whensmybus','username')
         
@@ -135,11 +140,12 @@ class WhensMyBus:
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(key, secret)        
         self.api = tweepy.API(auth)
-        
+
         # This used to verify credentials, but it used up a valuable API call, so it's now disabled
         # if not self.api.verify_credentials():
             # logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
             # sys.exit(1)
+
     
     def get_setting(self, setting_name):
         """
@@ -189,6 +195,7 @@ class WhensMyBus:
                 replies = self.process_tweet(tweet)
             # Handler for any of the many possible reasons that this could go wrong
             except WhensMyBusException as exc:
+                logging.debug("Exception encountered: %s" % exc.value)
                 replies = ("@%s Sorry! %s" % (tweet.user.screen_name, exc.value),)
 
             if not replies:
@@ -359,10 +366,6 @@ class WhensMyBus:
         that stop(s)
         """
 
-        # That which fetches the JSON
-        opener = urllib2.build_opener()
-        opener.addheaders = [('User-agent', 'When\'s My Bus? v. %s' % VERSION_NUMBER),
-                             ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
         time_info = []
 
         # Values in tuple correspond to what was added in relevant_stops.append() above
@@ -377,7 +380,7 @@ class WhensMyBus:
             logging.debug("Getting %s", tfl_url)
     
             try:
-                response = opener.open(tfl_url)
+                response = self.opener.open(tfl_url)
                 json_data = response.read()
     
             # Handle browsing error
