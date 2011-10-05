@@ -21,31 +21,29 @@ http://www.movable-type.co.uk/scripts/latlong-gridref.html
 Released under the MIT License
 
 TODO
- - Split out Tweet loop to separate function
  - Unit testing
+ - Add lookup by geocoding English
 
 """
-# Standard parts of Python 2.6
+# Standard libraries of Python 2.6
+import ConfigParser
 import json
 import logging
 import logging.handlers as logging_handlers
+import os
 import re
 import sqlite3
 import string
 import sys
-import urllib2
-import ConfigParser
-import os
 import time
+import urllib2
+from pprint import pprint # For debugging
 
-# https://github.com/tweepy/tweepy
+# Tweepy is available https://github.com/tweepy/tweepy
 import tweepy
 
-# From our file geotools.py
+# Functions from our file geotools.py
 from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet
-
-# For debugging
-from pprint import pprint
 
 # command line & test options
 TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
@@ -68,7 +66,7 @@ class WhensMyBus:
     Main class devoted to checking for Tweets and replying to them. Instantiate with no variables
     (all config is done in the file whensmybus.cfg) and then call check_tweets()
     """
-    def __init__(self):
+    def __init__(self, testing=None, silent=False):
 
         try:
             config = ConfigParser.SafeConfigParser({ 'test_mode' : False, 'debug_level' : 'INFO' })
@@ -79,10 +77,15 @@ class WhensMyBus:
 
         # Set up some logging
         if len(logging.getLogger('').handlers) == 0:
-            logging.basicConfig(level=logging.DEBUG, filename='/dev/null')
+            logging.basicConfig(level=logging.DEBUG, filename=os.devnull)
 
             # Set up some basic logging to stdout that shows info or debug level depending on user config
-            console = logging.StreamHandler(sys.stdout)
+            if silent:
+                console_output = open(os.devnull, 'w')
+            else:
+                console_output = sys.stdout
+            
+            console = logging.StreamHandler(console_output)
             console.setLevel(logging.__dict__[config.get('whensmybus', 'debug_level')])
             console.setFormatter(logging.Formatter('%(message)s'))
 
@@ -96,7 +99,12 @@ class WhensMyBus:
             logging.getLogger('').addHandler(rotator)
             logging.debug("Initializing...")
 
-        self.testing = config.get('whensmybus', 'test_mode')
+
+        if testing != None:
+            self.testing = testing
+        else:
+            self.testing = config.get('whensmybus', 'test_mode')
+        
         if self.testing:
             logging.info("In TEST MODE - No Tweets will be made!")
 
@@ -127,9 +135,11 @@ class WhensMyBus:
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(key, secret)        
         self.api = tweepy.API(auth)
-        #if not self.api.verify_credentials():
-            #logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
-            #sys.exit(1)
+        
+        # This used to verify credentials, but it used up a valuable API call, so it's now disabled
+        # if not self.api.verify_credentials():
+            # logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
+            # sys.exit(1)
     
     def get_setting(self, setting_name):
         """
@@ -150,7 +160,6 @@ class WhensMyBus:
         """
         Check Tweets replied to
         """
-    
         # Check For @ reply Tweets
         last_answered_tweet = self.get_setting('last_answered_tweet')
         try:
@@ -176,7 +185,12 @@ class WhensMyBus:
             
         # Alright! Let's get going
         for tweet in tweets:
-            replies = self.process_tweet(tweet)
+            try:
+                replies = self.process_tweet(tweet)
+            # Handler for any of the many possible reasons that this could go wrong
+            except WhensMyBusException as exc:
+                replies = ("@%s Sorry! %s" % (tweet.user.screen_name, exc.value),)
+
             if not replies:
                 continue
             
@@ -207,59 +221,54 @@ class WhensMyBus:
         message = tweet.text
         logging.info("Have a message from %s: %s", username, message)
     
-        try:
-            # Ignore mentions that are not direct replies
-            if not message.lower().startswith('@%s' % self.username):
-                logging.debug("Not a proper @ reply, skipping")
-                return []
-            
-            # Remove username to get the guts of the message, and split on spaces
-            message = message[len('@%s ' % self.username):].strip()
-            message = re.split(' +', message, 2)
-            
-            # Check to see if it's a valid bus number by searching our table of routes
-            route_number = message[0]
-            self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number.upper(),))
-            if not len(self.geodata.fetchall()):
-                # Only given an error if it contained a number
-                if re.search('[0-9]', route_number):
-                    raise WhensMyBusException("I couldn't recognise the number you gave me (%s) as a London bus" % route_number)
-                # Else it's most likely the person was saying "Thank you" so just skip replying entirely 
-                else:
-                    logging.debug("@ reply didn't contain a number, skipping")
-                    return []
-                    
-            # In case the user has used lowercase letters, fix that (e.g. d3)
-            route_number = route_number.upper()
-            
-            # Parse the message
-            if len(message) >= 1:
-            
-                # If we have co-ordinates on the Tweet
-                if tweet.coordinates:
-                    logging.debug("Detect geolocation on Tweet, locating stops")
-                     # Twitter gives latitude then longitude, so need to reverse this
-                    position = tweet.coordinates['coordinates'][::-1]
-                    relevant_stops = self.get_stops_by_geolocation(route_number, position)
-                    
-                # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
-                elif tweet.place:
-                    raise WhensMyBusException("The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device")
-                
-                # If there's no geoinformation at all then say so
-                else:
-                    raise WhensMyBusException("Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter")
-            
-            # If we can find stops on this route nearby...
-            if relevant_stops:
-                time_info = self.lookup_stops(relevant_stops, route_number)
-                reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
-            else:
-                raise WhensMyBusException("I couldn't find any bus stops by that name")
+        # Ignore mentions that are not direct replies
+        if not message.lower().startswith('@%s' % self.username):
+            logging.debug("Not a proper @ reply, skipping")
+            return ()
         
-        # Handler for any of the many possible reasons that this could go wrong
-        except WhensMyBusException as exc:
-            reply = "@%s Sorry! %s" % (username, exc.value)
+        # Remove username to get the guts of the message, and split on spaces
+        message = message[len('@%s ' % self.username):].strip()
+        message = re.split(' +', message, 2)
+        
+        # Check to see if it's a valid bus number by searching our table of routes
+        route_number = message[0]
+        self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number.upper(),))
+        if not len(self.geodata.fetchall()):
+            # Only given an error if it contained a number
+            if re.search('[0-9]', route_number):
+                raise WhensMyBusException("I couldn't recognise the number you gave me (%s) as a London bus" % route_number)
+            # Else it's most likely the person was saying "Thank you" so just skip replying entirely 
+            else:
+                logging.debug("@ reply didn't contain a number, skipping")
+                return ()
+                
+        # In case the user has used lowercase letters, fix that (e.g. d3)
+        route_number = route_number.upper()
+        
+        # Parse the message
+        if len(message) >= 1:
+        
+            # If we have co-ordinates on the Tweet
+            if tweet.coordinates:
+                logging.debug("Detect geolocation on Tweet, locating stops")
+                 # Twitter gives latitude then longitude, so need to reverse this
+                position = tweet.coordinates['coordinates'][::-1]
+                relevant_stops = self.get_stops_by_geolocation(route_number, position)
+                
+            # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
+            elif tweet.place:
+                raise WhensMyBusException("The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device")
+            
+            # If there's no geoinformation at all then say so
+            else:
+                raise WhensMyBusException("Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter")
+        
+        # If we can find stops on this route nearby...
+        if relevant_stops:
+            time_info = self.lookup_stops(relevant_stops, route_number)
+            reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
+        else:
+            raise WhensMyBusException("I couldn't find any bus stops by that name")
         
         # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
         # Longest stop name is HANWORTH AIR PARK LEISURE CENTRE & LIBRARY = 42 
@@ -274,9 +283,9 @@ class WhensMyBus:
             replies[0] = "%s..." % replies[0]
             replies[1] = "@%s ...%s" % (username, replies[1])
         else:
-            replies = [reply]
+            replies = (reply,)
             
-        return replies
+        return tuple(replies)
 
 
     def get_stops_by_geolocation(self, route_number, position):
@@ -310,7 +319,7 @@ class WhensMyBus:
         relevant_stops = []
         for run in range(1, max_runs+1):
         
-            # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of hypotenuse in sqlite
+            # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
             # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
             # and find the first row
             #
