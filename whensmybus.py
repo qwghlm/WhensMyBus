@@ -69,10 +69,11 @@ class WhensMyBus:
     def __init__(self, testing=None, silent=False):
 
         try:
+            open(WHENSMYBUS_HOME + 'whensmybus.cfg')
             config = ConfigParser.SafeConfigParser({ 'test_mode' : False, 'debug_level' : 'INFO' })
             config.read(WHENSMYBUS_HOME + 'whensmybus.cfg')
-        except ConfigParser.Error:
-            print "Can't find a config file! Please make sure there is a whensmybus.cfg file in this directory"
+        except (ConfigParser.Error, IOError):
+            print "Fatal error: can't find a valid config file. Please make sure there is a whensmybus.cfg file in this directory"
             sys.exit(1)
 
         # Set up some logging
@@ -109,17 +110,8 @@ class WhensMyBus:
             logging.info("In TEST MODE - No Tweets will be made!")
 
         # Load up the databases - one for the geodata, and one used a generic settings
-        dbfilename = 'whensmybus.geodata.db'
-        logging.debug("Opening database %s", dbfilename)
-        dbs = sqlite3.connect(WHENSMYBUS_HOME + 'db/' + dbfilename)
-        dbs.row_factory = sqlite3.Row
-        self.geodata = dbs.cursor()
-
-        dbfilename = 'whensmybus.settings.db'
-        logging.debug("Opening database %s", dbfilename)
-        self.settingsdb = sqlite3.connect(WHENSMYBUS_HOME + 'db/' + dbfilename)
-        self.settingsdb.row_factory = sqlite3.Row
-        self.settings = self.settingsdb.cursor()
+        (_notused, self.geodata) = load_database('whensmybus.geodata.db')
+        (self.settingsdb, self.settings) = load_database('whensmybus.settings.db')
         self.settings.execute("create table if not exists whensmybus_settings (setting_name unique, setting_value)")
         self.settingsdb.commit()
 
@@ -444,6 +436,16 @@ class WhensMyBus:
         logging.debug("I have %s out of %s hits remaining this hour", status_json['remaining_hits'], status_json['hourly_limit'])
         logging.debug("Next reset time is %s", (status_json['reset_time']))
 
+
+def load_database(dbfilename):
+    """
+    Helper function to load a database and return links to it and its cursor
+    """
+    logging.debug("Opening database %s", dbfilename)
+    dbs = sqlite3.connect(WHENSMYBUS_HOME + 'db/' + dbfilename)
+    dbs.row_factory = sqlite3.Row
+    return (dbs, dbs.cursor())
+    
 def heading_to_direction(heading):
     """
     Helper function to convert a bus stop's heading (in degrees) to human-readable direction
