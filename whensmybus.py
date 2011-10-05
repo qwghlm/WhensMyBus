@@ -111,13 +111,13 @@ class WhensMyBus:
         # Load up the databases - one for the geodata, and one used a generic settings
         dbfilename = 'whensmybus.geodata.db'
         logging.debug("Opening database %s", dbfilename)
-        dbs = sqlite3.connect(WHENSMYBUS_HOME + dbfilename)
+        dbs = sqlite3.connect(WHENSMYBUS_HOME + 'db/' + dbfilename)
         dbs.row_factory = sqlite3.Row
         self.geodata = dbs.cursor()
 
         dbfilename = 'whensmybus.settings.db'
         logging.debug("Opening database %s", dbfilename)
-        self.settingsdb = sqlite3.connect(WHENSMYBUS_HOME + dbfilename)
+        self.settingsdb = sqlite3.connect(WHENSMYBUS_HOME + 'db/' + dbfilename)
         self.settingsdb.row_factory = sqlite3.Row
         self.settings = self.settingsdb.cursor()
         self.settings.execute("create table if not exists whensmybus_settings (setting_name unique, setting_value)")
