@@ -2,11 +2,11 @@
 """
 A set of unit tests for When's My Bus?
 
-IMPORTANT: Requires Python 2.7, even though When's My Bus will happily run in Python 2.6
+IMPORTANT: These unit tests require Python 2.7, even though When's My Bus will happily run in Python 2.6
 """
 import sys
 if sys.version_info < (2, 7):
-    print "Sorry. While WhensMyBus can be run under Python 2.6, this unit testing script requires the unittest libraries in Python 2.7. Please upgrade!"
+    print "Sorry. While WhensMyBus can be run under Python 2.6, this unit testing script requires the more extensive unittest libraries in Python 2.7. Please upgrade!"
     sys.exit(1)    
 
 from whensmybus import WhensMyBus, WhensMyBusException
@@ -16,17 +16,13 @@ import re
 import unittest
 from pprint import pprint
     
-DEFAULT_TEST_TWEETS = ('@whensmybus 15',
-                       '@whensmybus   D3  ',
-                       '@whensmybus   15  #hashtag ',)
-
 class FakeTweet:
     """
     Fake Tweet object to simulate tweepy's Tweet object being passed to various functions
     """
-    def __init__(self, text, longitude=None, latitude=None, place={}):
+    def __init__(self, text, longitude=None, latitude=None, place={}, username='testuser'):
         self.user = lambda:1
-        self.user.screen_name = 'testuser'
+        self.user.screen_name = username
         self.text = text
         self.place = place
         self.coordinates = {}
@@ -43,6 +39,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         Setup test
         """
         self.wmb = WhensMyBus(testing=True, silent=True)
+        self.test_tweets = (('@%s %s', '15'),
+                            ('@%s   %s,  ', 'd3'),
+                            ('@%s   %s  #hashtag ', '115'),)
         
     def tearDown(self):
         """
@@ -90,14 +89,21 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         Test to confirm we are ignoring Tweets that are just mentions and not replies
         """
-        tweet = FakeTweet('Hello @whensmybus')
+        tweet = FakeTweet('Hello @%s' % self.wmb.username)
+        self.assertFalse(self.wmb.process_tweet(tweet))
+
+    def test_talking_to_myself(self):
+        """
+        Test to confirm we are ignoring Tweets from the bot itself
+        """
+        tweet = FakeTweet('@%s 15' % self.wmb.username, username=self.wmb.username)
         self.assertFalse(self.wmb.process_tweet(tweet))
 
     def test_no_bus_number(self):
         """
         Test to confirm we are ignoring Tweets that do not have bus numbers in them
         """
-        tweet = FakeTweet('@whensmybus Thanks!')
+        tweet = FakeTweet('@%s Thanks!' % self.wmb.username)
         self.assertFalse(self.wmb.process_tweet(tweet))
 
     def _test_correct_exception_produced(self, tweet, exception_id, *string_params):
@@ -113,50 +119,49 @@ class WhensMyBusTestCase(unittest.TestCase):
 
         
     def test_blank_tweet(self):
-        for text in ('@whensmybus',
-                     '@whensmybus ',
-                     '@whensmybus         ',):
+        for text in ('@%s' % self.wmb.username,
+                     '@%s ' % self.wmb.username,
+                     '@%s         ' % self.wmb.username,):
             tweet = FakeTweet(text)
             self._test_correct_exception_produced(tweet, 'blank_tweet')
 
     def test_nonexistent_bus(self):
-        for text in ('@whensmybus 218',
-                     '@whensmybus    218',
-                     '@whensmybus    218   #hashtag',):
+        for text in ('@%s 218' % self.wmb.username,
+                     '@%s    218' % self.wmb.username,
+                     '@%s    218   #hashtag' % self.wmb.username,):
             tweet = FakeTweet(text)
             self._test_correct_exception_produced(tweet, 'nonexistent_bus', '218')
 
     def test_no_geotag(self):
-        for text in DEFAULT_TEST_TWEETS:
-            tweet = FakeTweet(text)
+        for (text, route) in self.test_tweets:
+            tweet = FakeTweet(text % (self.wmb.username, route))
             self._test_correct_exception_produced(tweet, 'no_geotag')
 
     def test_placeinfo_only(self):
-        for text in DEFAULT_TEST_TWEETS:
-            tweet = FakeTweet(text, place='foo')
+        for (text, route) in self.test_tweets:
+            tweet = FakeTweet(text % (self.wmb.username, route), place='foo')
             self._test_correct_exception_produced(tweet, 'placeinfo_only')
             
     def test_not_in_uk(self):
-        for text in DEFAULT_TEST_TWEETS:
-            tweet = FakeTweet(text, -73.985656, 40.748433) # Empire State Building, New York
+        for (text, route) in self.test_tweets:
+            tweet = FakeTweet(text % (self.wmb.username, route), -73.985656, 40.748433) # Empire State Building, New York
             self._test_correct_exception_produced(tweet, 'not_in_uk')
 
     def test_not_in_london(self):
-        for text in DEFAULT_TEST_TWEETS:
-            tweet = FakeTweet(text, -3.200833, 55.948611) # Edinburgh Castle, Edinburgh
+        for (text, route) in self.test_tweets:
+            tweet = FakeTweet(text % (self.wmb.username, route), -3.200833, 55.948611) # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
 
     def test_in_london_with_geotag(self):
-        for text in DEFAULT_TEST_TWEETS:
-            tweet = FakeTweet(text, -0.0397, 51.5124) # Limehouse Station, London
+        for (text, route) in self.test_tweets:
+            tweet = FakeTweet(text % (self.wmb.username, route), -0.0397, 51.5124) # Limehouse Station, London
             result = self.wmb.process_tweet(tweet)[0]
 
             for unwanted in ('LIMEHOUSE STATION', '<>', '#', '\[DLR\]', '>T<'):                
                 self.assertNotRegexpMatches(result, unwanted)
 
-            # Match username, number, stop name and either a destination & time or "None shown"
             self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
-            self.assertRegexpMatches(result, re.split(' +', text)[1])
+            self.assertRegexpMatches(result, route.upper())
             self.assertRegexpMatches(result, '(Limehouse Station to .* [0-9]{4}|None shown going)')
 
 if __name__ == "__main__":
@@ -175,6 +180,7 @@ if __name__ == "__main__":
     
     # If we pass, then run tests on individual functionality
     if not results or not (results.failures + results.errors):
-        main_tests = ('mention','no_bus_number','blank_tweet','nonexistent_bus','no_geotag','placeinfo_only','not_in_uk','not_in_london','in_london_with_geotag')
+        main_tests = ('talking_to_myself','mention','no_bus_number','blank_tweet','nonexistent_bus','no_geotag',
+                      'placeinfo_only','not_in_uk','not_in_london','in_london_with_geotag')
         suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in main_tests]))
         results = unittest.TextTestRunner(verbosity=1).run(suite)
