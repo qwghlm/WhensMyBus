@@ -50,11 +50,34 @@ TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
 VERSION_NUMBER = 0.10
 WHENSMYBUS_HOME = os.path.split(sys.argv[0])[0] + '/'
 
+
 class WhensMyBusException(Exception):
     """
-    Exception we use to signal send an error to the user, nothing out of the ordinary
+    Exception we use to signal send an error to the user
     """
-    def __init__(self, value):
+    
+    # Possible id => message pairings, so we can use a shortcode to summon a much more explanatory message
+    # Why do we not just send the full string as a parameter to the Exception? Mainly so we can unit test (see testing.py)
+    # but also as it saves duplicating string for similar errors (e.g. when TfL service is down)
+
+    exception_values = {
+            'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
+            'placeinfo_only'  : "The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device",
+            'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter",
+            'stop_not_found'  : "I couldn't find any bus stops by that name",
+            'not_in_uk'       : "You do not appear to be located in the United Kingdom",
+            'not_in_london'   : "You do not appear to be located in the London Buses area",
+            'no_stops_nearby' : "I could not find any stops near you",
+            'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
+    }
+
+    def __init__(self, msgid, *string_params):
+        """
+        Fetch a message with the ID from the dictionary above
+        String formatting params optional, only needed if there is C string formatting in the error message
+        e.g. WhensMyBusException('nonexistent_bus', '214')
+        """
+        value = WhensMyBusException.exception_values.get(msgid, '') % string_params
         super(WhensMyBusException, self).__init__(value)
         self.value = value[:115]
         
@@ -187,7 +210,7 @@ class WhensMyBus:
                 replies = self.process_tweet(tweet)
             # Handler for any of the many possible reasons that this could go wrong
             except WhensMyBusException as exc:
-                logging.debug("Exception encountered: %s" % exc.value)
+                logging.debug("Exception encountered: %s" , exc.value)
                 replies = ("@%s Sorry! %s" % (tweet.user.screen_name, exc.value),)
 
             if not replies:
@@ -235,7 +258,7 @@ class WhensMyBus:
         if not len(self.geodata.fetchall()):
             # Only given an error if it contained a number
             if re.search('[0-9]', route_number):
-                raise WhensMyBusException("I couldn't recognise the number you gave me (%s) as a London bus" % route_number)
+                raise WhensMyBusException('nonexistent_bus', route_number)
             # Else it's most likely the person was saying "Thank you" so just skip replying entirely 
             else:
                 logging.debug("@ reply didn't contain a number, skipping")
@@ -256,18 +279,18 @@ class WhensMyBus:
                 
             # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
             elif tweet.place:
-                raise WhensMyBusException("The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device")
+                raise WhensMyBusException('placeinfo_only')
             
             # If there's no geoinformation at all then say so
             else:
-                raise WhensMyBusException("Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter")
+                raise WhensMyBusException('no_geotag')
         
         # If we can find stops on this route nearby...
         if relevant_stops:
             time_info = self.lookup_stops(relevant_stops, route_number)
             reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
         else:
-            raise WhensMyBusException("I couldn't find any bus stops by that name")
+            raise WhensMyBusException('stop_not_found')
         
         # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
         # Longest stop name is HANWORTH AIR PARK LEISURE CENTRE & LIBRARY = 42 
@@ -303,10 +326,10 @@ class WhensMyBus:
         
         # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
         if not gridref:
-            raise WhensMyBusException("You do not appear to be located in the United Kingdom")
+            raise WhensMyBusException('not_in_uk')
         # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough
         elif gridref[:2] not in ('TQ', 'TL', 'SU'):
-            raise WhensMyBusException("You do not appear to be located in the London Buses area")            
+            raise WhensMyBusException('not_in_london')            
         else:
             logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
             logging.debug("Translated into Grid Reference %s", gridref)
@@ -349,7 +372,7 @@ class WhensMyBus:
         else:
             # This may well never be raised - there will always be a nearest stop on a route for someone, even
             # if it is 1000km away
-            raise WhensMyBusException("I could not find any stops near you")
+            raise WhensMyBusException('no_stops_nearby')
             
     def lookup_stops(self, relevant_stops, route_number):
         """
@@ -378,10 +401,10 @@ class WhensMyBus:
             # Handle browsing error
             except urllib2.HTTPError, exc:
                 logging.error("HTTP Error %s reading %s, aborting", exc.code, tfl_url)
-                raise WhensMyBusException("I can't access TfL's servers right now - they appear to be down :(")
+                raise WhensMyBusException('tfl_server_down')
             except Exception, exc:
                 logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, tfl_url)
-                raise WhensMyBusException("I can't access TfL's servers right now - they appear to be down :(")
+                raise WhensMyBusException('tfl_server_down')
     
             # Try to parse this as JSON
             if json_data:
@@ -392,7 +415,7 @@ class WhensMyBus:
                     if not arrivals:
                         # Handle TfL's JSON-encoded error message
                         if bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
-                            raise WhensMyBusException("I can't access TfL's servers right now - they appear to be down :(")
+                            raise WhensMyBusException('tfl_server_down')
                         else:
                             logging.error("No arrival data for this stop right now")
                     else:
@@ -419,7 +442,7 @@ class WhensMyBus:
                 # Probably a 503 Error message in HTML if the JSON parser is choking and raises a ValueError
                 except ValueError, exc:
                     logging.error("%s encountered when parsing %s - likely not JSON!", exc, tfl_url)
-                    raise WhensMyBusException("I can't access TfL's servers right now - they appear to be down :(")        
+                    raise WhensMyBusException('tfl_server_down')        
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
         if len(time_info) > 2:
