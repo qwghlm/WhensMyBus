@@ -14,17 +14,25 @@ from whensmybus import WhensMyBus, WhensMyBusException
 import argparse
 import re
 import unittest
+from pprint import pprint
+    
+DEFAULT_TEST_TWEETS = ('@whensmybus 15',
+                       '@whensmybus   D3  ',
+                       '@whensmybus   15  #hashtag ',)
 
 class FakeTweet:
     """
     Fake Tweet object to simulate tweepy's Tweet object being passed to various functions
     """
-    def __init__(self, text, longitude=None, latitude=None, place=None):
+    def __init__(self, text, longitude=None, latitude=None, place={}):
         self.user = lambda:1
         self.user.screen_name = 'testuser'
         self.text = text
         self.place = place
-        self.coordinates = None
+        self.coordinates = {}
+        if longitude and latitude:
+            self.coordinates['coordinates'] = [longitude,latitude]
+        
 
 class WhensMyBusTestCase(unittest.TestCase):
     """
@@ -102,6 +110,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         
         # Match the expected Exception message against the actual Exception raised when we try to process Tweet
         self.assertRaisesRegexp(WhensMyBusException, expected_error, self.wmb.process_tweet, tweet)    
+
         
     def test_blank_tweet(self):
         for text in ('@whensmybus',
@@ -109,7 +118,6 @@ class WhensMyBusTestCase(unittest.TestCase):
                      '@whensmybus         ',):
             tweet = FakeTweet(text)
             self._test_correct_exception_produced(tweet, 'blank_tweet')
-
 
     def test_nonexistent_bus(self):
         for text in ('@whensmybus 218',
@@ -119,13 +127,37 @@ class WhensMyBusTestCase(unittest.TestCase):
             self._test_correct_exception_produced(tweet, 'nonexistent_bus', '218')
 
     def test_no_geotag(self):
-        for text in ('@whensmybus 15',
-                     '@whensmybus   15  ',):
+        for text in DEFAULT_TEST_TWEETS:
             tweet = FakeTweet(text)
             self._test_correct_exception_produced(tweet, 'no_geotag')
-    
-# @whensmybus  15
-# @whensmybus 15 #hashtag
+
+    def test_placeinfo_only(self):
+        for text in DEFAULT_TEST_TWEETS:
+            tweet = FakeTweet(text, place='foo')
+            self._test_correct_exception_produced(tweet, 'placeinfo_only')
+            
+    def test_not_in_uk(self):
+        for text in DEFAULT_TEST_TWEETS:
+            tweet = FakeTweet(text, -73.985656, 40.748433) # Empire State Building, New York
+            self._test_correct_exception_produced(tweet, 'not_in_uk')
+
+    def test_not_in_london(self):
+        for text in DEFAULT_TEST_TWEETS:
+            tweet = FakeTweet(text, -3.200833, 55.948611) # Edinburgh Castle, Edinburgh
+            self._test_correct_exception_produced(tweet, 'not_in_london')
+
+    def test_in_london_with_geotag(self):
+        for text in DEFAULT_TEST_TWEETS:
+            tweet = FakeTweet(text, -0.0397, 51.5124) # Limehouse Station, London
+            result = self.wmb.process_tweet(tweet)[0]
+
+            for unwanted in ('LIMEHOUSE STATION', '<>', '#', '\[DLR\]', '>T<'):                
+                self.assertNotRegexpMatches(result, unwanted)
+
+            # Match username, number, stop name and either a destination & time or "None shown"
+            self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
+            self.assertRegexpMatches(result, re.split(' +', text)[1])
+            self.assertRegexpMatches(result, '(Limehouse Station to .* [0-9]{4}|None shown going)')
 
 if __name__ == "__main__":
 
@@ -143,6 +175,6 @@ if __name__ == "__main__":
     
     # If we pass, then run tests on individual functionality
     if not results or not (results.failures + results.errors):
-        main_tests = ('mention','no_bus_number','blank_tweet','nonexistent_bus','no_geotag')
+        main_tests = ('mention','no_bus_number','blank_tweet','nonexistent_bus','no_geotag','placeinfo_only','not_in_uk','not_in_london','in_london_with_geotag')
         suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in main_tests]))
         results = unittest.TextTestRunner(verbosity=1).run(suite)
