@@ -80,6 +80,7 @@ class WhensMyBusException(Exception):
         """
         value = WhensMyBusException.exception_values.get(msgid, '') % string_params
         super(WhensMyBusException, self).__init__(value)
+        logging.debug("Application exception encountered: %s" % value)
         self.value = value[:115]
         
     def __str__(self):
