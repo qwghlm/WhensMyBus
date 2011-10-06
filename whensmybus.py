@@ -117,14 +117,13 @@ class WhensMyBus:
 
             # Set up some proper logging to file that catches debugs
             logfile = os.path.abspath(WHENSMYBUS_HOME + 'logs/whensmybus.log')
-            rotator = logging_handlers.TimedRotatingFileHandler(logfile, 'D', 1)
+            rotator = logging_handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
             rotator.setLevel(logging.DEBUG)
             rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
 
             logging.getLogger('').addHandler(console)
             logging.getLogger('').addHandler(rotator)
             logging.debug("Initializing...")
-
 
         if testing != None:
             self.testing = testing
@@ -244,6 +243,11 @@ class WhensMyBus:
         username = tweet.user.screen_name
         message = tweet.text
         logging.info("Have a message from %s: %s", username, message)
+
+        # Don't start talking to yourself
+        if username == self.username:
+            logging.debug("Not talking to myself, that way madness lies")
+            return ()
     
         # Ignore mentions that are not direct replies
         if not message.lower().startswith('@%s' % self.username):
@@ -256,24 +260,23 @@ class WhensMyBus:
             raise WhensMyBusException('blank_tweet')
         message = re.split(' +', message, 2)
         
-        # Check to see if it's a valid bus number by searching our table of routes
-        route_number = message[0]
-        self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number.upper(),))
-        if not len(self.geodata.fetchall()):
-            # Only given an error if it contained a number
-            if re.search('[0-9]', route_number):
-                raise WhensMyBusException('nonexistent_bus', route_number)
-            # Else it's most likely the person was saying "Thank you" so just skip replying entirely 
-            else:
-                logging.debug("@ reply didn't contain a number, skipping")
-                return ()
-                
+        # Extract a route number out of the first word by using the regexp for a London bus
+        match = re.match('^[A-Z]{0,2}[0-9]{1,3}', message[0], re.I)
+        # If we can't find a number, it's most likely the person was saying "Thank you" so just skip replying entirely 
+        if match == None:
+            logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
+            return ()
+            
         # In case the user has used lowercase letters, fix that (e.g. d3)
-        route_number = route_number.upper()
+        route_number = match.group(0).upper()
+
+        # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
+        self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number,))
+        if not len(self.geodata.fetchall()):
+            raise WhensMyBusException('nonexistent_bus', route_number)
         
         # Parse the message
         if len(message) >= 1:
-        
             # If we have co-ordinates on the Tweet
             if tweet.coordinates:
                 logging.debug("Detect geolocation on Tweet, locating stops")
