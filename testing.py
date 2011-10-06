@@ -10,6 +10,8 @@ if sys.version_info < (2, 7):
     sys.exit(1)    
 
 from whensmybus import WhensMyBus, WhensMyBusException
+
+import argparse
 import re
 import unittest
 
@@ -101,26 +103,46 @@ class WhensMyBusTestCase(unittest.TestCase):
         # Match the expected Exception message against the actual Exception raised when we try to process Tweet
         self.assertRaisesRegexp(WhensMyBusException, expected_error, self.wmb.process_tweet, tweet)    
         
+    def test_blank_tweet(self):
+        for text in ('@whensmybus',
+                     '@whensmybus ',
+                     '@whensmybus         ',):
+            tweet = FakeTweet(text)
+            self._test_correct_exception_produced(tweet, 'blank_tweet')
+
+
     def test_nonexistent_bus(self):
-        tweet = FakeTweet('@whensmybus 218')
-        self._test_correct_exception_produced(tweet, 'nonexistent_bus', '218')
-        
+        for text in ('@whensmybus 218',
+                     '@whensmybus    218',
+                     '@whensmybus    218   #hashtag',):
+            tweet = FakeTweet(text)
+            self._test_correct_exception_produced(tweet, 'nonexistent_bus', '218')
+
     def test_no_geotag(self):
-        tweet = FakeTweet('@whensmybus 15')
-        self._test_correct_exception_produced(tweet, 'no_geotag')
+        for text in ('@whensmybus 15',
+                     '@whensmybus   15  ',):
+            tweet = FakeTweet(text)
+            self._test_correct_exception_produced(tweet, 'no_geotag')
     
-   
-# @whensmybus 15
 # @whensmybus  15
 # @whensmybus 15 #hashtag
 
-# Run tests initially on most crucial elements
-init_tests = ('init', 'oauth', 'database')
-suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in init_tests]))
-results = unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
+if __name__ == "__main__":
 
-# If we pass, then run tests on individual functionality
-if not (results.failures + results.errors):
-    main_tests = ('mention','no_bus_number','nonexistent_bus','no_geotag')
-    suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in main_tests]))
-    results = unittest.TextTestRunner(verbosity=1).run(suite)
+    parser = argparse.ArgumentParser("Unit testing for When's My Bus?")
+    parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
+    dologin = parser.parse_args().dologin
+    
+    if dologin:
+        # Run tests initially on most crucial elements
+        init_tests = ('init', 'oauth', 'database')
+        suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in init_tests]))
+        results = unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
+    else:
+        results = []
+    
+    # If we pass, then run tests on individual functionality
+    if not results or not (results.failures + results.errors):
+        main_tests = ('mention','no_bus_number','blank_tweet','nonexistent_bus','no_geotag')
+        suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in main_tests]))
+        results = unittest.TextTestRunner(verbosity=1).run(suite)

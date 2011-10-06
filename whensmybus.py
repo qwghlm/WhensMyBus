@@ -61,14 +61,15 @@ class WhensMyBusException(Exception):
     # but also as it saves duplicating string for similar errors (e.g. when TfL service is down)
 
     exception_values = {
-            'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
-            'placeinfo_only'  : "The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device",
-            'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you're using a GPS-equipped device and enable geolocation for Twitter",
-            'stop_not_found'  : "I couldn't find any bus stops by that name",
-            'not_in_uk'       : "You do not appear to be located in the United Kingdom",
-            'not_in_london'   : "You do not appear to be located in the London Buses area",
-            'no_stops_nearby' : "I could not find any stops near you",
-            'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
+        'blank_tweet'     : "I need to have a bus number in order to find the times for it",
+        'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
+        'placeinfo_only'  : "The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device",
+        'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you're using a GPS-enabled device & location is enabled on your Tweet",
+        'stop_not_found'  : "I couldn't find any bus stops by that name",
+        'not_in_uk'       : "You do not appear to be located in the United Kingdom",
+        'not_in_london'   : "You do not appear to be located in the London Buses area",
+        'no_stops_nearby' : "I could not find any stops near you",
+        'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
     }
 
     def __init__(self, msgid, *string_params):
@@ -250,6 +251,8 @@ class WhensMyBus:
         
         # Remove username to get the guts of the message, and split on spaces
         message = message[len('@%s ' % self.username):].strip()
+        if not message:
+            raise WhensMyBusException('blank_tweet')
         message = re.split(' +', message, 2)
         
         # Check to see if it's a valid bus number by searching our table of routes
