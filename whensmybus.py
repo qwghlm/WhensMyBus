@@ -65,6 +65,8 @@ class WhensMyBusException(Exception):
         'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
         'placeinfo_only'  : "The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device",
         'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you're using a GPS-enabled device & location is enabled on your Tweet",
+        'bad_stop_id'     : "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
+        'stop_id_mismatch': "That bus (%s) does not appear to stop at that stop (%s)",
         'stop_not_found'  : "I couldn't find any bus stops by that name",
         'not_in_uk'       : "You do not appear to be located in the United Kingdom",
         'not_in_london'   : "You do not appear to be located in the London Buses area",
@@ -248,39 +250,23 @@ class WhensMyBus:
         if username == self.username:
             logging.debug("Not talking to myself, that way madness lies")
             return ()
-    
-        # Ignore mentions that are not direct replies
-        if not message.lower().startswith('@%s' % self.username):
-            logging.debug("Not a proper @ reply, skipping")
-            return ()
-        
-        # Remove username to get the guts of the message, and split on spaces
-        message = message[len('@%s ' % self.username):].strip()
-        if not message:
-            raise WhensMyBusException('blank_tweet')
-        message = re.split(' +', message, 2)
-        
-        # Extract a route number out of the first word by using the regexp for a London bus
-        match = re.match('^[A-Z]{0,2}[0-9]{1,3}', message[0], re.I)
-        # If we can't find a number, it's most likely the person was saying "Thank you" so just skip replying entirely 
-        if match == None:
-            logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
+            
+        # Get route number, from and to from the message
+        (route_number, origin, destination) = self.parse_message(message)
+        # If no number found at all, just skip
+        if route_number == None:
             return ()
             
-        # In case the user has used lowercase letters, fix that (e.g. d3)
-        route_number = match.group(0).upper()
-
         # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
         self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number,))
         if not len(self.geodata.fetchall()):
             raise WhensMyBusException('nonexistent_bus', route_number)
-        
-        # Parse the message
-        if len(message) >= 1:
-            # If we have co-ordinates on the Tweet
+
+        # If no origin specified, let's see if we have co-ordinates on the Tweet
+        if origin == None:
             if tweet.coordinates:
                 logging.debug("Detect geolocation on Tweet, locating stops")
-                 # Twitter gives latitude then longitude, so need to reverse this
+                # Twitter gives latitude then longitude, so need to reverse this
                 position = tweet.coordinates['coordinates'][::-1]
                 relevant_stops = self.get_stops_by_geolocation(route_number, position)
                 
@@ -292,11 +278,36 @@ class WhensMyBus:
             else:
                 raise WhensMyBusException('no_geotag')
         
-        # If we can find stops on this route nearby...
+        else:
+            # Try to see if origin is a bus stop ID
+            match = re.match('^[0-9]{5}$', origin)
+            if match:
+                # Pull the ID out of the locations database and see if it exists
+                stop_number = match.group(0)
+                self.geodata.execute("SELECT * FROM locations WHERE Sms_Code=?", (stop_number,))
+                location = self.geodata.fetchone()
+
+                if location:
+                    # Check that the stop with that ID is on the route that we want
+                    self.geodata.execute("SELECT * FROM routes WHERE Stop_Code_LBSL=? AND Route=?", (location['Stop_Code_LBSL'], route_number))
+                    route = self.geodata.fetchone()
+                    # If so then let's get the name, location, run & heading for that route
+                    if route:
+                        relevant_stops = ([location['Stop_Name'], location['Sms_Code'], route['Run'], location['Heading']],)
+                    else:
+                        raise WhensMyBusException('stop_id_mismatch', route_number, stop_number)
+                else:
+                    raise WhensMyBusException('bad_stop_id', stop_number)
+            else:
+                # Eventually geolocation code would go here
+                raise WhensMyBusException('bad_stop_id', origin)
+        
+        # If the above has found stops on this route
         if relevant_stops:
             time_info = self.lookup_stops(relevant_stops, route_number)
             reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
         else:
+            # This exception may never be raised
             raise WhensMyBusException('stop_not_found')
         
         # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
@@ -316,6 +327,40 @@ class WhensMyBus:
             
         return tuple(replies)
 
+    # Parse a message, but do not attempt to attain semantic meaning behind data
+    def parse_message(self, message):
+
+        # Ignore mentions that are not direct replies
+        if not message.lower().startswith('@%s' % self.username.lower()):
+            logging.debug("Not a proper @ reply, skipping")
+            return (None, None, None)
+        
+        # Remove hashtags
+        message = re.sub(' +#\w+ ?', '', message)
+        
+        # Remove @username
+        message = message[len('@%s ' % self.username):].strip()
+        if not message:
+            raise WhensMyBusException('blank_tweet')
+
+        tokens = re.split(' +from +', message, 2)
+
+        # Extract a route number out of the first word by using the regexp for a London bus
+        match = re.match('^[A-Z]{0,2}[0-9]{1,3}', tokens[0], re.I)
+        # If we can't find a number, it's most likely the person was saying "Thank you" so just skip replying entirely 
+        if match == None:
+            logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
+            return (None, None, None)
+        
+        # In case the user has used lowercase letters, fix that (e.g. d3)
+        route_number = match.group(0).upper()
+            
+        # Return parsed tokens
+        if len(tokens) == 1:
+            return (route_number, None, None)
+        else:    
+            return (route_number, tokens[1], None)
+            
 
     def get_stops_by_geolocation(self, route_number, position):
         """
@@ -356,9 +401,9 @@ class WhensMyBus:
             # TfL's "Virtual_Bus_Stop" (used for providing waypoints that buses don't stop at)
             query = """
                     SELECT (locations.Location_Easting - %d)*(locations.Location_Easting - %d) + (locations.Location_Northing - %d)*(locations.Location_Northing - %d) AS dist_squared,
-                          Run,
+                          routes.Run,
                           locations.Heading,
-                          Sms_Code,
+                          locations.Sms_Code,
                           locations.Stop_Name
                     FROM routes
                     JOIN locations ON routes.Stop_Code_LBSL = locations.Stop_Code_LBSL

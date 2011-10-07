@@ -43,6 +43,8 @@ class WhensMyBusTestCase(unittest.TestCase):
                             ('@%s   %s,  ', 'd3'),
                             ('@%s   %s  #hashtag ', '115'),)
         
+        self.test_untagged_tweets = (('@%s %s from 52240', '277'),)
+        
     def tearDown(self):
         """
         Tear down test
@@ -152,6 +154,17 @@ class WhensMyBusTestCase(unittest.TestCase):
             tweet = FakeTweet(text % (self.wmb.username, route), -3.200833, 55.948611) # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
 
+    def test_bad_stop_id(self):
+        tweet = FakeTweet('@%s 15 from 00000' % (self.wmb.username,)) 
+        self._test_correct_exception_produced(tweet, 'bad_stop_id', '00000') # Stop IDs begin at 47000
+        
+        tweet = FakeTweet('@%s 15 from Limehouse' % (self.wmb.username,)) 
+        self._test_correct_exception_produced(tweet, 'bad_stop_id', 'Limehouse') # We can't yet recognise placenames
+
+    def test_stop_id_mismatch(self):
+        tweet = FakeTweet('@%s 15 from 52240' % (self.wmb.username,)) 
+        self._test_correct_exception_produced(tweet, 'stop_id_mismatch', '15', '52240') # The 15 does not go from Canary Wharf
+    
     def test_in_london_with_geotag(self):
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route), -0.0397, 51.5124) # Limehouse Station, London
@@ -163,6 +176,18 @@ class WhensMyBusTestCase(unittest.TestCase):
             self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
             self.assertRegexpMatches(result, route.upper())
             self.assertRegexpMatches(result, '(Limehouse Station to .* [0-9]{4}|None shown going)')
+
+    def test_in_london_with_stop_id(self):
+        for (text, route) in self.test_untagged_tweets:
+            tweet = FakeTweet(text % (self.wmb.username, route))
+            result = self.wmb.process_tweet(tweet)[0]
+
+            for unwanted in ('CANARY WHARF', '<>', '#', '\[DLR\]', '>T<'):                
+                self.assertNotRegexpMatches(result, unwanted)
+
+            self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
+            self.assertRegexpMatches(result, route.upper())
+            self.assertRegexpMatches(result, '(Canary Wharf Station to .* [0-9]{4}|None shown going)')
 
 if __name__ == "__main__":
 
@@ -180,7 +205,9 @@ if __name__ == "__main__":
     
     # If we pass, then run tests on individual functionality
     if not results or not (results.failures + results.errors):
-        main_tests = ('talking_to_myself','mention','no_bus_number','blank_tweet','nonexistent_bus','no_geotag',
-                      'placeinfo_only','not_in_uk','not_in_london','in_london_with_geotag')
+        main_tests = ('talking_to_myself','mention','no_bus_number','blank_tweet','nonexistent_bus',# Tweet formatting errors
+                      'no_geotag','placeinfo_only','not_in_uk','not_in_london',                     # Geotag errors
+                      'bad_stop_id','stop_id_mismatch',                                             # Stop ID errors
+                      'in_london_with_stop_id', 'in_london_with_geotag')                            # When it all goes right :)
         suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in main_tests]))
         results = unittest.TextTestRunner(verbosity=1).run(suite)
