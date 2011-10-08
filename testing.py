@@ -27,7 +27,7 @@ class FakeTweet:
         self.place = place
         self.coordinates = {}
         if longitude and latitude:
-            self.coordinates['coordinates'] = [longitude,latitude]
+            self.coordinates['coordinates'] = [longitude, latitude]
         
 
 class WhensMyBusTestCase(unittest.TestCase):
@@ -123,6 +123,9 @@ class WhensMyBusTestCase(unittest.TestCase):
 
         
     def test_blank_tweet(self):
+        """
+        Test to confirm we are ignoring blank replies
+        """
         for text in ('@%s' % self.wmb.username,
                      '@%s ' % self.wmb.username,
                      '@%s         ' % self.wmb.username,):
@@ -130,6 +133,9 @@ class WhensMyBusTestCase(unittest.TestCase):
             self._test_correct_exception_produced(tweet, 'blank_tweet')
 
     def test_nonexistent_bus(self):
+        """
+        Test to confirm non-existent buses handled OK
+        """
         for text in ('@%s 218' % self.wmb.username,
                      '@%s    218' % self.wmb.username,
                      '@%s    218   #hashtag' % self.wmb.username,):
@@ -137,26 +143,41 @@ class WhensMyBusTestCase(unittest.TestCase):
             self._test_correct_exception_produced(tweet, 'nonexistent_bus', '218')
 
     def test_no_geotag(self):
+        """
+        Test to confirm lack of geotag handled OK
+        """
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route))
             self._test_correct_exception_produced(tweet, 'no_geotag')
 
     def test_placeinfo_only(self):
+        """
+        Test to confirm ambiguous place information handled OK
+        """
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route), place='foo')
             self._test_correct_exception_produced(tweet, 'placeinfo_only')
             
     def test_not_in_uk(self):
+        """
+        Test to confirm geolocations outside UK handled OK
+        """
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route), -73.985656, 40.748433) # Empire State Building, New York
             self._test_correct_exception_produced(tweet, 'not_in_uk')
 
     def test_not_in_london(self):
+        """
+        Test to confirm geolocations outside London handled OK
+        """
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route), -3.200833, 55.948611) # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
 
     def test_bad_stop_id(self):
+        """
+        Test to confirm bad stop IDs handled OK
+        """
         tweet = FakeTweet('@%s 15 from 00000' % (self.wmb.username,)) 
         self._test_correct_exception_produced(tweet, 'bad_stop_id', '00000') # Stop IDs begin at 47000
         
@@ -164,10 +185,16 @@ class WhensMyBusTestCase(unittest.TestCase):
         self._test_correct_exception_produced(tweet, 'stop_not_found', 'Limehouse') # We can't yet recognise ambiguous placenames
 
     def test_stop_id_mismatch(self):
+        """
+        Test to confirm when route and stop do not match up is handled OK
+        """
         tweet = FakeTweet('@%s 15 from 52240' % (self.wmb.username,)) 
         self._test_correct_exception_produced(tweet, 'stop_id_mismatch', '15', '52240') # The 15 does not go from Canary Wharf
     
     def test_in_london_with_geotag(self):
+        """
+        Test to confirm a correctly-geotagged message is handled OK
+        """
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route), -0.0397, 51.5124) # Limehouse Station, London
             result = self.wmb.process_tweet(tweet)[0]
@@ -180,6 +207,9 @@ class WhensMyBusTestCase(unittest.TestCase):
             self.assertRegexpMatches(result, '(Limehouse Station to .* [0-9]{4}|None shown going)')
 
     def test_in_london_with_stop_id(self):
+        """
+        Test to confirm a message with correct stop ID is handled OK
+        """
         for (text, route) in self.test_tweets_with_ids:
             tweet = FakeTweet(text % (self.wmb.username, route))
             result = self.wmb.process_tweet(tweet)[0]
@@ -192,6 +222,9 @@ class WhensMyBusTestCase(unittest.TestCase):
             self.assertRegexpMatches(result, '(Canary Wharf Station to .* [0-9]{4}|None shown going)')
 
     def test_in_london_with_stop_locations(self):
+        """
+        Test to confirm a message with location name is handled OK
+        """
         for (text, route) in self.test_tweets_with_locations:
             tweet = FakeTweet(text % (self.wmb.username, route))
             result = self.wmb.process_tweet(tweet)[0]
@@ -203,8 +236,11 @@ class WhensMyBusTestCase(unittest.TestCase):
             self.assertRegexpMatches(result, route.upper())
             self.assertRegexpMatches(result, '(Trafalgar Square to .* [0-9]{4}|None shown going)')
 
-if __name__ == "__main__":
 
+def test_whensmybus(): 
+    """
+    Run a suite of tests
+    """
     parser = argparse.ArgumentParser("Unit testing for When's My Bus?")
     parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
     dologin = parser.parse_args().dologin
@@ -219,9 +255,12 @@ if __name__ == "__main__":
     
     # If we pass, then run tests on individual functionality
     if not results or not (results.failures + results.errors):
-        main_tests = ('talking_to_myself','mention','no_bus_number','blank_tweet','nonexistent_bus',# Tweet formatting errors
-                      'no_geotag','placeinfo_only','not_in_uk','not_in_london',                     # Geotag errors
-                      'bad_stop_id','stop_id_mismatch',                                             # Stop ID errors
-                      'in_london_with_stop_id', 'in_london_with_stop_id', 'in_london_with_geotag')  # When it all goes right :)
+        main_tests = ('talking_to_myself', 'mention', 'no_bus_number', 'blank_tweet', 'nonexistent_bus', # Tweet formatting errors
+                      'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                       # Geotag errors
+                      'bad_stop_id', 'stop_id_mismatch',                                                 # Stop ID errors
+                      'in_london_with_stop_id', 'in_london_with_stop_id', 'in_london_with_geotag')       # When it all goes right :)
         suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in main_tests]))
         results = unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
+
+if __name__ == "__main__":
+    test_whensmybus()
