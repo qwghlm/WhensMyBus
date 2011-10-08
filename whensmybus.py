@@ -23,9 +23,9 @@ http://www.movable-type.co.uk/scripts/latlong-gridref.html
 Released under the MIT License
 
 TODO
- - Fix "Gil's bug"
  - Add lookup by geocoding English
  - Better database performance
+ - Support for DMs
  - Consistent Virtual Bus Stop use (or just delete them?)
 """
 # Standard libraries of Python 2.6
@@ -72,6 +72,7 @@ class WhensMyBusException(Exception):
         'not_in_london'   : "You do not appear to be located in the London Buses area",
         'no_stops_nearby' : "I could not find any stops near you",
         'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
+        'no_arrival_data' : "There is no arrival data on the TfL website for your stop - most likely no buses are due",
     }
 
     def __init__(self, msgid, *string_params):
@@ -501,6 +502,7 @@ class WhensMyBus:
                             raise WhensMyBusException('tfl_server_down')
                         else:
                             logging.error("No arrival data for this stop right now")
+                            raise WhensMyBusException('no_arrival_data')
                     else:
                         # Do the user a favour - check for both number and possible Night Bus version of the bus
                         relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
@@ -524,7 +526,7 @@ class WhensMyBus:
                         else:
                             time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
 
-                # Probably a 503 Error message in HTML if the JSON parser is choking and raises a ValueError
+                # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
                 except ValueError, exc:
                     logging.error("%s encountered when parsing %s - likely not JSON!", exc, tfl_url)
                     raise WhensMyBusException('tfl_server_down')        
