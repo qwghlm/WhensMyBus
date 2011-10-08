@@ -50,7 +50,7 @@ from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet
 
 # command line & test options
 TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
-VERSION_NUMBER = 0.10
+VERSION_NUMBER = 0.20
 WHENSMYBUS_HOME = os.path.dirname(os.path.abspath(__file__)) + '/'
 
 class WhensMyBusException(Exception):
