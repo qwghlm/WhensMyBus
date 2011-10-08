@@ -21,7 +21,7 @@ http://www.movable-type.co.uk/scripts/latlong-gridref.html
 Released under the MIT License
 
 TODO
- - Fix "the Gil bug"
+ - Unit testing
  - Add lookup by geocoding English
 
 """
