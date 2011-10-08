@@ -161,7 +161,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         self._test_correct_exception_produced(tweet, 'bad_stop_id', '00000') # Stop IDs begin at 47000
         
         tweet = FakeTweet('@%s 15 from Limehouse' % (self.wmb.username,)) 
-        self._test_correct_exception_produced(tweet, 'bad_stop_id', 'Limehouse') # We can't yet recognise placenames
+        self._test_correct_exception_produced(tweet, 'stop_not_found', 'Limehouse') # We can't yet recognise ambiguous placenames
 
     def test_stop_id_mismatch(self):
         tweet = FakeTweet('@%s 15 from 52240' % (self.wmb.username,)) 

@@ -68,7 +68,7 @@ class WhensMyBusException(Exception):
         'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you're using a GPS-enabled device & location is enabled on your Tweet",
         'bad_stop_id'     : "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
         'stop_id_mismatch': "That bus (%s) does not appear to stop at that stop (%s)",
-        'stop_not_found'  : "I couldn't find any bus stops on your route by that name",
+        'stop_not_found'  : "I couldn't find any bus stops on your route by that name (%s)",
         'not_in_uk'       : "You do not appear to be located in the United Kingdom",
         'not_in_london'   : "You do not appear to be located in the London Buses area",
         'no_stops_nearby' : "I could not find any stops near you",
