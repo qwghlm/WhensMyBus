@@ -51,8 +51,7 @@ from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet
 # command line & test options
 TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
 VERSION_NUMBER = 0.10
-WHENSMYBUS_HOME = os.path.split(sys.argv[0])[0] + '/'
-
+WHENSMYBUS_HOME = os.path.dirname(os.path.abspath(__file__)) + '/'
 
 class WhensMyBusException(Exception):
     """
@@ -83,7 +82,7 @@ class WhensMyBusException(Exception):
         """
         value = WhensMyBusException.exception_values.get(msgid, '') % string_params
         super(WhensMyBusException, self).__init__(value)
-        logging.debug("Application exception encountered: %s" % value)
+        logging.debug("Application exception encountered: %s", value)
         self.value = value[:115]
         
     def __str__(self):
@@ -288,6 +287,9 @@ class WhensMyBus:
         
         # If the above has found stops on this route
         if relevant_stops:
+        
+            # In due course, we would filter the stops by the destination specified :)
+            
             time_info = self.get_departure_data(relevant_stops, route_number)
             reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
         else:
@@ -355,9 +357,9 @@ class WhensMyBus:
         Takes a route number and lat/lng and works out closest bus stops in each direction
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert
-        logging.debug("Position in WGS84 determined as: %s %s" % tuple(position))
+        logging.debug("Position in WGS84 determined as: %s %s", position[0], position[1])
         position = convertWGS84toOSGB36(*position)
-        logging.debug("Converted to OSGB36: %s %s" % tuple(position)[0:2])
+        logging.debug("Converted to OSGB36: %s %s", position[0], position[1])
 
         # Turn it into an Easting/Northing
         easting, northing = LatLongToOSGrid(position[0], position[1])
@@ -409,8 +411,7 @@ class WhensMyBus:
             logging.debug("Have found stop numbers: %s", ', '.join([s[1] for s in relevant_stops]))
             return relevant_stops
         else:
-            # This may well never be raised - there will always be a nearest stop on a route for someone, even
-            # if it is 1000km away
+            # This may well never be raised - there will always be a nearest stop on a route for someone, even if it is 1000km away
             raise WhensMyBusException('no_stops_nearby')
             
     def get_stops_by_stop_number(self, route_number, stop_number):
@@ -502,7 +503,9 @@ class WhensMyBus:
                             logging.error("No arrival data for this stop right now")
                     else:
                         # Do the user a favour - check for both number and possible Night Bus version of the bus
-                        relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number) and a['isRealTime'] and not a['isCancelled']]
+                        relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
+                                                                    and a['isRealTime']
+                                                                    and not a['isCancelled']]
 
                         if relevant_arrivals:
                             # Get the first arrival for now
