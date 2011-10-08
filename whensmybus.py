@@ -8,8 +8,10 @@ A Twitter bot that takes requests for a bus timetable and @ replies on Twitter
 e.g.
 
     @whensmybus 135
-
 ...will check the Tweet for its geocoded tag and work out what bus is going where
+
+    @whensmybus 135 from 53452
+...will check the Tweet for the SMS code (usually printed on a sign at the stop) and work out what bus is going where
 
 My thanks go to Adrian Short for inspiring me to write this
 http://adrianshort.co.uk/2011/09/08/open-data-for-everyday-life/
@@ -21,9 +23,10 @@ http://www.movable-type.co.uk/scripts/latlong-gridref.html
 Released under the MIT License
 
 TODO
- - Unit testing
+ - Fix "Gil's bug"
  - Add lookup by geocoding English
-
+ - Better database performance
+ - Consistent Virtual Bus Stop use (or just delete them?)
 """
 # Standard libraries of Python 2.6
 import ConfigParser
@@ -55,11 +58,9 @@ class WhensMyBusException(Exception):
     """
     Exception we use to signal send an error to the user
     """
-    
     # Possible id => message pairings, so we can use a shortcode to summon a much more explanatory message
     # Why do we not just send the full string as a parameter to the Exception? Mainly so we can unit test (see testing.py)
     # but also as it saves duplicating string for similar errors (e.g. when TfL service is down)
-
     exception_values = {
         'blank_tweet'     : "I need to have a bus number in order to find the times for it",
         'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
@@ -67,7 +68,7 @@ class WhensMyBusException(Exception):
         'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you're using a GPS-enabled device & location is enabled on your Tweet",
         'bad_stop_id'     : "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
         'stop_id_mismatch': "That bus (%s) does not appear to stop at that stop (%s)",
-        'stop_not_found'  : "I couldn't find any bus stops by that name",
+        'stop_not_found'  : "I couldn't find any bus stops on your route by that name",
         'not_in_uk'       : "You do not appear to be located in the United Kingdom",
         'not_in_london'   : "You do not appear to be located in the London Buses area",
         'no_stops_nearby' : "I could not find any stops near you",
@@ -182,7 +183,7 @@ class WhensMyBus:
         
     def check_tweets(self):
         """
-        Check Tweets replied to
+        Check Tweets that are replies to us
         """
         # Check For @ reply Tweets
         last_answered_tweet = self.get_setting('last_answered_tweet')
@@ -192,7 +193,7 @@ class WhensMyBus:
                 tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items(5)
             else:
                 tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
-            
+                
         # This is most likely to fail if OAuth is not correctly set up
         except tweepy.error.TweepError:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
@@ -200,7 +201,6 @@ class WhensMyBus:
         
         # Convert iterator to array so we can reverse it
         tweets = [tweet for tweet in tweets][::-1]
-        
         # No need to bother if no replies
         if not tweets:
             logging.info("No new Tweets, exiting...")
@@ -219,10 +219,10 @@ class WhensMyBus:
             if not replies:
                 continue
             
-            # Reply back to the user, if not in testing mode
             for reply in replies:
                 logging.info("Replying back to user with: %s", reply)
 
+            # Reply back to the user, if not in testing mode
             if not self.testing:
                 try:
                     for reply in replies:                    
@@ -282,32 +282,15 @@ class WhensMyBus:
             # Try to see if origin is a bus stop ID
             match = re.match('^[0-9]{5}$', origin)
             if match:
-                # Pull the ID out of the locations database and see if it exists
-                stop_number = match.group(0)
-                self.geodata.execute("SELECT * FROM locations WHERE Sms_Code=?", (stop_number,))
-                location = self.geodata.fetchone()
-
-                if location:
-                    # Check that the stop with that ID is on the route that we want
-                    self.geodata.execute("SELECT * FROM routes WHERE Stop_Code_LBSL=? AND Route=?", (location['Stop_Code_LBSL'], route_number))
-                    route = self.geodata.fetchone()
-                    # If so then let's get the name, location, run & heading for that route
-                    if route:
-                        relevant_stops = ([location['Stop_Name'], location['Sms_Code'], route['Run'], location['Heading']],)
-                    else:
-                        raise WhensMyBusException('stop_id_mismatch', route_number, stop_number)
-                else:
-                    raise WhensMyBusException('bad_stop_id', stop_number)
+                relevant_stops = self.get_stops_by_stop_number(route_number, origin)
             else:
-                # Eventually geolocation code would go here
-                raise WhensMyBusException('bad_stop_id', origin)
+                relevant_stops = self.get_stops_by_origin_name(route_number, origin)
         
         # If the above has found stops on this route
         if relevant_stops:
-            time_info = self.lookup_stops(relevant_stops, route_number)
+            time_info = self.get_departure_data(relevant_stops, route_number)
             reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
         else:
-            # This exception may never be raised
             raise WhensMyBusException('stop_not_found')
         
         # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
@@ -327,46 +310,50 @@ class WhensMyBus:
             
         return tuple(replies)
 
-    # Parse a message, but do not attempt to attain semantic meaning behind data
     def parse_message(self, message):
-
+        """
+        Parse a message, but do not attempt to attain semantic meaning behind data   
+        
+        Message is of format: "@whensmybus route_number [from origin] [to destination]"
+        """
         # Ignore mentions that are not direct replies
         if not message.lower().startswith('@%s' % self.username.lower()):
             logging.debug("Not a proper @ reply, skipping")
             return (None, None, None)
         
-        # Remove hashtags
+        # Remove hashtags and @username
         message = re.sub(' +#\w+ ?', '', message)
-        
-        # Remove @username
-        message = message[len('@%s ' % self.username):].strip()
+        message = message[len('@%s ' % self.username):].lstrip()
         if not message:
             raise WhensMyBusException('blank_tweet')
 
-        tokens = re.split(' +from +', message, 2)
-
-        # Extract a route number out of the first word by using the regexp for a London bus
-        match = re.match('^[A-Z]{0,2}[0-9]{1,3}', tokens[0], re.I)
+        # Extract a route number out of the first word by using the regexp for a London bus (0-2 letters then 1-3 numbers)
+        match = re.match('^([A-Z]{0,2}[0-9]{1,3})(.*)$', message, re.I)
         # If we can't find a number, it's most likely the person was saying "Thank you" so just skip replying entirely 
-        if match == None:
+        if not match:
             logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
             return (None, None, None)
         
         # In case the user has used lowercase letters, fix that (e.g. d3)
-        route_number = match.group(0).upper()
-            
-        # Return parsed tokens
-        if len(tokens) == 1:
-            return (route_number, None, None)
-        else:    
-            return (route_number, tokens[1], None)
-            
+        route_number = match.group(1).upper()
 
+        # Work backwards from end of remainder to get destination, then origin
+        origin, destination = None, None
+        remainder = match.group(2)
+        match = re.search('( +to +(.*)$)', remainder, re.I)
+        destination = match and match.group(2)
+        if match:
+            remainder = remainder[:-1 * len(match.group(1))]
+
+        match = re.search('( +from +(.*)$)', remainder, re.I)
+        origin = match and match.group(2)
+            
+        return (route_number, origin, destination)
+        
     def get_stops_by_geolocation(self, route_number, position):
         """
         Takes a route number and lat/lng and works out closest bus stops in each direction
         """
-
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert
         logging.debug("Position in WGS84 determined as: %s %s" % tuple(position))
         position = convertWGS84toOSGB36(*position)
@@ -426,13 +413,56 @@ class WhensMyBus:
             # if it is 1000km away
             raise WhensMyBusException('no_stops_nearby')
             
-    def lookup_stops(self, relevant_stops, route_number):
+    def get_stops_by_stop_number(self, route_number, stop_number):
+        """
+        Returns a list of stops (should be length 1) that has SMS ID of stop_number
+        """
+        # Pull the ID out of the locations database and see if it exists
+        self.geodata.execute("SELECT * FROM locations WHERE Sms_Code=? AND Virtual_Bus_Stop=?", (stop_number, '0'))
+        location = self.geodata.fetchone()
+    
+        if location:
+            # Check that the stop with that ID is on the route that we want
+            self.geodata.execute("SELECT * FROM routes WHERE Stop_Code_LBSL=? AND Route=?", (location['Stop_Code_LBSL'], route_number))
+            route = self.geodata.fetchone()
+            # If so then let's get the name, location, run & heading for that route
+            if route:
+                relevant_stops = ([location['Stop_Name'], location['Sms_Code'], route['Run'], location['Heading']],)
+                return relevant_stops
+            else:
+                raise WhensMyBusException('stop_id_mismatch', route_number, stop_number)
+        else:
+            raise WhensMyBusException('bad_stop_id', stop_number)
+
+    def get_stops_by_origin_name(self, route_number, origin):
+        """
+        Tries to get relevant stops by the placename of the origin
+        """
+        # Try to get an exact match in database
+        relevant_stops = []
+        self.geodata.execute("SELECT * FROM routes WHERE Route=? AND Virtual_Bus_Stop=?", (route_number, '0'))
+        rows = self.geodata.fetchall()
+        for route in rows:
+            normalised_name = route['Stop_Name']
+            for unwanted in ('<>', '#', '[DLR]', '>T<', ' '):
+                normalised_name = normalised_name.replace(unwanted, '')
+            if (normalised_name == origin.upper()):
+                self.geodata.execute("SELECT * FROM locations WHERE Stop_Code_LBSL=?", route['Stop_Code_LBSL'])
+                location = self.geodata.fetchone()
+                relevant_stops.append([location['Stop_Name'], location['Sms_Code'], route['Run'], location['Heading']],)
+                
+        if not relevant_stops:
+            # Eventually geocoding would go here
+            raise WhensMyBusException('stop_not_found', origin)
+            
+        return relevant_stops
+            
+    def get_departure_data(self, relevant_stops, route_number):
         """
         Function that fetches the JSON data from the TfL website, for a list of relevant_stops 
         and a particular route_number, and returns the time(s) of buses on that route serving
         that stop(s)
         """
-
         time_info = []
 
         # Values in tuple correspond to what was added in relevant_stops.append() above
@@ -511,6 +541,7 @@ class WhensMyBus:
         logging.debug("I have %s out of %s hits remaining this hour", status_json['remaining_hits'], status_json['hourly_limit'])
         logging.debug("Next reset time is %s", (status_json['reset_time']))
 
+# Helper functions
 
 def load_database(dbfilename):
     """
