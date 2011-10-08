@@ -39,11 +39,13 @@ class WhensMyBusTestCase(unittest.TestCase):
         Setup test
         """
         self.wmb = WhensMyBus(testing=True, silent=True)
-        self.test_tweets = (('@%s %s', '15'),
-                            ('@%s   %s,  ', 'd3'),
-                            ('@%s   %s  #hashtag ', '115'),)
         
-        self.test_untagged_tweets = (('@%s %s from 52240', '277'),)
+        self.test_tweets = (('@%s %s', '15'),)
+        
+        self.test_tweets_with_ids = (('@%s %s from 52240', '277'),)
+
+        self.test_tweets_with_locations = (('@%s %s from Trafalgar Square', '15'),)
+
         
     def tearDown(self):
         """
@@ -178,7 +180,7 @@ class WhensMyBusTestCase(unittest.TestCase):
             self.assertRegexpMatches(result, '(Limehouse Station to .* [0-9]{4}|None shown going)')
 
     def test_in_london_with_stop_id(self):
-        for (text, route) in self.test_untagged_tweets:
+        for (text, route) in self.test_tweets_with_ids:
             tweet = FakeTweet(text % (self.wmb.username, route))
             result = self.wmb.process_tweet(tweet)[0]
 
@@ -188,6 +190,18 @@ class WhensMyBusTestCase(unittest.TestCase):
             self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
             self.assertRegexpMatches(result, route.upper())
             self.assertRegexpMatches(result, '(Canary Wharf Station to .* [0-9]{4}|None shown going)')
+
+    def test_in_london_with_stop_locations(self):
+        for (text, route) in self.test_tweets_with_locations:
+            tweet = FakeTweet(text % (self.wmb.username, route))
+            result = self.wmb.process_tweet(tweet)[0]
+
+            for unwanted in ('TRAFALGAR SQUARE', '<>', '#', '\[DLR\]', '>T<'):                
+                self.assertNotRegexpMatches(result, unwanted)
+
+            self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
+            self.assertRegexpMatches(result, route.upper())
+            self.assertRegexpMatches(result, '(Trafalgar Square to .* [0-9]{4}|None shown going)')
 
 if __name__ == "__main__":
 
@@ -208,6 +222,6 @@ if __name__ == "__main__":
         main_tests = ('talking_to_myself','mention','no_bus_number','blank_tweet','nonexistent_bus',# Tweet formatting errors
                       'no_geotag','placeinfo_only','not_in_uk','not_in_london',                     # Geotag errors
                       'bad_stop_id','stop_id_mismatch',                                             # Stop ID errors
-                      'in_london_with_stop_id', 'in_london_with_geotag')                            # When it all goes right :)
+                      'in_london_with_stop_id', 'in_london_with_stop_id', 'in_london_with_geotag')  # When it all goes right :)
         suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in main_tests]))
-        results = unittest.TextTestRunner(verbosity=1).run(suite)
+        results = unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
