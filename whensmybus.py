@@ -48,10 +48,10 @@ import tweepy
 # Functions from our file geotools.py
 from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet
 
-# command line & test options
-TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
+# Some constants we use
 VERSION_NUMBER = 0.20
-WHENSMYBUS_HOME = os.path.dirname(os.path.abspath(__file__)) + '/'
+TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
+WHENSMYBUS_HOME = os.path.dirname(os.path.abspath(__file__))
 
 class WhensMyBusException(Exception):
     """
@@ -96,9 +96,9 @@ class WhensMyBus:
     def __init__(self, testing=None, silent=False):
 
         try:
-            open(WHENSMYBUS_HOME + 'whensmybus.cfg')
+            open(WHENSMYBUS_HOME + '/whensmybus.cfg')
             config = ConfigParser.SafeConfigParser({ 'test_mode' : False, 'debug_level' : 'INFO' })
-            config.read(WHENSMYBUS_HOME + 'whensmybus.cfg')
+            config.read(WHENSMYBUS_HOME + '/whensmybus.cfg')
         except (ConfigParser.Error, IOError):
             print "Fatal error: can't find a valid config file. Please make sure there is a whensmybus.cfg file in this directory"
             sys.exit(1)
@@ -118,7 +118,7 @@ class WhensMyBus:
             console.setFormatter(logging.Formatter('%(message)s'))
 
             # Set up some proper logging to file that catches debugs
-            logfile = os.path.abspath(WHENSMYBUS_HOME + 'logs/whensmybus.log')
+            logfile = os.path.abspath(WHENSMYBUS_HOME + '/logs/whensmybus.log')
             rotator = logging_handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
             rotator.setLevel(logging.DEBUG)
             rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
@@ -551,7 +551,7 @@ def load_database(dbfilename):
     Helper function to load a database and return links to it and its cursor
     """
     logging.debug("Opening database %s", dbfilename)
-    dbs = sqlite3.connect(WHENSMYBUS_HOME + 'db/' + dbfilename)
+    dbs = sqlite3.connect(WHENSMYBUS_HOME + '/db/' + dbfilename)
     dbs.row_factory = sqlite3.Row
     return (dbs, dbs.cursor())
     
