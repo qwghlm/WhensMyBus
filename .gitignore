@@ -1,11 +1,10 @@
-
 whensmybus.settings.db
 
 *.pyc
 
 *.cfg
 
-logs/*.log
-logs/*.log.*
+*.log
+*.log.*
 
-datatests.py
+scratchpad.py
