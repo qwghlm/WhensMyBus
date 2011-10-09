@@ -406,6 +406,10 @@ class WhensMyBus:
             # in TfL's system
             self.geodata.execute(query)
             row = self.geodata.fetchone()
+            # Some Runs are non-existent (e.g. Many routes have a Run 4 but not a Run 3) so if this is the case, skip
+            if not row: 
+                continue
+            
             relevant_stops.append([row[key] for key in ('Stop_Name', 'Sms_Code', 'Run', 'Heading')])
         
         if relevant_stops:
@@ -502,29 +506,28 @@ class WhensMyBus:
                             raise WhensMyBusException('tfl_server_down')
                         else:
                             logging.error("No arrival data for this stop right now")
-                            raise WhensMyBusException('no_arrival_data')
-                    else:
-                        # Do the user a favour - check for both number and possible Night Bus version of the bus
-                        relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
-                                                                    and a['isRealTime']
-                                                                    and not a['isCancelled']]
 
-                        if relevant_arrivals:
-                            # Get the first arrival for now
-                            arrival = relevant_arrivals[0]
-                            # Every character counts! :)
-                            scheduled_time =  arrival['scheduledTime'].replace(':', '')
+                    # Do the user a favour - check for both number and possible Night Bus version of the bus
+                    relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
+                                                                and a['isRealTime']
+                                                                and not a['isCancelled']]
+
+                    if relevant_arrivals:
+                        # Get the first arrival for now
+                        arrival = relevant_arrivals[0]
+                        # Every character counts! :)
+                        scheduled_time =  arrival['scheduledTime'].replace(':', '')
+                        
+                        # Short hack to get BST working
+                        if time.daylight:
+                            hour = (int(scheduled_time[0:2]) + 1) % 24
+                            scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
                             
-                            # Short hack to get BST working
-                            if time.daylight:
-                                hour = (int(scheduled_time[0:2]) + 1) % 24
-                                scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
-                                
-                            logging.debug("Just out of interest, the destination is %s with length %s", arrival['destination'], len(arrival['destination']))
-                                
-                            time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
-                        else:
-                            time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
+                        logging.debug("Just out of interest, the destination is %s with length %s", arrival['destination'], len(arrival['destination']))
+                            
+                        time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
+                    else:
+                        time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
 
                 # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
                 except ValueError, exc:
