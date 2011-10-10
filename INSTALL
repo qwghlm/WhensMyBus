@@ -29,6 +29,8 @@ fields and save as whensmybus.cfg
 8. You can also change the debug_level to DEBUG (more messages) and test_mode to True (it will read
 Tweets, but not Tweet back at the users who made them)
 
+9. You will need an App ID from Yahoo - get one from Yahoo! PlaceFinder: http://developer.yahoo.com/geo/placefinder/
+
 9. You now have a working bot! To get started, on the command line go:
 
     > python whensmybus.py

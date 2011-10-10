@@ -3,6 +3,9 @@
 A set of unit tests for When's My Bus?
 
 IMPORTANT: These unit tests require Python 2.7, even though When's My Bus will happily run in Python 2.6
+
+FIXME Some way of flushing all Tweets generated for reassurance
+
 """
 import sys
 if sys.version_info < (2, 7):
@@ -44,9 +47,13 @@ class WhensMyBusTestCase(unittest.TestCase):
         
         self.test_tweets_with_ids = (('@%s %s from 52240', '277'),)
 
-        self.test_tweets_with_locations = (('@%s %s from Trafalgar Square', '15'),)
+        self.test_tweets_with_locations = (('@%s %s from Angel Station', '341'),
+                                           ('@%s %s from Angel', '341'),
+                                           ('@%s %s from Liverpool Road', '341'),
+                                           ('@%s %s from Goswell Rd', '341'),
+                                           ('@%s %s from EC1V 1NE', '341'),
+                                          )
 
-        
     def tearDown(self):
         """
         Tear down test
@@ -181,9 +188,6 @@ class WhensMyBusTestCase(unittest.TestCase):
         tweet = FakeTweet('@%s 15 from 00000' % (self.wmb.username,)) 
         self._test_correct_exception_produced(tweet, 'bad_stop_id', '00000') # Stop IDs begin at 47000
         
-        tweet = FakeTweet('@%s 15 from Limehouse' % (self.wmb.username,)) 
-        self._test_correct_exception_produced(tweet, 'stop_not_found', 'Limehouse') # We can't yet recognise ambiguous placenames
-
     def test_stop_id_mismatch(self):
         """
         Test to confirm when route and stop do not match up is handled OK
@@ -228,13 +232,13 @@ class WhensMyBusTestCase(unittest.TestCase):
         for (text, route) in self.test_tweets_with_locations:
             tweet = FakeTweet(text % (self.wmb.username, route))
             result = self.wmb.process_tweet(tweet)[0]
-
-            for unwanted in ('TRAFALGAR SQUARE', '<>', '#', '\[DLR\]', '>T<'):                
+            
+            for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
                 self.assertNotRegexpMatches(result, unwanted)
 
             self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
             self.assertRegexpMatches(result, route.upper())
-            self.assertRegexpMatches(result, '(Trafalgar Square to .* [0-9]{4}|None shown going)')
+            self.assertRegexpMatches(result, '((Angel Station|Goswell Road) to .* [0-9]{4}|None shown going)')
 
 
 def test_whensmybus(): 
@@ -243,24 +247,21 @@ def test_whensmybus():
     """
     parser = argparse.ArgumentParser("Unit testing for When's My Bus?")
     parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
-    dologin = parser.parse_args().dologin
     
-    if dologin:
-        # Run tests initially on most crucial elements
-        init_tests = ('init', 'oauth', 'database')
-        suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in init_tests]))
-        results = unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
+    init = ('init', 'oauth', 'database',)
+    failures = ('talking_to_myself', 'mention', 'no_bus_number', 'blank_tweet', 'nonexistent_bus', # Tweet formatting errors
+                  'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                     # Geotag errors
+                  'bad_stop_id', 'stop_id_mismatch',                                               # Stop ID errors
+                )
+    successes = ('in_london_with_geotag', 'in_london_with_stop_id', 'in_london_with_stop_locations', )
+    
+    if parser.parse_args().dologin:
+        test_names = init + failures + successes
     else:
-        results = []
+        test_names = failures + successes
+            
+    suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in test_names]))
+    results = unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
     
-    # If we pass, then run tests on individual functionality
-    if not results or not (results.failures + results.errors):
-        main_tests = ('talking_to_myself', 'mention', 'no_bus_number', 'blank_tweet', 'nonexistent_bus', # Tweet formatting errors
-                      'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                       # Geotag errors
-                      'bad_stop_id', 'stop_id_mismatch',                                                 # Stop ID errors
-                      'in_london_with_stop_id', 'in_london_with_stop_id', 'in_london_with_geotag')       # When it all goes right :)
-        suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in main_tests]))
-        results = unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
-
 if __name__ == "__main__":
     test_whensmybus()

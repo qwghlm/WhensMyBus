@@ -30,7 +30,7 @@ for inputpath in ('locations.csv','routes.csv'):
     # Fix CSV - replace commas with semi-colons, allow sqlite to import without cocking it all up
     inputfile = open('./sourcedata/' + inputpath)
     reader = csv.reader(inputfile)
-    reader.next()  # Skip first line (fieldnames)
+    fieldnames = reader.next()  # Skip first line (fieldnames)
 
     outputpath = inputpath.replace('.csv', '.ssv')
     outputfile = open('./sourcedata/' + outputpath, 'w')
@@ -40,17 +40,22 @@ for inputpath in ('locations.csv','routes.csv'):
         writer.writerow(line)
     outputfile.flush()
     outputfile.close()
-    
-    # Get fieldnames from original file
-    inputfile = open('./sourcedata/' + inputpath)
-    reader = csv.reader(inputfile)
 
     tablename = inputpath.split('.')[0]
-    fieldnames = reader.next()
+
+    integer_values = ('Location_Easting',
+                    'Location_Northing',
+                    'Heading',
+                    'Virtual_Bus_Stop',
+                    'Run',
+                    'Sequence',)
+                    
+    fieldnames = ['%s%s' % (f, integer_values.count(f) and ' INT' or '') for f in fieldnames]
     
     # Produce SQL for this table
     print "drop table %s;" % tablename
     print "create table %s(%s);" % (tablename, ", ".join(fieldnames))
     print '.separator ";"'
     print ".import %s %s" % ('./sourcedata/' + outputpath, tablename)
+    print "delete from %s WHERE Virtual_Bus_Stop;" % tablename
     print ""

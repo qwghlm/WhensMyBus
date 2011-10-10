@@ -7,6 +7,8 @@ consumer_secret : # App OAuth secret
 key :             # User OAuth key  
 secret :          # User OAuth secret
 
+yahoo_app_id :    # Yahoo PlaceFinder app ID
+
 # Optional
 #debug_level : INFO|DEBUG
 #test_mode : False|True
