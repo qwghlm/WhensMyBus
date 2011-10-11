@@ -9,7 +9,8 @@ FIXME Some way of flushing all Tweets generated for reassurance
 """
 import sys
 if sys.version_info < (2, 7):
-    print "Sorry. While WhensMyBus can be run under Python 2.6, this unit testing script requires the more extensive unittest libraries in Python 2.7. Please upgrade!"
+    print "Sorry. While WhensMyBus can be run under Python 2.6, this unit testing script requires the more extensive unittest libraries in Python 2.7."
+    print "Please upgrade!"
     sys.exit(1)    
 
 from whensmybus import WhensMyBus, WhensMyBusException
@@ -23,7 +24,7 @@ class FakeTweet:
     """
     Fake Tweet object to simulate tweepy's Tweet object being passed to various functions
     """
-    def __init__(self, text, longitude=None, latitude=None, place={}, username='testuser'):
+    def __init__(self, text, longitude=None, latitude=None, place=None, username='testuser'):
         self.user = lambda:1
         self.user.screen_name = username
         self.text = text
@@ -261,7 +262,7 @@ def test_whensmybus():
         test_names = failures + successes
             
     suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in test_names]))
-    results = unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
+    unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
     
 if __name__ == "__main__":
     test_whensmybus()

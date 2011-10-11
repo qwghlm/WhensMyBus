@@ -31,6 +31,9 @@ class BingGeocoder(BaseGeocoder):
             }
 
     def get_url(self, query):
+        """
+        Get URL to access API, given a search query
+        """
         self.params['query'] = query + ', London'
         return self.url % urllib.urlencode(self.params)
 
@@ -61,6 +64,9 @@ class YahooGeocoder(BaseGeocoder):
               }
 
     def get_url(self, query):
+        """
+        Get URL to access API, given a search query
+        """
         self.params['q'] = query + ', London'
         return self.url % urllib.urlencode(self.params)
 
@@ -88,6 +94,9 @@ class GoogleGeocoder(BaseGeocoder):
             }
 
     def get_url(self, query):
+        """
+        Get URL to access API, given a search query
+        """
         self.params['address'] = query + ', London'
         return self.url % urllib.urlencode(self.params)
 
