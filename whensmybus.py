@@ -32,7 +32,6 @@ import json
 import logging
 import logging.handlers
 import math
-import operator
 import os
 import re
 import sqlite3
@@ -124,7 +123,6 @@ class WhensMyBus:
             rotator = logging.handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
             rotator.setLevel(logging.DEBUG)
             rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
-
             logging.getLogger('').addHandler(console)
             logging.getLogger('').addHandler(rotator)
             logging.debug("Initializing...")
@@ -153,13 +151,11 @@ class WhensMyBus:
         
         # OAuth on Twitter
         self.username = config.get('whensmybus','username')
-        
         logging.debug("Authenticating with Twitter")
         consumer_key = config.get('whensmybus', 'consumer_key')
         consumer_secret = config.get('whensmybus', 'consumer_secret')
         key = config.get('whensmybus', 'key')
         secret = config.get('whensmybus', 'secret')
-
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(key, secret)        
         self.api = tweepy.API(auth)
@@ -194,7 +190,7 @@ class WhensMyBus:
         try:
             # Rotates through pages if lots of replies
             if self.testing:
-                tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items(5)
+                tweets = self.api.mentions(since_id=last_answered_tweet, count=5)
             else:
                 tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
                 
@@ -220,23 +216,18 @@ class WhensMyBus:
                 logging.debug("Exception encountered: %s" , exc.value)
                 replies = ("@%s Sorry! %s" % (tweet.user.screen_name, exc.value),)
 
-            if not replies:
-                continue
-            
+            # Reply back to the user, if not in testing mode
             for reply in replies:
                 logging.info("Replying back to user with: %s", reply)
-
-            # Reply back to the user, if not in testing mode
-            if not self.testing:
-                try:
-                    for reply in replies:                    
+                if not self.testing:
+                    try:
                         self.api.update_status(status=reply, in_reply_to_status_id=tweet.id)
-                    # So we can keep track of our since variable
-                    self.update_setting('last_answered_tweet', tweet.id)
-                # This catches any errors, most typically if we send multiple Tweets to the same person with the same error
-                # In which case, not much we can do
-                except tweepy.error.TweepError:
-                    continue
+                        self.update_setting('last_answered_tweet', tweet.id)
+
+                    # This catches any errors, most typically if we send multiple Tweets to the same person with the same error
+                    # In which case, not much we can do
+                    except tweepy.error.TweepError:
+                        continue
 
         # Keep an eye on our rate limit, for science
         self.report_twitter_limit_status()        
@@ -379,9 +370,9 @@ class WhensMyBus:
         # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough
         elif gridref[:2] not in ('TQ', 'TL', 'SU'):
             raise WhensMyBusException('not_in_london')            
-        else:
-            logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
-            logging.debug("Translated into Grid Reference %s", gridref)
+
+        logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
+        logging.debug("Translated into Grid Reference %s", gridref)
 
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out the runs
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,))
@@ -435,7 +426,7 @@ class WhensMyBus:
         logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
         self.geodata.execute("SELECT * FROM locations WHERE Sms_Code=?", (stop_number,))
         location = self.geodata.fetchone()
-    
+
         if location:
             # Check that the stop with that ID is on the route that we want
             self.geodata.execute("SELECT * FROM routes WHERE Stop_Code_LBSL=? AND Route=?", (location['Stop_Code_LBSL'], route_number))
@@ -457,9 +448,9 @@ class WhensMyBus:
         # Try to get a match against bus stop names in database, using heuristics - an exact match, a match with a bus station
         # or a match with a rail or tube station
         logging.debug("Attempting to get a match on placename %s", origin)
-        heuristics = ((operator.eq, 1.0),
-                      (lambda origin, stop: origin+"BUSSTN" == stop, 0.8),
-                      (lambda origin, stop: origin+"STN" == stop, 0.7),
+        heuristics = ((lambda origin, stop: origin == stop,           1.0),
+                      (lambda origin, stop: origin+"BUSSTN" == stop,  0.8),
+                      (lambda origin, stop: origin+"STN" == stop,     0.7),
                      )
                      
         # We normalise our names to take care of punctuation, capitalisation, abbreviations for road names
@@ -551,13 +542,10 @@ class WhensMyBus:
                     arrival = relevant_arrivals[0]
                     # Every character counts! :)
                     scheduled_time =  arrival['scheduledTime'].replace(':', '')
-                    
                     # Short hack to get BST working
                     if time.daylight:
                         hour = (int(scheduled_time[0:2]) + 1) % 24
                         scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
-                        
-                    logging.debug("Just out of interest, the destination is %s with length %s", arrival['destination'], len(arrival['destination']))
                         
                     time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
                 else:
@@ -574,9 +562,9 @@ class WhensMyBus:
         """
         Helper function to tell us what our Twitter API hit count & limit is
         """
-        status_json = self.api.rate_limit_status()
-        logging.debug("I have %s out of %s hits remaining this hour", status_json['remaining_hits'], status_json['hourly_limit'])
-        logging.debug("Next reset time is %s", (status_json['reset_time']))
+        limit_status = self.api.rate_limit_status()
+        logging.debug("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
+        logging.debug("Next reset time is %s", (limit_status['reset_time']))
 
     def fetch_json(self, url, exception_code='tfl_server_down'):
         """
@@ -653,4 +641,3 @@ def normalise_stop_name(name):
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
-    
