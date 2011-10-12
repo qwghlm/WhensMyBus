@@ -1,14 +1,20 @@
 [whensmybus]
-username :        # Username goes here, no @ sign
+# Username goes here, no @ sign
+username :
 
-consumer_key :    # App OAuth key
-consumer_secret : # App OAuth secret
+# App OAuth key
+consumer_key :
+# App OAuth secret
+consumer_secret :
 
-key :             # User OAuth key  
-secret :          # User OAuth secret
+# User OAuth key
+key :
+# User OAuth secret
+secret :
 
-yahoo_app_id :    # Yahoo PlaceFinder app ID
+# Yahoo PlaceFinder app ID (8 characters, optional but needed for geocoding of addresses to work)
+yahoo_app_id : 
 
 # Optional
-#debug_level : INFO|DEBUG
-#test_mode : False|True
+# debug_level : INFO|DEBUG
+# test_mode : False|True

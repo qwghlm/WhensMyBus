@@ -98,7 +98,9 @@ class WhensMyBus:
 
         try:
             open(WHENSMYBUS_HOME + '/whensmybus.cfg')
-            config = ConfigParser.SafeConfigParser({ 'test_mode' : False, 'debug_level' : 'INFO' })
+            config = ConfigParser.SafeConfigParser({ 'test_mode' : False,
+                                                     'debug_level' : 'INFO',
+                                                     'yahoo_app_id' : None})
             config.read(WHENSMYBUS_HOME + '/whensmybus.cfg')
         except (ConfigParser.Error, IOError):
             print "Fatal error: can't find a valid config file. Please make sure there is a whensmybus.cfg file in this directory"
@@ -147,7 +149,8 @@ class WhensMyBus:
                                   ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
         
         # API keys
-        self.geocoder = YahooGeocoder(config.get('whensmybus', 'yahoo_app_id'))
+        yahoo_app_id = config.get('whensmybus', 'yahoo_app_id')
+        self.geocoder = yahoo_app_id and YahooGeocoder(yahoo_app_id)
         
         # OAuth on Twitter
         self.username = config.get('whensmybus','username')
@@ -483,7 +486,7 @@ class WhensMyBus:
                         relevant_stops[row['Run']] = stop
 
         # If we can't find a location, use the geocoder to find a location matching that name
-        if not relevant_stops:
+        if not relevant_stops and self.geocoder:
             logging.debug("No match found, attempting to get geocode placename %s", origin)
             obj = self.fetch_json(self.geocoder.get_url(origin))
             points = self.geocoder.parse_results(obj)
