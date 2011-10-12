@@ -49,7 +49,7 @@ from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet
 from geocoders import YahooGeocoder
 
 # Some constants we use
-VERSION_NUMBER = 0.20
+VERSION_NUMBER = 0.40
 TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
 WHENSMYBUS_HOME = os.path.dirname(os.path.abspath(__file__))
 
