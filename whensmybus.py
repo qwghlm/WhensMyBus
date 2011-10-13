@@ -25,6 +25,7 @@ Released under the MIT License
 
 TODO
  - Support for DMs
+ - If a stop is the last one on a particular route & run, it should be excluded from our two big SELECT queries
 """
 # Standard libraries of Python 2.6
 import ConfigParser
