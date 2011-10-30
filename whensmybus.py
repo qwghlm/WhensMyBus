@@ -9,10 +9,13 @@ A Twitter bot that takes requests for a bus timetable and @ replies on Twitter
 e.g.
 
     @whensmybus 135
-...will check the Tweet for its geocoded tag and work out what bus is going where
+...will check the Tweet for its geocoded tag and work out the next bus
 
     @whensmybus 135 from 53452
-...will check the Tweet for the SMS code (usually printed on a sign at the stop) and work out what bus is going where
+...will check the Tweet for the SMS code (usually printed on a sign at the stop) and work out the next bus
+
+    @whensmybus 135 from Canary Wharf
+...will check the Tweet for the departure point name and work out the next bus
 
 My thanks go to Adrian Short for inspiring me to write this
 http://adrianshort.co.uk/2011/09/08/open-data-for-everyday-life/
@@ -26,6 +29,7 @@ Released under the MIT License
 TODO
  - Support for DMs
  - If a stop is the last one on a particular route & run, it should be excluded from our two big SELECT queries
+ - Better bugfix for when a person send a non-blank message that is not geotagged
 """
 # Standard libraries of Python 2.6
 import ConfigParser
@@ -547,7 +551,7 @@ class WhensMyBus:
                     # Every character counts! :)
                     scheduled_time =  arrival['scheduledTime'].replace(':', '')
                     # Short hack to get BST working
-                    if time.daylight:
+                    if time.localtime().tm_isdst:
                         hour = (int(scheduled_time[0:2]) + 1) % 24
                         scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
                         
