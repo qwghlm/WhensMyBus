@@ -79,9 +79,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         row = self.wmb.settings.fetchone()
         self.assertIsNotNone(row, 'Settings table does not exist')
 
-        self.wmb.geodata.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='locations'")
-        row = self.wmb.geodata.fetchone()
-        self.assertIsNotNone(row, 'Locations table does not exist')
+        #self.wmb.geodata.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='locations'")
+        #row = self.wmb.geodata.fetchone()
+        #self.assertIsNotNone(row, 'Locations table does not exist')
 
         self.wmb.geodata.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='routes'")
         row = self.wmb.geodata.fetchone()

@@ -394,22 +394,19 @@ class WhensMyBus:
             # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
             # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
             # and find the first row
-            #
-            # Also note the join from the routes table to locations table on the index Stop_Code_LBSL
             query = """
-                    SELECT (locations.Location_Easting - %d)*(locations.Location_Easting - %d) + (locations.Location_Northing - %d)*(locations.Location_Northing - %d) AS dist_squared,
-                          routes.Run,
-                          locations.Heading,
-                          locations.Sms_Code,
-                          locations.Stop_Name
+                    SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
+                          Run,
+                          Heading,
+                          Bus_Stop_Code,
+                          Stop_Name
                     FROM routes
-                    JOIN locations ON routes.Stop_Code_LBSL = locations.Stop_Code_LBSL
                     WHERE Route='%s' AND Run='%s'
                     ORDER BY dist_squared
                     LIMIT 1
                     """ % (easting, easting, northing, northing, route_number, run)
     
-            # Note we fetch the Sms_code not the Stop_Code_LBSL value out of this row - this is the ID used
+            # Note we fetch the Bus_Stop_Code not the Stop_Code_LBSL value out of this row - this is the ID used
             # in TfL's system
             self.geodata.execute(query)
             row = self.geodata.fetchone()
@@ -417,12 +414,12 @@ class WhensMyBus:
             if not row:
                 continue
             
-            stop = dict([(key, row[key]) for key in ('Stop_Name', 'Sms_Code', 'Heading')])
+            stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading')])
             stop['Distance'] = round(math.sqrt(row['dist_squared']))
             relevant_stops[run] = stop
         
         if relevant_stops:
-            logging.debug("Have found stop numbers: %s", ', '.join([s['Sms_Code'] for s in relevant_stops.values()]))
+            logging.debug("Have found stop numbers: %s", ', '.join([s['Bus_Stop_Code'] for s in relevant_stops.values()]))
             return relevant_stops
         else:
             # This may well never be raised - there will always be a nearest stop on a route for someone, even if it is 1000km away
@@ -432,25 +429,25 @@ class WhensMyBus:
         """
         Returns a list of stops (should be length 1) that has SMS ID of stop_number
         """
-        # Pull the ID out of the locations database and see if it exists
+        # Pull the stop ID out of the routes database and see if it exists
         logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
-        self.geodata.execute("SELECT * FROM locations WHERE Sms_Code=?", (stop_number,))
-        location = self.geodata.fetchone()
-
-        if location:
-            # Check that the stop with that ID is on the route that we want
-            self.geodata.execute("SELECT * FROM routes WHERE Stop_Code_LBSL=? AND Route=?", (location['Stop_Code_LBSL'], route_number))
-            route = self.geodata.fetchone()
-            # If so then let's get the name, location, run & heading for that route
-            if route:
-                stop = dict([(key, location[key]) for key in ('Stop_Name', 'Sms_Code', 'Heading')])
-                stop['Distance'] = 0
-                return { route['Run'] : stop }
-            else:
-                raise WhensMyBusException('stop_id_mismatch', route_number, stop_number)
+        self.geodata.execute("SELECT * FROM routes WHERE Bus_Stop_Code=? AND Route=?", (stop_number, route_number))
+        route = self.geodata.fetchone()
+        if route:
+            stop = dict([(key, route[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading')])
+            stop['Distance'] = 0
+            return { route['Run'] : stop }
         else:
-            raise WhensMyBusException('bad_stop_id', stop_number)
-
+            # Check to see if bus stop actually exists at all
+            self.geodata.execute("SELECT * FROM routes WHERE Bus_Stop_Code=?", (stop_number, ))
+            stop = self.geodata.fetchone()
+            # If the stop exists, then the bus doesn't stop there
+            if stop:
+                raise WhensMyBusException('stop_id_mismatch', route_number, stop_number)
+            # Else we've been given a nonsensical number
+            else:
+                raise WhensMyBusException('bad_stop_id', stop_number)
+    
     def get_stops_by_origin_name(self, route_number, origin):
         """
         Tries to get relevant stops by the placename of the origin
@@ -468,13 +465,12 @@ class WhensMyBus:
         normalised_origin = normalise_stop_name(origin)
         
         self.geodata.execute("""
-                             SELECT routes.Route,
-                                 routes.Run,
-                                 locations.Heading,
-                                 locations.Sms_Code,
-                                 locations.Stop_Name          
+                             SELECT Route,
+                                 Run,
+                                 Heading,
+                                 Bus_Stop_Code,
+                                 Stop_Name          
                              FROM routes 
-                             JOIN locations ON routes.Stop_Code_LBSL = locations.Stop_Code_LBSL
                              WHERE Route=?
                              """, (route_number,))
                              
@@ -485,15 +481,15 @@ class WhensMyBus:
             for (comparator, score) in heuristics:
                 if comparator(normalised_origin, normalised_stop):
                     logging.debug("Found stop name %s", row['Stop_Name'])
-                    stop = dict([(key, row[key]) for key in ('Stop_Name', 'Sms_Code', 'Heading')])
+                    stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading')])
                     stop['Distance'] = 0
                     stop['Confidence'] = score
                     # ... but only if there is no previous match, or the score for this heuristic is better than it 
                     if not relevant_stops.get(row['Run'], {}) or score > relevant_stops[row['Run']]['Confidence']:
                         relevant_stops[row['Run']] = stop
 
-        # If we can't find a location, use the geocoder to find a location matching that name
-        if not relevant_stops and self.geocoder:
+        # If we can't find a location for both directions, use the geocoder to find a location matching that name
+        if len(relevant_stops.items()) < 2 and self.geocoder:
             logging.debug("No match found, attempting to get geocode placename %s", origin)
             obj = self.fetch_json(self.geocoder.get_url(origin))
             points = self.geocoder.parse_results(obj)
@@ -505,8 +501,12 @@ class WhensMyBus:
             
             # Closest pair of stops wins
             stops.sort(cmp=sort_stops_by_distance)
-            relevant_stops = stops[0]
-            logging.debug("Have found stop numbers: %s", ', '.join([s['Sms_Code'] for s in relevant_stops.values()]))
+            # Put in the data, but only if we have not found an exact match earlier
+            for (run, stop) in stops[0].items():
+                if not relevant_stops.has_key(run):
+                    relevant_stops[run] = stop
+
+            logging.debug("Have found stop numbers: %s", ', '.join([s['Bus_Stop_Code'] for s in relevant_stops.values()]))
             
         return relevant_stops
             
@@ -522,7 +522,7 @@ class WhensMyBus:
         for stop in relevant_stops.values():
 
             stop_name = stop['Stop_Name']
-            stop_number = stop['Sms_Code']
+            stop_number = stop['Bus_Stop_Code']
             heading = stop['Heading']
         
             # Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram
