@@ -9,21 +9,15 @@ Save the bus stop locations as ./sourcedata/locations.csv
 And save the routes as ./sourcedata/routes.csv
 
 It takes the original files from TfL, fixes them to use semicolons (because sqlite's
-CSV parser is really dumb and can't deal with quoted values) and then outputs a
-script to import it on the command line in sqlite
+CSV parser is really dumb and can't deal with quoted values) and then converts it to
+the database file ./db/whensmybus.geodata.db
 
 """ 
 import csv
+import subprocess
+import tempfile
 
-print ""
-print "# All done!"
-print "# After running this script to fix the files you will need to "
-print "# import them into sqlite. First you run this command:"
-print ""
-print "sqlite3 ./db/whensmybus.geodata.db"
-print ""
-print "# And then run the following commands inside the sqlite console:"
-print ""
+sql = ""
 
 for inputpath in ('locations.csv','routes.csv'):
 
@@ -53,9 +47,14 @@ for inputpath in ('locations.csv','routes.csv'):
     fieldnames = ['%s%s' % (f, integer_values.count(f) and ' INT' or '') for f in fieldnames]
     
     # Produce SQL for this table
-    print "drop table %s;" % tablename
-    print "create table %s(%s);" % (tablename, ", ".join(fieldnames))
-    print '.separator ";"'
-    print ".import %s %s" % ('./sourcedata/' + outputpath, tablename)
-    print "delete from %s WHERE Virtual_Bus_Stop;" % tablename
-    print ""
+    sql += "drop table if exists %s;\r\n" % tablename
+    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
+    sql += '.separator ";"\r\n'
+    sql += ".import %s %s\r\n" % ('./sourcedata/' + outputpath, tablename)
+    sql += "delete from %s WHERE Virtual_Bus_Stop;\r\n" % tablename
+    sql += "\r\n"
+
+f = tempfile.NamedTemporaryFile('w')
+f.write(sql)
+f.flush()
+print subprocess.check_output(["sqlite3", "./db/whensmybus.geodata.db"], stdin=open(f.name))
