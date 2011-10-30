@@ -2,7 +2,7 @@ When's My Bus?
 @whensmybus is a Twitter bot that tells you what time London buses are arriving at a stop near you
 See it in action: http://twitter.com/#!/whensmybus
 
-More:
+More info about how to use the bot, and how to deploy it yourself, here:
 
 http://www.qwghlm.co.uk/whensmybus/
 https://github.com/qwghlm/WhensMyBus
@@ -10,9 +10,6 @@ https://github.com/qwghlm/WhensMyBus
 Requires: Python 2.6 or greater to run the bot. Python 2.7 required for unit testing. Not yet tested with Python 3
 See INSTALL for installation instructions and details of dependencies
 
-Warning: the codebase is a bit unstable now, as we're still in beta and I'm adding in patches and bugfixes
-
-The code works, but as of October 2011, this source code probably best for interested perusal, rather than
-using in anger, until it's a bit more stable.
+It's been running for a month now and isn't falling over too often :) so feel free to clone this and use yourself
 
                                                                                     -- Chris
