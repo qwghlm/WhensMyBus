@@ -2,11 +2,11 @@ When's My Bus? installation instructions
 
 Requires: Python 2.6 or greater to run the bot. Python 2.7 required for unit testing. Not yet tested with Python 3
 
-1. Install Tweepy from https://github.com/tweepy/tweepy
+1. Install Tweepy from https://github.com/tweepy/tweepy (run as admin/root)
 
     > git clone git://github.com/tweepy/tweepy.git
     > cd tweepy
-    > python setup.py install (run as admin/root)
+    > python setup.py install
 
 2. Download the code & data for WhensMyBus from Github:
 
@@ -38,7 +38,7 @@ Tweets, but not Tweet back at the users who made them)
 
 NOTES
 
-* If you ever want to update the CSV file(s) in sourcedata/ and update the route & locations database, follow the
+* If you ever want to update the CSV file(s) in sourcedata/ and update the database, follow the
 instructions in csvtools.py
 * If you ever want to add the app to more Twitter accounts, follow the instructions in oauthtool.py
 * If you ever want to run unit tests, run testing.py. All tests should clear if a geocoder is installed; else the last
