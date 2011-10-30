@@ -65,11 +65,13 @@ class WhensMyBusException(Exception):
     # Possible id => message pairings, so we can use a shortcode to summon a much more explanatory message
     # Why do we not just send the full string as a parameter to the Exception? Mainly so we can unit test (see testing.py)
     # but also as it saves duplicating string for similar errors (e.g. when TfL service is down)
+    #
+    # Error message should be no longer than 115 chars so we can put a username and the word Sorry and still be under 140
     exception_values = {
         'blank_tweet'     : "I need to have a bus number in order to find the times for it",
         'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
-        'placeinfo_only'  : "The Place info on your Tweet isn't precise enough to find nearest bus stop. Try again with a GPS-enabled device",
-        'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you're using a GPS-enabled device & location is enabled on your Tweet",
+        'placeinfo_only'  : "The Place info on your Tweet isn't precise enough. Please make sure you have GPS enabled, or say '%s from <place>'",
+        'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you have GPS enabled on your Tweet, or say '%s from <place>'",
         'bad_stop_id'     : "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
         'stop_id_mismatch': "That bus (%s) does not appear to stop at that stop (%s)",
         'stop_not_found'  : "I couldn't find any bus stops on your route by that name (%s)",
@@ -275,11 +277,11 @@ class WhensMyBus:
                 
             # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
             elif tweet.place:
-                raise WhensMyBusException('placeinfo_only')
+                raise WhensMyBusException('placeinfo_only', route_number)
             
             # If there's no geoinformation at all then say so
             else:
-                raise WhensMyBusException('no_geotag')
+                raise WhensMyBusException('no_geotag', route_number)
         
         else:
             # Try to see if origin is a bus stop ID

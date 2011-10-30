@@ -156,7 +156,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route))
-            self._test_correct_exception_produced(tweet, 'no_geotag')
+            self._test_correct_exception_produced(tweet, 'no_geotag', route)
 
     def test_placeinfo_only(self):
         """
@@ -164,7 +164,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route), place='foo')
-            self._test_correct_exception_produced(tweet, 'placeinfo_only')
+            self._test_correct_exception_produced(tweet, 'placeinfo_only', route)
             
     def test_not_in_uk(self):
         """
