@@ -178,7 +178,7 @@ class WhensMyBus:
     
     def get_setting(self, setting_name):
         """
-        Simple wrapper to fetch value of setting from settings database
+        Fetch value of setting from settings database
         """
         self.settings.execute("select setting_value from whensmybus_settings where setting_name = ?" , (setting_name,))
         row = self.settings.fetchone()
@@ -186,7 +186,7 @@ class WhensMyBus:
 
     def update_setting(self, setting_name, setting_value):
         """
-        Simple wrapper to set value of named setting in settings database
+        Set value of named setting in settings database
         """
         self.settings.execute("insert or replace into whensmybus_settings (setting_name, setting_value) values (?, ?)", (setting_name, setting_value))
         self.settingsdb.commit()
@@ -245,7 +245,10 @@ class WhensMyBus:
         
     def process_tweet(self, tweet):
         """
-        Processes a single Tweet object and returns a list of replies to be sent back to that user        
+        Process a single Tweet object and return a list of replies to be sent back to that user. Each reply is a string
+        e.g. '@username 341 Clerkenwell Road to Waterloo 1241; Rosebery Avenue to Angel Road 1247'
+        
+        Usually the tuple only has one element; but it may be two if it otherwise would be too long over 140 characters
         """
         username = tweet.user.screen_name
         message = tweet.text
@@ -323,9 +326,9 @@ class WhensMyBus:
 
     def parse_message(self, message):
         """
-        Parse a message, but do not attempt to attain semantic meaning behind data   
-        
+        Parse a message, but do not attempt to attain semantic meaning behind data
         Message is of format: "@whensmybus route_number [from origin] [to destination]"
+        Tuple returns is of format: (route_number, origin, destination)
         """
         # Ignore mentions that are not direct replies
         if not message.lower().startswith('@%s' % self.username.lower()):
@@ -363,7 +366,10 @@ class WhensMyBus:
         
     def get_stops_by_geolocation(self, route_number, position):
         """
-        Takes a route number and lat/lng and works out closest bus stops in each direction
+        Take a route number and a tuple specifying latitude & longitude, and works out closest bus stops in each direction
+        
+        Returns a dictionary. Keys are numbers of the Run (usually 1 or 2, sometimes 3 or 4). Values are dictionaries
+        with keys: 'Stop_Name', 'Bus_Stop_Code', 'Heading', 'Distance'
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert
         logging.debug("Position in WGS84 determined as: %s %s", position[0], position[1])
@@ -427,7 +433,7 @@ class WhensMyBus:
             
     def get_stops_by_stop_number(self, route_number, stop_number):
         """
-        Returns a list of stops (should be length 1) that has SMS ID of stop_number
+        Return a single dictionary representing a stop that has an ID of stop_number
         """
         # Pull the stop ID out of the routes database and see if it exists
         logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
@@ -450,15 +456,18 @@ class WhensMyBus:
     
     def get_stops_by_origin_name(self, route_number, origin):
         """
-        Tries to get relevant stops by the placename of the origin
+        Take a route number and name of the origin, and work out closest bus stops in each direction
+        
+        Returns a dictionary. Keys are numbers of the Run (usually 1 or 2, sometimes 3 and 4). Values are dictionaries
+        with keys: 'Stop_Name', 'Bus_Stop_Code', 'Heading', 'Distance'
         """
-        # Try to get a match against bus stop names in database, using heuristics - an exact match, a match with a bus station
+        # Try to get a match against bus stop names in database, n exact match, a match with a bus station
         # or a match with a rail or tube station
         logging.debug("Attempting to get a match on placename %s", origin)
-        heuristics = ((lambda origin, stop: origin == stop,           1.0),
-                      (lambda origin, stop: origin+"BUSSTN" == stop,  0.8),
-                      (lambda origin, stop: origin+"STN" == stop,     0.7),
-                     )
+        match_functions = (lambda origin, stop: origin == stop,
+                           lambda origin, stop: origin+"BUSSTN" == stop,
+                           lambda origin, stop: origin+"STN" == stop,
+                          )
                      
         # We normalise our names to take care of punctuation, capitalisation, abbreviations for road names
         relevant_stops = {}
@@ -478,20 +487,19 @@ class WhensMyBus:
         for row in rows:
             normalised_stop = normalise_stop_name(row['Stop_Name'])
             # Use each heuristic in term, and if it works out add it in...
-            for (comparator, score) in heuristics:
-                if comparator(normalised_origin, normalised_stop):
+            for match_function in match_functions:
+                if match_function(normalised_origin, normalised_stop):
                     logging.debug("Found stop name %s", row['Stop_Name'])
                     stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading')])
                     stop['Distance'] = 0
-                    stop['Confidence'] = score
                     # ... but only if there is no previous match, or the score for this heuristic is better than it 
-                    if not relevant_stops.get(row['Run'], {}) or score > relevant_stops[row['Run']]['Confidence']:
+                    if not relevant_stops.has_key(row['Run']):
                         relevant_stops[row['Run']] = stop
 
         # If we can't find a location for both directions, use the geocoder to find a location matching that name
         if len(relevant_stops.items()) < 2 and self.geocoder:
             logging.debug("No match found, attempting to get geocode placename %s", origin)
-            obj = self.fetch_json(self.geocoder.get_url(origin))
+            obj = self.fetch_json(self.geocoder.get_url(origin), 'stop_not_found')
             points = self.geocoder.parse_results(obj)
             if not points:
                 raise WhensMyBusException('stop_not_found', origin)
@@ -512,7 +520,7 @@ class WhensMyBus:
             
     def get_departure_data(self, relevant_stops, route_number):
         """
-        Function that fetches the JSON data from the TfL website, for a list of relevant_stops 
+        Fetch the JSON data from the TfL website, for a list of relevant_stops (each a dictionary object)
         and a particular route_number, and returns the time(s) of buses on that route serving
         that stop(s)
         """
