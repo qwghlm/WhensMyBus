@@ -464,9 +464,13 @@ class WhensMyBus:
         # Try to get a match against bus stop names in database, n exact match, a match with a bus station
         # or a match with a rail or tube station
         logging.debug("Attempting to get a match on placename %s", origin)
-        match_functions = (lambda origin, stop: origin == stop,
-                           lambda origin, stop: origin+"BUSSTN" == stop,
-                           lambda origin, stop: origin+"STN" == stop,
+        match_functions = (lambda origin, stop: stop == origin,
+                           lambda origin, stop: origin.find("BUSSTN") > -1 and stop.startswith(origin),
+                           lambda origin, stop: origin.find("STN") > -1 and stop.startswith(origin),
+                           lambda origin, stop: stop == origin + "BUSSTN",
+                           lambda origin, stop: stop.startswith(origin + "BUSSTN"),
+                           lambda origin, stop: stop == origin + "STN",
+                           lambda origin, stop: stop.startswith(origin + "STN"),
                           )
                      
         # We normalise our names to take care of punctuation, capitalisation, abbreviations for road names

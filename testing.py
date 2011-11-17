@@ -48,11 +48,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         
         self.test_tweets_with_ids = (('@%s %s from 52240', '277'),)
 
-        self.test_tweets_with_locations = (('@%s %s from Angel Station', '341'),
-                                           ('@%s %s from Angel', '341'),
-                                           ('@%s %s from Liverpool Road', '341'),
-                                           ('@%s %s from Goswell Rd', '341'),
-                                           ('@%s %s from EC1V 1NE', '341'),
+        self.test_tweets_with_locations = (('@%s %s from Hoxton', '243'),
+                                           ('@%s %s from Hoxton station', '243'),
+                                           ('@%s %s from E2 8DY', '243'),
                                           )
 
     def tearDown(self):
@@ -239,7 +237,7 @@ class WhensMyBusTestCase(unittest.TestCase):
 
             self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
             self.assertRegexpMatches(result, route.upper())
-            self.assertRegexpMatches(result, '((Angel Station|Goswell Road) to .* [0-9]{4}|None shown going)')
+            self.assertRegexpMatches(result, '((Hoxton Station).* to .* [0-9]{4}|None shown going)')
 
 
 def test_whensmybus(): 
