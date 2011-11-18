@@ -13,7 +13,8 @@ if sys.version_info < (2, 7):
     print "Please upgrade!"
     sys.exit(1)    
 
-from whensmybus import WhensMyBus, WhensMyBusException
+from whensmybus import WhensMyBus
+from exception_handling import WhensMyBusException
 
 import argparse
 import re
@@ -50,7 +51,7 @@ class WhensMyBusTestCase(unittest.TestCase):
 
         self.test_tweets_with_locations = (('@%s %s from Hoxton', '243'),
                                            ('@%s %s from Hoxton station', '243'),
-                                           ('@%s %s from E2 8DY', '243'),
+                                           #('@%s %s from E2 8DY', '243'),
                                           )
 
     def tearDown(self):
