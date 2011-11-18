@@ -300,3 +300,13 @@ def convert(lat, lon, height, e1, t, e2):
     
     return (math.degrees(phi), math.degrees(Lambda), H)
     
+# Final function to make headings more user-friendly
+    
+def heading_to_direction(heading):
+    """
+    Helper function to convert a heading (in degrees) to human-readable direction
+    """
+    dirs = ('North', 'NE', 'East', 'SE', 'South', 'SW', 'West', 'NW')
+    # North lies between -22 and +22, NE between 23 and 67, East between 68 and 112, etc 
+    i = ((int(heading)+22)%360)/45
+    return dirs[i]
