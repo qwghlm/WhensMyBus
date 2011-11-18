@@ -49,9 +49,8 @@ from pprint import pprint # For debugging
 # Tweepy is available https://github.com/tweepy/tweepy
 import tweepy
 
-# Functions from our file geotools.py
-from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet
-from geocoders import YahooGeocoder
+# From other modules in this package
+from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet, YahooGeocoder
 from exception_handling import WhensMyBusException
 
 # Some constants we use
