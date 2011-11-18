@@ -73,7 +73,7 @@ def import_bus_csv_to_db():
     tempf.flush()
     print subprocess.check_output(["sqlite3", "./db/whensmybus.geodata.db"], stdin=open(tempf.name))
 
-def make_oauth_key():
+def make_oauth_key(instance_name='whensmybus'):
     """
     Adapted from
     http://talkfast.org/2010/05/31/twitter-from-the-command-line-in-python-using-oauth
@@ -83,10 +83,10 @@ def make_oauth_key():
     Twitter's OAuth servers provide you to get a key/secret pair
     """
     config = ConfigParser.SafeConfigParser()
-    config.read('whensmybus.cfg')
+    config.read('whensmytransport.cfg')
     
-    consumer_key = config.get('whensmybus','consumer_key')
-    consumer_secret = config.get('whensmybus','consumer_secret')
+    consumer_key = config.get(instance_name,'consumer_key')
+    consumer_secret = config.get(instance_name,'consumer_secret')
     
     if not consumer_key or not consumer_secret:
         print "Could not find consumer key or secret, exiting"

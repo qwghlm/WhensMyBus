@@ -26,8 +26,8 @@ All the geodata is there, you do however need to set up Twitter account and acce
 7. If you want to add the ability to geocode addresses, you will need an App ID from Yahoo. Get one from Yahoo!
 PlaceFinder: http://developer.yahoo.com/geo/placefinder/
 
-8. Edit the whensmybus.cfg.sample, fill in the Twitter username, consumer key & secret, user key & secret, plus the 
-Yahoo app id (optional, see above) and save as whensmybus.cfg
+8. Edit the whensmytransport.cfg.sample, fill in the Twitter username, consumer key & secret, user key & secret, plus the 
+Yahoo app id (optional, see above) and save as whensmytransport.cfg
 
 9. You can also change the debug_level to DEBUG (more messages) and test_mode to True (it will read
 Tweets, but not Tweet back at the users who made them)
@@ -38,9 +38,7 @@ Tweets, but not Tweet back at the users who made them)
 
 NOTES
 
-* If you ever want to update the CSV file(s) in sourcedata/ and update the database, follow the
-instructions in csvtools.py
-* If you ever want to add the app to more Twitter accounts, follow the instructions in oauthtool.py
-* If you ever want to run unit tests, run testing.py. All tests should clear if a geocoder is installed; else the last
-one will fail
-* Although only the Yahoo geocoder is used, there is code for Google and Bing's as well in geocoders.py
+* If you ever want to update the CSV file(s) in sourcedata/ and update the database, follow the instructions for import_bus_csv_to_db() in utils.py
+* If you ever want to add the app to more Twitter accounts, follow the instructions for make_oauth_key() in utils.py
+* If you ever want to run unit tests, run testing.py. All tests should clear if a geocoder is installed; else the last one will fail
+* Although only the Yahoo geocoder is used, there is code for Google and Bing's as well in geotools.py

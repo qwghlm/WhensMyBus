@@ -50,29 +50,34 @@ from pprint import pprint # For debugging
 import tweepy
 
 # From other modules in this package
-from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet, YahooGeocoder
-from exception_handling import WhensMyBusException
+from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet, YahooGeocoder, heading_to_direction
+from exception_handling import WhensMyTransportException
 
 # Some constants we use
 VERSION_NUMBER = 0.40
 TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
-WHENSMYBUS_HOME = os.path.dirname(os.path.abspath(__file__))
+HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
-class WhensMyBus:
+class WhensMyTransport:
     """
-    Main class devoted to checking for Tweets and replying to them. Instantiate with no variables
-    (all config is done in the file whensmybus.cfg) and then call check_tweets()
+    Parent class for all WhensMy* bots, with common functions shared by all
     """
-    def __init__(self, testing=None, silent=False):
+    def __init__(self, instance_name, testing=None, silent=False):
+        """
+        Read config and set up logging, URL opener, settings database, geocoding and Twitter OAuth       
+        """
+        self.instance_name = instance_name
 
         try:
-            open(WHENSMYBUS_HOME + '/whensmybus.cfg')
+            # Try opening the file first just to see if it exists, exception caught below
+            open(HOME_DIR + '/whensmytransport.cfg')
             config = ConfigParser.SafeConfigParser({ 'test_mode' : False,
                                                      'debug_level' : 'INFO',
                                                      'yahoo_app_id' : None})
-            config.read(WHENSMYBUS_HOME + '/whensmybus.cfg')
+            config.read(HOME_DIR + '/whensmytransport.cfg')
+            
         except (ConfigParser.Error, IOError):
-            print "Fatal error: can't find a valid config file. Please make sure there is a whensmybus.cfg file in this directory"
+            print "Fatal error: can't find a valid config file. Please make sure there is a whensmytransport.cfg file in this directory"
             sys.exit(1)
 
         # Set up some logging
@@ -86,11 +91,11 @@ class WhensMyBus:
                 console_output = sys.stdout
             
             console = logging.StreamHandler(console_output)
-            console.setLevel(logging.__dict__[config.get('whensmybus', 'debug_level')])
+            console.setLevel(logging.__dict__[config.get(self.instance_name, 'debug_level')])
             console.setFormatter(logging.Formatter('%(message)s'))
 
             # Set up some proper logging to file that catches debugs
-            logfile = os.path.abspath(WHENSMYBUS_HOME + '/logs/whensmybus.log')
+            logfile = os.path.abspath('%s/logs/%s.log' % (HOME_DIR, self.instance_name))
             rotator = logging.handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
             rotator.setLevel(logging.DEBUG)
             rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
@@ -101,33 +106,34 @@ class WhensMyBus:
         if testing != None:
             self.testing = testing
         else:
-            self.testing = config.get('whensmybus', 'test_mode')
+            self.testing = config.get(self.instance_name, 'test_mode')
         
         if self.testing:
             logging.info("In TEST MODE - No Tweets will be made!")
 
-        # Load up the databases - one for the geodata, and one used a generic settings
-        (_notused, self.geodata) = load_database('whensmybus.geodata.db')
-        (self.settingsdb, self.settings) = load_database('whensmybus.settings.db')
-        self.settings.execute("create table if not exists whensmybus_settings (setting_name unique, setting_value)")
+
+        # Load up the databases for geodata & settings
+        (_notused, self.geodata) = load_database('%s.geodata.db' % self.instance_name)
+        (self.settingsdb, self.settings) = load_database('%s.settings.db' % self.instance_name)
+        self.settings.execute("create table if not exists %s_settings (setting_name unique, setting_value)" % self.instance_name)
         self.settingsdb.commit()
 
         # That which fetches the JSON
         self.opener = urllib2.build_opener()
-        self.opener.addheaders = [('User-agent', 'When\'s My Bus? v. %s' % VERSION_NUMBER),
+        self.opener.addheaders = [('User-agent', 'When\'s My Transport? v. %s' % VERSION_NUMBER),
                                   ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
         
         # API keys
-        yahoo_app_id = config.get('whensmybus', 'yahoo_app_id')
+        yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')
         self.geocoder = yahoo_app_id and YahooGeocoder(yahoo_app_id)
         
         # OAuth on Twitter
-        self.username = config.get('whensmybus','username')
+        self.username = config.get(self.instance_name,'username')
         logging.debug("Authenticating with Twitter")
-        consumer_key = config.get('whensmybus', 'consumer_key')
-        consumer_secret = config.get('whensmybus', 'consumer_secret')
-        key = config.get('whensmybus', 'key')
-        secret = config.get('whensmybus', 'secret')
+        consumer_key = config.get(self.instance_name, 'consumer_key')
+        consumer_secret = config.get(self.instance_name, 'consumer_secret')
+        key = config.get(self.instance_name, 'key')
+        secret = config.get(self.instance_name, 'secret')
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(key, secret)        
         self.api = tweepy.API(auth)
@@ -135,14 +141,13 @@ class WhensMyBus:
         # This used to verify credentials, but it used up a valuable API call, so it's now disabled
         # if not self.api.verify_credentials():
             # logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
-            # sys.exit(1)
+            # sys.exit(1)    
 
-    
     def get_setting(self, setting_name):
         """
         Fetch value of setting from settings database
         """
-        self.settings.execute("select setting_value from whensmybus_settings where setting_name = ?" , (setting_name,))
+        self.settings.execute("select setting_value from ?_settings where setting_name = ?" , (self.instance_name, setting_name,))
         row = self.settings.fetchone()
         return row and row[0]
 
@@ -150,9 +155,10 @@ class WhensMyBus:
         """
         Set value of named setting in settings database
         """
-        self.settings.execute("insert or replace into whensmybus_settings (setting_name, setting_value) values (?, ?)", (setting_name, setting_value))
-        self.settingsdb.commit()
-        
+        self.settings.execute("insert or replace into ?_settings (setting_name, setting_value) values (?, ?)",
+                              (self.instance_name, setting_name, setting_value))
+        self.settingsdb.commit()    
+    
     def check_tweets(self):
         """
         Check Tweets that are replies to us
@@ -184,7 +190,7 @@ class WhensMyBus:
             try:
                 replies = self.process_tweet(tweet)
             # Handler for any of the many possible reasons that this could go wrong
-            except WhensMyBusException as exc:
+            except WhensMyTransportException as exc:
                 logging.debug("Exception encountered: %s" , exc.value)
                 replies = ("@%s Sorry! %s" % (tweet.user.screen_name, exc.value),)
 
@@ -203,8 +209,62 @@ class WhensMyBus:
 
         # Keep an eye on our rate limit, for science
         self.report_twitter_limit_status()        
-        
-        
+
+    def process_tweet(self, tweet):
+        """
+        Return an empty list. This must be overridden by a child class
+        """
+        return ()
+
+    def report_twitter_limit_status(self):
+        """
+        Helper function to tell us what our Twitter API hit count & limit is
+        """
+        limit_status = self.api.rate_limit_status()
+        logging.debug("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
+        logging.debug("Next reset time is %s", (limit_status['reset_time']))
+
+    def fetch_json(self, url, exception_code='tfl_server_down'):
+        """
+        Fetches a JSON URL and returns object representation of it
+        """
+        logging.debug("Fetching URL %s", url)
+        try:
+            response = self.opener.open(url)
+            json_data = response.read()
+    
+        # Handle browsing error
+        except urllib2.HTTPError, exc:
+            logging.error("HTTP Error %s reading %s, aborting", exc.code, url)
+            raise WhensMyTransportException(exception_code)
+        except Exception, exc:
+            logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, url)
+            raise WhensMyTransportException(exception_code)
+    
+        # Try to parse this as JSON
+        if json_data:
+            try:
+                obj = json.loads(json_data)
+                return obj
+            # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
+            except ValueError, exc:
+                logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
+                raise WhensMyTransportException(exception_code)  
+
+#
+#
+# Clear blue water...
+#
+#
+
+class WhensMyBus(WhensMyTransport):
+    """
+    Main class devoted to checking for bus-related Tweets and replying to them. Instantiate with no variables
+    (all config is done in the file whensmytransport.cfg) and then call check_tweets()
+    """
+    def __init__(self, testing=None, silent=False):
+        WhensMyTransport.__init__(self, 'whensmybus', testing, silent)
+
     def process_tweet(self, tweet):
         """
         Process a single Tweet object and return a list of replies to be sent back to that user. Each reply is a string
@@ -230,7 +290,7 @@ class WhensMyBus:
         # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
         self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number,))
         if not len(self.geodata.fetchall()):
-            raise WhensMyBusException('nonexistent_bus', route_number)
+            raise WhensMyTransportException('nonexistent_bus', route_number)
 
         # If no origin specified, let's see if we have co-ordinates on the Tweet
         if origin == None:
@@ -242,11 +302,11 @@ class WhensMyBus:
                 
             # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
             elif tweet.place:
-                raise WhensMyBusException('placeinfo_only', route_number)
+                raise WhensMyTransportException('placeinfo_only', route_number)
             
             # If there's no geoinformation at all then say so
             else:
-                raise WhensMyBusException('no_geotag', route_number)
+                raise WhensMyTransportException('no_geotag', route_number)
         
         else:
             # Try to see if origin is a bus stop ID
@@ -263,11 +323,11 @@ class WhensMyBus:
             
             time_info = self.get_departure_data(relevant_stops, route_number)
             if not time_info:
-                raise WhensMyBusException('no_arrival_data')
+                raise WhensMyTransportException('no_arrival_data')
 
             reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
         else:
-            raise WhensMyBusException('stop_not_found', origin)
+            raise WhensMyTransportException('stop_not_found', origin)
         
         # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
         # Longest stop name is HANWORTH AIR PARK LEISURE CENTRE & LIBRARY = 42 
@@ -301,7 +361,7 @@ class WhensMyBus:
         message = re.sub(' +#\w+ ?', '', message)
         message = message[len('@%s ' % self.username):].lstrip()
         if not message:
-            raise WhensMyBusException('blank_tweet')
+            raise WhensMyTransportException('blank_tweet')
 
         # Extract a route number out of the first word by using the regexp for a London bus (0-2 letters then 1-3 numbers)
         match = re.match('^([A-Z]{0,2}[0-9]{1,3})(.*)$', message, re.I)
@@ -344,10 +404,10 @@ class WhensMyBus:
         
         # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
         if not gridref:
-            raise WhensMyBusException('not_in_uk')
+            raise WhensMyTransportException('not_in_uk')
         # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough
         elif gridref[:2] not in ('TQ', 'TL', 'SU'):
-            raise WhensMyBusException('not_in_london')            
+            raise WhensMyTransportException('not_in_london')            
 
         logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
         logging.debug("Translated into Grid Reference %s", gridref)
@@ -391,7 +451,7 @@ class WhensMyBus:
             return relevant_stops
         else:
             # This may well never be raised - there will always be a nearest stop on a route for someone, even if it is 1000km away
-            raise WhensMyBusException('no_stops_nearby')
+            raise WhensMyTransportException('no_stops_nearby')
             
     def get_stops_by_stop_number(self, route_number, stop_number):
         """
@@ -411,10 +471,10 @@ class WhensMyBus:
             stop = self.geodata.fetchone()
             # If the stop exists, then the bus doesn't stop there
             if stop:
-                raise WhensMyBusException('stop_id_mismatch', route_number, stop_number)
+                raise WhensMyTransportException('stop_id_mismatch', route_number, stop_number)
             # Else we've been given a nonsensical number
             else:
-                raise WhensMyBusException('bad_stop_id', stop_number)
+                raise WhensMyTransportException('bad_stop_id', stop_number)
     
     def get_stops_by_origin_name(self, route_number, origin):
         """
@@ -468,7 +528,7 @@ class WhensMyBus:
             obj = self.fetch_json(self.geocoder.get_url(origin), 'stop_not_found')
             points = self.geocoder.parse_results(obj)
             if not points:
-                raise WhensMyBusException('stop_not_found', origin)
+                raise WhensMyTransportException('stop_not_found', origin)
                 
             # Get all the corresponding pairs of bus stops for each of the points found, and sort by ascending distance
             stops = [self.get_stops_by_geolocation(route_number, p) for p in points]
@@ -511,7 +571,7 @@ class WhensMyBus:
             if not arrivals:
                 # Handle TfL's JSON-encoded error message
                 if bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
-                    raise WhensMyBusException('tfl_server_down')
+                    raise WhensMyTransportException('tfl_server_down')
                 else:
                     logging.error("No arrival data for this stop right now")
 
@@ -542,40 +602,6 @@ class WhensMyBus:
 
         return time_info
 
-    def report_twitter_limit_status(self):
-        """
-        Helper function to tell us what our Twitter API hit count & limit is
-        """
-        limit_status = self.api.rate_limit_status()
-        logging.debug("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
-        logging.debug("Next reset time is %s", (limit_status['reset_time']))
-
-    def fetch_json(self, url, exception_code='tfl_server_down'):
-        """
-        Fetches a JSON URL and returns object representation of it
-        """
-        logging.debug("Fetching URL %s", url)
-        try:
-            response = self.opener.open(url)
-            json_data = response.read()
-    
-        # Handle browsing error
-        except urllib2.HTTPError, exc:
-            logging.error("HTTP Error %s reading %s, aborting", exc.code, url)
-            raise WhensMyBusException(exception_code)
-        except Exception, exc:
-            logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, url)
-            raise WhensMyBusException(exception_code)
-    
-        # Try to parse this as JSON
-        if json_data:
-            try:
-                obj = json.loads(json_data)
-                return obj
-            # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
-            except ValueError, exc:
-                logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
-                raise WhensMyBusException(exception_code)  
 
 # Helper functions
 
@@ -584,19 +610,10 @@ def load_database(dbfilename):
     Helper function to load a database and return links to it and its cursor
     """
     logging.debug("Opening database %s", dbfilename)
-    dbs = sqlite3.connect(WHENSMYBUS_HOME + '/db/' + dbfilename)
+    dbs = sqlite3.connect(HOME_DIR + '/db/' + dbfilename)
     dbs.row_factory = sqlite3.Row
     return (dbs, dbs.cursor())
     
-def heading_to_direction(heading):
-    """
-    Helper function to convert a bus stop's heading (in degrees) to human-readable direction
-    """
-    dirs = ('North', 'NE', 'East', 'SE', 'South', 'SW', 'West', 'NW')
-    # North lies between -22 and +22, NE between 23 and 67, East between 68 and 112, etc 
-    i = ((int(heading)+22)%360)/45
-    return dirs[i]
-        
 def sort_stops_by_distance(pair_a, pair_b):
     """
     Comparator for comparing two pairs of bus stops, sorting by combined distance of both from a fixed point

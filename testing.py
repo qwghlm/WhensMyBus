@@ -14,7 +14,7 @@ if sys.version_info < (2, 7):
     sys.exit(1)    
 
 from whensmybus import WhensMyBus
-from exception_handling import WhensMyBusException
+from exception_handling import WhensMyTransportException
 
 import argparse
 import re
@@ -123,10 +123,10 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         # Get the message for the exception_id specified, applying C string formatting if applicable
         # Then escape it so that regular expression module doesn't accidentally interpret brackets etc
-        expected_error = re.escape(WhensMyBusException.exception_values[exception_id] % string_params)
+        expected_error = re.escape(WhensMyTransportException.exception_values[exception_id] % string_params)
         
         # Match the expected Exception message against the actual Exception raised when we try to process Tweet
-        self.assertRaisesRegexp(WhensMyBusException, expected_error, self.wmb.process_tweet, tweet)    
+        self.assertRaisesRegexp(WhensMyTransportException, expected_error, self.wmb.process_tweet, tweet)    
 
         
     def test_blank_tweet(self):
