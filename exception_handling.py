@@ -8,11 +8,17 @@ class WhensMyTransportException(Exception):
     Parent Exception class    
     """
     def __init__(self, value):
+        """
+        Instantiate an exception, and make sure it is logged, and short enough to be Tweeted
+        """
         super(WhensMyTransportException, self).__init__(value)
         logging.debug("Application exception encountered: %s", value)
         self.value = value[:115]
 
     def __str__(self):
+        """
+        Return a string representation of this Exception
+        """
         return repr(self.value)
 
 
