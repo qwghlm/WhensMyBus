@@ -5,26 +5,6 @@ import logging
 
 class WhensMyTransportException(Exception):
     """
-    Parent Exception class    
-    """
-    def __init__(self, value):
-        """
-        Instantiate an exception, and make sure it is logged, and short enough to be Tweeted
-        """
-        super(WhensMyTransportException, self).__init__(value)
-        logging.debug("Application exception encountered: %s", value)
-        self.value = value[:115]
-
-    def __str__(self):
-        """
-        Return a string representation of this Exception
-        """
-        return repr(self.value)
-
-
-
-class WhensMyBusException(WhensMyTransportException):
-    """
     Exception we use to signal send an error to the user
     """
     # Possible id => message pairings, so we can use a shortcode to summon a much more explanatory message
@@ -46,12 +26,20 @@ class WhensMyBusException(WhensMyTransportException):
         'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
         'no_arrival_data' : "There is no arrival data on the TfL website for your stop - most likely no buses are due",
     }
-
+    
     def __init__(self, msgid, *string_params):
         """
         Fetch a message with the ID from the dictionary above
         String formatting params optional, only needed if there is C string formatting in the error message
         e.g. WhensMyBusException('nonexistent_bus', '214')
         """
-        value = WhensMyBusException.exception_values.get(msgid, '') % string_params
-        super(WhensMyBusException, self).__init__(value)
+        value = WhensMyTransportException.exception_values.get(msgid, '') % string_params
+        super(WhensMyTransportException, self).__init__(value)
+        logging.debug("Application exception encountered: %s", value)
+        self.value = value[:115]
+
+    def __str__(self):
+        """
+        Return a string representation of this Exception
+        """
+        return repr(self.value)
