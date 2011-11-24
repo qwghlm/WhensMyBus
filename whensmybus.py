@@ -29,7 +29,7 @@ Released under the MIT License
 TODO
  - Support for DMs
  - If a stop is the last one on a particular route & run, it should be excluded from our two big SELECT queries
- - Better bugfix for when a person send a non-blank message that is not geotagged
+ - Better code for text matches in database
 """
 # Standard libraries of Python 2.6
 import ConfigParser
@@ -147,7 +147,7 @@ class WhensMyTransport:
         """
         Fetch value of setting from settings database
         """
-        self.settings.execute("select setting_value from ?_settings where setting_name = ?" , (self.instance_name, setting_name,))
+        self.settings.execute("select setting_value from %s_settings where setting_name = ?" % self.instance_name, (setting_name,))
         row = self.settings.fetchone()
         return row and row[0]
 
@@ -155,9 +155,26 @@ class WhensMyTransport:
         """
         Set value of named setting in settings database
         """
-        self.settings.execute("insert or replace into ?_settings (setting_name, setting_value) values (?, ?)",
-                              (self.instance_name, setting_name, setting_value))
-        self.settingsdb.commit()    
+        self.settings.execute("insert or replace into %s_settings (setting_name, setting_value) values (?, ?)" % self.instance_name,
+                              (setting_name, setting_value))
+        self.settingsdb.commit()
+        
+    def check_followers(self):
+        """
+        Check my followers. If any of them are not following me, follow them back
+        """
+        # Don't bother if we have checked in the last ten minutes
+        if (self.get_setting("last_follower_check") or 0) - time.time() < 600:
+            return
+            
+        # for follower in self.api.followers():
+        people_to_follow = [follower for follower in tweepy.Cursor(self.api.followers).items() if not person.following][-10]
+        for person in people_to_follow:
+            person.follow()
+            logging.info("Following user %s" % follower.screen_name )
+
+        self.update_setting("last_follower_check", time.time())
+        self.report_twitter_limit_status()
     
     def check_tweets(self):
         """
@@ -165,12 +182,11 @@ class WhensMyTransport:
         """
         # Check For @ reply Tweets
         last_answered_tweet = self.get_setting('last_answered_tweet')
+        last_answered_direct_message = self.get_setting('last_answered_direct_message')
+
         try:
-            # Rotates through pages if lots of replies
-            if self.testing:
-                tweets = self.api.mentions(since_id=last_answered_tweet, count=5)
-            else:
-                tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
+            tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
+            direct_messages = tweepy.Cursor(self.api.direct_messages, since_id=last_answered_direct_message).items()
                 
         # This is most likely to fail if OAuth is not correctly set up
         except tweepy.error.TweepError:
@@ -179,42 +195,100 @@ class WhensMyTransport:
         
         # Convert iterator to array so we can reverse it
         tweets = [tweet for tweet in tweets][::-1]
+        direct_messages = [dm for dm in direct_messages][::-1]
+
         # No need to bother if no replies
-        if not tweets:
+        if not tweets and not direct_messages:
             logging.info("No new Tweets, exiting...")
         else:
             logging.info("%s replies received!" , len(tweets))
+            logging.info("%s direct messages received!" , len(direct_messages))
+
             
-        # Alright! Let's get going
-        for tweet in tweets:
+        # First deal with Direct Messages
+        for dm in direct_messages:
             try:
-                replies = self.process_tweet(tweet)
+                reply = self.process_tweet(dm)
+            except WhensMyTransportException as exc:
+                logging.debug("Exception encountered: %s" , exc.value)
+                reply = "Sorry! %s" % exc.value
+                
+            if reply:
+                self.send_reply_back(reply, dm.sender.screen_name, is_direct_message=True)
+                self.update_setting('last_answered_direct_message', dm.id)
+
+        # And then with @ replies
+        for tweet in tweets:
+        
+            if not self.validate_tweet(tweet):
+                continue
+        
+            try:
+                reply = self.process_tweet(tweet)
             # Handler for any of the many possible reasons that this could go wrong
             except WhensMyTransportException as exc:
                 logging.debug("Exception encountered: %s" , exc.value)
-                replies = ("@%s Sorry! %s" % (tweet.user.screen_name, exc.value),)
+                reply = "Sorry! %s" % exc.value
 
-            # Reply back to the user, if not in testing mode
-            for reply in replies:
-                logging.info("Replying back to user with: %s", reply)
-                if not self.testing:
-                    try:
-                        self.api.update_status(status=reply, in_reply_to_status_id=tweet.id)
-                        self.update_setting('last_answered_tweet', tweet.id)
-
-                    # This catches any errors, most typically if we send multiple Tweets to the same person with the same error
-                    # In which case, not much we can do
-                    except tweepy.error.TweepError:
-                        continue
+            if reply:
+                self.send_reply_back(reply, tweet.user.screen_name, in_reply_to_status_id=tweet.id)
+                self.update_setting('last_answered_tweet', tweet.id)
 
         # Keep an eye on our rate limit, for science
         self.report_twitter_limit_status()        
+    
+    def validate_tweet(self, tweet):
+        username = tweet.user.screen_name
+        message = tweet.text
+        logging.info("Have a message from %s: %s", username, message)
+
+        # Don't start talking to yourself
+        if username == self.username:
+            logging.debug("Not talking to myself, that way madness lies")
+            return False
+
+        # Ignore mentions that are not direct replies
+        if not message.lower().startswith('@%s' % self.username.lower()):
+            logging.debug("Not a proper @ reply, skipping")
+            return False
+
+        else:
+            return True
+    
+    def send_reply_back(self, reply, username, is_direct_message=False, in_reply_to_status_id=None):
+    
+        # Do not Tweet if testing
+        if self.testing:
+            return
+        
+        if len(username) + len(reply) > 137:
+            replies = reply.split("; ", 2)
+            replies[0] = "%s..." % replies[0]
+            replies[1] = "...%s" % replies[1]
+        else:
+            replies = (reply,)
+
+        for reply in replies:
+
+            try:
+                if is_direct_message:
+                    logging.info("Sending direct message to %s: '%s'" % (username, reply))
+                    self.api.send_direct_message(user=username, text=reply)
+                else:
+                    status = "@%s %s" % (username, reply)
+                    logging.info("Making status update: '%s'" % status)
+                    self.api.update_status(status=status    , in_reply_to_status_id=in_reply_to_status_id)
+
+            # This catches any errors, most typically if we send multiple Tweets to the same person with the same error
+            # In which case, not much we can do
+            except tweepy.error.TweepError:
+                continue
 
     def process_tweet(self, tweet):
         """
-        Return an empty list. This must be overridden by a child class
+        Placeholder function. This must be overridden by a child class
         """
-        return ()
+        return None
 
     def report_twitter_limit_status(self):
         """
@@ -268,24 +342,17 @@ class WhensMyBus(WhensMyTransport):
     def process_tweet(self, tweet):
         """
         Process a single Tweet object and return a list of replies to be sent back to that user. Each reply is a string
-        e.g. '@username 341 Clerkenwell Road to Waterloo 1241; Rosebery Avenue to Angel Road 1247'
+        e.g. '341 Clerkenwell Road to Waterloo 1241; Rosebery Avenue to Angel Road 1247'
         
         Usually the tuple only has one element; but it may be two if it otherwise would be too long over 140 characters
         """
-        username = tweet.user.screen_name
-        message = tweet.text
-        logging.info("Have a message from %s: %s", username, message)
-
-        # Don't start talking to yourself
-        if username == self.username:
-            logging.debug("Not talking to myself, that way madness lies")
-            return ()
-            
         # Get route number, from and to from the message
+        message = tweet.text
         (route_number, origin, destination) = self.parse_message(message)
+        
         # If no number found at all, just skip
         if route_number == None:
-            return ()
+            return ''
             
         # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
         self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number,))
@@ -325,26 +392,11 @@ class WhensMyBus(WhensMyTransport):
             if not time_info:
                 raise WhensMyTransportException('no_arrival_data')
 
-            reply = "@%s %s %s" % (username, route_number, "; ".join(time_info))
+            reply = "%s %s" % (route_number, "; ".join(time_info))
         else:
             raise WhensMyTransportException('stop_not_found', origin)
         
-        # Max lead to a Tweet is 22 chars max (@ + 15 letter usename + space + 4-digit bus + space)
-        # Longest stop name is HANWORTH AIR PARK LEISURE CENTRE & LIBRARY = 42 
-        #
-        # Longest stop name (42) + " to " + Longest terminus name (15) + space + 4-digit time + semi-colon = 67 
-        #
-        # So at the moment highest possible length of a single route is 67 and so longest possible Tweet is:
-        # 22 + 67 + 66 = 155 characters
-    
-        if len(reply) > 140:
-            replies = reply.split("; ", 2)
-            replies[0] = "%s..." % replies[0]
-            replies[1] = "@%s ...%s" % (username, replies[1])
-        else:
-            replies = (reply,)
-            
-        return tuple(replies)
+        return reply
 
     def parse_message(self, message):
         """
@@ -352,14 +404,12 @@ class WhensMyBus(WhensMyTransport):
         Message is of format: "@whensmybus route_number [from origin] [to destination]"
         Tuple returns is of format: (route_number, origin, destination)
         """
-        # Ignore mentions that are not direct replies
-        if not message.lower().startswith('@%s' % self.username.lower()):
-            logging.debug("Not a proper @ reply, skipping")
-            return (None, None, None)
-        
         # Remove hashtags and @username
         message = re.sub(' +#\w+ ?', '', message)
-        message = message[len('@%s ' % self.username):].lstrip()
+        
+        if message.lower().startswith('@%s' % self.username.lower()):
+            message = message[len('@%s ' % self.username):].lstrip()
+
         if not message:
             raise WhensMyTransportException('blank_tweet')
 
@@ -641,4 +691,5 @@ def normalise_stop_name(name):
     
 if __name__ == "__main__":
     WMB = WhensMyBus()
+    WMB.check_followers()
     WMB.check_tweets()

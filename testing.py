@@ -101,14 +101,14 @@ class WhensMyBusTestCase(unittest.TestCase):
         Test to confirm we are ignoring Tweets that are just mentions and not replies
         """
         tweet = FakeTweet('Hello @%s' % self.wmb.username)
-        self.assertFalse(self.wmb.process_tweet(tweet))
+        self.assertFalse(self.wmb.validate_tweet(tweet))
 
     def test_talking_to_myself(self):
         """
         Test to confirm we are ignoring Tweets from the bot itself
         """
         tweet = FakeTweet('@%s 15' % self.wmb.username, username=self.wmb.username)
-        self.assertFalse(self.wmb.process_tweet(tweet))
+        self.assertFalse(self.wmb.validate_tweet(tweet))
 
     def test_no_bus_number(self):
         """
@@ -201,12 +201,11 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route), -0.0397, 51.5124) # Limehouse Station, London
-            result = self.wmb.process_tweet(tweet)[0]
+            result = self.wmb.process_tweet(tweet)
 
             for unwanted in ('LIMEHOUSE STATION', '<>', '#', '\[DLR\]', '>T<'):                
                 self.assertNotRegexpMatches(result, unwanted)
 
-            self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
             self.assertRegexpMatches(result, route.upper())
             self.assertRegexpMatches(result, '(Limehouse Station to .* [0-9]{4}|None shown going)')
 
@@ -216,12 +215,11 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         for (text, route) in self.test_tweets_with_ids:
             tweet = FakeTweet(text % (self.wmb.username, route))
-            result = self.wmb.process_tweet(tweet)[0]
+            result = self.wmb.process_tweet(tweet)
 
             for unwanted in ('CANARY WHARF', '<>', '#', '\[DLR\]', '>T<'):                
                 self.assertNotRegexpMatches(result, unwanted)
 
-            self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
             self.assertRegexpMatches(result, route.upper())
             self.assertRegexpMatches(result, '(Canary Wharf Station to .* [0-9]{4}|None shown going)')
 
@@ -231,12 +229,11 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         for (text, route) in self.test_tweets_with_locations:
             tweet = FakeTweet(text % (self.wmb.username, route))
-            result = self.wmb.process_tweet(tweet)[0]
+            result = self.wmb.process_tweet(tweet)
             
             for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
                 self.assertNotRegexpMatches(result, unwanted)
 
-            self.assertRegexpMatches(result, '^@%s' % tweet.user.screen_name)
             self.assertRegexpMatches(result, route.upper())
             self.assertRegexpMatches(result, '((Hoxton Station).* to .* [0-9]{4}|None shown going)')
 
@@ -249,7 +246,8 @@ def test_whensmybus():
     parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
     
     init = ('init', 'oauth', 'database',)
-    failures = ('talking_to_myself', 'mention', 'no_bus_number', 'blank_tweet', 'nonexistent_bus', # Tweet formatting errors
+    failures = (  'talking_to_myself', 'mention',
+                  'no_bus_number', 'blank_tweet', 'nonexistent_bus', # Tweet formatting errors
                   'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                     # Geotag errors
                   'bad_stop_id', 'stop_id_mismatch',                                               # Stop ID errors
                 )
