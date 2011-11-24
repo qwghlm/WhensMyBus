@@ -61,7 +61,7 @@ class WhensMyBusTestCase(unittest.TestCase):
                                              ('%s from Hoxton station',   '243',  'Hoxton Station'),
                                              ('%s from Bow Common Lane',  '323',  'Bow Common Lane'),
                                              ('%s from EC1M 4PN',         '55',   'St John Street'),
-                                             ('%s from Trafalgar Square', '25',   'Oxford xStreet'),
+                                             ('%s from Trafalgar Square', '25',   'Oxford Street'),
                                             )
 
     def tearDown(self):
