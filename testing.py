@@ -34,7 +34,15 @@ class FakeTweet:
         if longitude and latitude:
             self.coordinates['coordinates'] = [longitude, latitude]
         
-
+class FakeDirectMessage:
+    """
+    Fake DirectMessage object to simulate tweepy's DirectMessage object being passed to various functions
+    """
+    def __init__(self, text, username='testuser'):
+        self.user = lambda:1
+        self.user.screen_name = username
+        self.text = text
+            
 class WhensMyBusTestCase(unittest.TestCase):
     """
     Main Test Case for When's My Bus
@@ -116,6 +124,8 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         tweet = FakeTweet('@%s Thanks!' % self.wmb.username)
         self.assertFalse(self.wmb.process_tweet(tweet))
+        dm = FakeDirectMessage('Thanks!')
+        self.assertFalse(self.wmb.process_tweet(dm))
 
     def _test_correct_exception_produced(self, tweet, exception_id, *string_params):
         """
@@ -127,7 +137,6 @@ class WhensMyBusTestCase(unittest.TestCase):
         
         # Match the expected Exception message against the actual Exception raised when we try to process Tweet
         self.assertRaisesRegexp(WhensMyTransportException, expected_error, self.wmb.process_tweet, tweet)    
-
         
     def test_blank_tweet(self):
         """
@@ -138,6 +147,9 @@ class WhensMyBusTestCase(unittest.TestCase):
                      '@%s         ' % self.wmb.username,):
             tweet = FakeTweet(text)
             self._test_correct_exception_produced(tweet, 'blank_tweet')
+        for text in ('', ' ', '      '):
+            dm = FakeDirectMessage(text)
+            self._test_correct_exception_produced(dm, 'blank_tweet')
 
     def test_nonexistent_bus(self):
         """
@@ -148,6 +160,12 @@ class WhensMyBusTestCase(unittest.TestCase):
                      '@%s    218   #hashtag' % self.wmb.username,):
             tweet = FakeTweet(text)
             self._test_correct_exception_produced(tweet, 'nonexistent_bus', '218')
+        for text in ('218',
+                     '   218',
+                     '   218   #hashtag'):
+            dm = FakeDirectMessage(text)
+            self._test_correct_exception_produced(dm, 'nonexistent_bus', '218')
+
 
     def test_no_geotag(self):
         """
@@ -156,6 +174,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         for (text, route) in self.test_tweets:
             tweet = FakeTweet(text % (self.wmb.username, route))
             self._test_correct_exception_produced(tweet, 'no_geotag', route)
+        for (text, route) in self.test_tweets:
+            dm = FakeDirectMessage(route)
+            self._test_correct_exception_produced(dm, 'dms_not_taggable', route)
 
     def test_placeinfo_only(self):
         """

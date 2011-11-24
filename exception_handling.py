@@ -17,6 +17,7 @@ class WhensMyTransportException(Exception):
         'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
         'placeinfo_only'  : "The Place info on your Tweet isn't precise enough. Please make sure you have GPS enabled, or say '%s from <place>'",
         'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you have GPS enabled on your Tweet, or say '%s from <place>'",
+        'dms_not_taggable': "Direct messages can't use geotagging. Please make your message of the format '%s from <place>'",
         'bad_stop_id'     : "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
         'stop_id_mismatch': "That bus (%s) does not appear to stop at that stop (%s)",
         'stop_not_found'  : "I couldn't find any bus stops on your route by that name (%s)",

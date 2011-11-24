@@ -377,7 +377,11 @@ class WhensMyBus(WhensMyTransport):
             
             # If there's no geoinformation at all then say so
             else:
-                raise WhensMyTransportException('no_geotag', route_number)
+                if hasattr(tweet, 'coordinates'):
+                    raise WhensMyTransportException('no_geotag', route_number)
+                else:
+                    raise WhensMyTransportException('dms_not_taggable', route_number)
+
         
         else:
             # Try to see if origin is a bus stop ID
@@ -413,6 +417,8 @@ class WhensMyBus(WhensMyTransport):
         
         if message.lower().startswith('@%s' % self.username.lower()):
             message = message[len('@%s ' % self.username):].lstrip()
+        else:
+            message = message.strip()
 
         if not message:
             raise WhensMyTransportException('blank_tweet')
