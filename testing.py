@@ -2,9 +2,7 @@
 """
 A set of unit tests for When's My Bus?
 
-IMPORTANT: These unit tests require Python 2.7, even though When's My Bus will happily run in Python 2.6
-
-FIXME Some way of flushing all Tweets generated for reassurance
+IMPORTANT: These unit tests require Python 2.7, although When's My Bus will happily run in Python 2.6
 
 """
 import sys
@@ -59,10 +57,11 @@ class WhensMyBusTestCase(unittest.TestCase):
         
         self.test_messages_with_ids = (('%s from 52240', '277'),)
 
-        self.test_messages_with_locations = (#('%s from Hoxton', '243'),
-                                            #('%s from Hoxton station', '243'),
-                                            ('%s from Bow Common Lane', '323'),
-                                            ('%s from EC1M 4PN', '55'),
+        self.test_messages_with_locations = (('%s from Hoxton',           '243',  'Hoxton Station'),
+                                             ('%s from Hoxton station',   '243',  'Hoxton Station'),
+                                             ('%s from Bow Common Lane',  '323',  'Bow Common Lane'),
+                                             ('%s from EC1M 4PN',         '55',   'St John Street'),
+                                             ('%s from Trafalgar Square', '25',   'Oxford xStreet'),
                                             )
 
     def tearDown(self):
@@ -221,8 +220,16 @@ class WhensMyBusTestCase(unittest.TestCase):
         tweet = FakeTweet(self.at_reply + message) 
         self._test_correct_exception_produced(tweet, 'stop_id_mismatch', '15', '52240') # The 15 does not go from Canary Wharf
         dm = FakeDirectMessage(message) 
-        self._test_correct_exception_produced(dm, 'stop_id_mismatch', '15', '52240') # Stop IDs begin at 47000
+        self._test_correct_exception_produced(dm, 'stop_id_mismatch', '15', '52240') 
     
+    def test_stop_name_nonsense(self):
+        """
+        Test to confirm when route and stop do not match up is handled OK
+        """
+        message = '15 from eucg;#$78' 
+        tweet = FakeTweet(self.at_reply + message) 
+        self._test_correct_exception_produced(tweet, 'stop_not_found', 'eucg;#$78')
+        
     def test_in_london_with_geotag(self):
         """
         Test to confirm a correctly-geotagged message is handled OK
@@ -266,7 +273,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         Test to confirm a message with location name is handled OK
         """
-        for (text, route) in self.test_messages_with_locations:
+        for (text, route, stop_name) in self.test_messages_with_locations:
             message = text % route
             tweet = FakeTweet(self.at_reply + message)
             result = self.wmb.process_tweet(tweet)
@@ -275,7 +282,8 @@ class WhensMyBusTestCase(unittest.TestCase):
                 self.assertNotRegexpMatches(result, unwanted)
 
             self.assertRegexpMatches(result, route.upper())
-            self.assertRegexpMatches(result, '(.* to .* [0-9]{4}|None shown going)')
+            self.assertRegexpMatches(result, '(%s.* to .* [0-9]{4}|None shown going)' % stop_name)
+            print "Result: %s" % result
 
             """
             dm = FakeDirectMessage(message)
@@ -299,17 +307,18 @@ def test_whensmybus():
     failures = (  'talking_to_myself', 'mention',
                   'no_bus_number', 'blank_tweet', 'nonexistent_bus', # Tweet formatting errors
                   'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                     # Geotag errors
-                  'bad_stop_id', 'stop_id_mismatch',                                               # Stop ID errors
+                  'bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',                         # Stop ID errors
                 )
     successes = ('in_london_with_geotag', 'in_london_with_stop_id', 'in_london_with_stop_locations', )
     
     if parser.parse_args().dologin:
         test_names = init + failures + successes
     else:
-        test_names = ('in_london_with_stop_locations', ) #failures + successes
+        test_names = failures + successes
             
     suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in test_names]))
-    unittest.TextTestRunner(verbosity=1, failfast=1).run(suite)
-    
+    runner = unittest.TextTestRunner(verbosity=1, failfast=1, buffer=True)
+    runner.run(suite)
+
 if __name__ == "__main__":
     test_whensmybus()
