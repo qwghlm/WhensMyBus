@@ -368,7 +368,7 @@ class WhensMyBus(WhensMyTransport):
                 relevant_stops = self.get_stops_by_geolocation(route_number, position)
                 
             # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
-            elif tweet.place:
+            elif hasattr(tweet, 'place') and tweet.place:
                 raise WhensMyTransportException('placeinfo_only', route_number)
             
             # If there's no geoinformation at all then say so
