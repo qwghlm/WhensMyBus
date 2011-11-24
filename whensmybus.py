@@ -167,17 +167,20 @@ class WhensMyTransport:
         last_follower_check = self.get_setting("last_follower_check") or 0
         if time.time() - last_follower_check < 600:
             return
-            
+
         logging.info("Checking to see if I have any new followers...")
+        self.update_setting("last_follower_check", time.time())
         followers_ids = self.api.followers_ids()[0]
         friends_ids = self.api.friends_ids()[0]
         
         ids_to_follow = [f for f in followers_ids if f not in friends_ids][-10:]        
         for id in ids_to_follow[:-1]:
-            person = self.api.create_friendship(id)
-            logging.info("Following user %s" % person.screen_name )
+            try:
+                person = self.api.create_friendship(id)
+                logging.info("Following user %s" % person.screen_name )
+            except tweepy.error.TweepError:
+                continue
 
-        self.update_setting("last_follower_check", time.time())
         self.report_twitter_limit_status()
     
     def check_tweets(self):
