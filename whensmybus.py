@@ -164,16 +164,18 @@ class WhensMyTransport:
         Check my followers. If any of them are not following me, follow them back
         """
         # Don't bother if we have checked in the last ten minutes
-        last_follower_check = self.get_setting("last_follower_check") or time.time()
-        if last_follower_check - time.time() < 600:
+        last_follower_check = self.get_setting("last_follower_check") or 0
+        if time.time() - last_follower_check < 600:
             return
             
         logging.info("Checking to see if I have any new followers...")
-        # for follower in self.api.followers():
-        people_to_follow = [person for person in tweepy.Cursor(self.api.followers).items() if not person.following][-10]
-        for person in people_to_follow:
-            person.follow()
-            logging.info("Following user %s" % follower.screen_name )
+        followers_ids = self.api.followers_ids()[0]
+        friends_ids = self.api.friends_ids()[0]
+        
+        ids_to_follow = [f for f in followers_ids if f not in friends_ids][-10:]        
+        for id in ids_to_follow[:-1]:
+            person = self.api.create_friendship(id)
+            logging.info("Following user %s" % person.screen_name )
 
         self.update_setting("last_follower_check", time.time())
         self.report_twitter_limit_status()
@@ -297,7 +299,7 @@ class WhensMyTransport:
         Helper function to tell us what our Twitter API hit count & limit is
         """
         limit_status = self.api.rate_limit_status()
-        logging.debug("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
+        logging.info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
         logging.debug("Next reset time is %s", (limit_status['reset_time']))
 
     def fetch_json(self, url, exception_code='tfl_server_down'):
@@ -693,5 +695,5 @@ def normalise_stop_name(name):
     
 if __name__ == "__main__":
     WMB = WhensMyBus()
-    WMB.check_followers()
     WMB.check_tweets()
+    WMB.check_followers()
