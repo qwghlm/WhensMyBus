@@ -6,6 +6,8 @@ to convert between different co-ordinate systems
 """
 import math
 import urllib
+from pprint import pprint
+
 
 # Geocoders Define the URL and how to parse the resulting JSON object
 
@@ -71,7 +73,7 @@ class YahooGeocoder(BaseGeocoder):
         """
         Get URL to access API, given a search query
         """
-        self.params['q'] = query + ', London'
+        self.params['q'] = query + ', London, UK'
         return self.url % urllib.urlencode(self.params)
 
     def parse_results(self, obj):
@@ -81,8 +83,11 @@ class YahooGeocoder(BaseGeocoder):
         if obj['ResultSet']['Error'] or obj['ResultSet']['Found'] == 0:
             return []
 
-        resources = [o for o in obj['ResultSet']['Results']]
-        points = [(float(r['latitude']), float(r['longitude'])) for r in resources if r['country'] == "United Kingdom"]
+        # Filter out non-UK results and the default object representing London
+        resources = [o for o in obj['ResultSet']['Results'] if o['country'] == "United Kingdom" and o['woeid'] != 44418]
+        points = [(float(r['latitude']), float(r['longitude'])) for r in resources]
+
+
         return points            
 
 class GoogleGeocoder(BaseGeocoder):
