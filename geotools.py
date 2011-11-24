@@ -82,7 +82,7 @@ class YahooGeocoder(BaseGeocoder):
             return []
 
         resources = [o for o in obj['ResultSet']['Results']]
-        points = [(float(r['latitude']), float(r['longitude'])) for r in resources]
+        points = [(float(r['latitude']), float(r['longitude'])) for r in resources if r['country'] == "United Kingdom"]
         return points            
 
 class GoogleGeocoder(BaseGeocoder):
