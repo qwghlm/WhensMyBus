@@ -361,7 +361,7 @@ class WhensMyBus(WhensMyTransport):
 
         # If no origin specified, let's see if we have co-ordinates on the Tweet
         if origin == None:
-            if tweet.coordinates:
+            if hasattr(tweet, 'coordinates') and tweet.coordinates:
                 logging.debug("Detect geolocation on Tweet, locating stops")
                 # Twitter gives latitude then longitude, so need to reverse this
                 position = tweet.coordinates['coordinates'][::-1]
