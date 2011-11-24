@@ -174,11 +174,12 @@ class WhensMyTransport:
         friends_ids = self.api.friends_ids()[0]
         
         ids_to_follow = [f for f in followers_ids if f not in friends_ids][-10:]        
-        for id in ids_to_follow[:-1]:
+        for id in ids_to_follow[::-1]:
             try:
                 person = self.api.create_friendship(id)
                 logging.info("Following user %s" % person.screen_name )
             except tweepy.error.TweepError:
+                logging.info("Error following user %s, most likely the account is protected" % id)
                 continue
 
         self.report_twitter_limit_status()
