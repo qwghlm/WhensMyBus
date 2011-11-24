@@ -165,7 +165,7 @@ class WhensMyTransport:
         """
         # Don't bother if we have checked in the last ten minutes
         last_follower_check = self.get_setting("last_follower_check") or 0
-        if time.time() - last_follower_check < 600:
+        if time.time() - last_follower_check < 3600:
             return
 
         logging.info("Checking to see if I have any new followers...")
@@ -173,7 +173,7 @@ class WhensMyTransport:
         followers_ids = self.api.followers_ids()[0]
         friends_ids = self.api.friends_ids()[0]
         
-        ids_to_follow = [f for f in followers_ids if f not in friends_ids][-10:]        
+        ids_to_follow = [f for f in followers_ids if f not in friends_ids][-20:]        
         for id in ids_to_follow[::-1]:
             try:
                 person = self.api.create_friendship(id)
