@@ -164,11 +164,13 @@ class WhensMyTransport:
         Check my followers. If any of them are not following me, follow them back
         """
         # Don't bother if we have checked in the last ten minutes
-        if (self.get_setting("last_follower_check") or 0) - time.time() < 600:
+        last_follower_check = self.get_setting("last_follower_check") or time.time()
+        if last_follower_check - time.time() < 600:
             return
             
+        logging.info("Checking to see if I have any new followers...")
         # for follower in self.api.followers():
-        people_to_follow = [follower for follower in tweepy.Cursor(self.api.followers).items() if not person.following][-10]
+        people_to_follow = [person for person in tweepy.Cursor(self.api.followers).items() if not person.following][-10]
         for person in people_to_follow:
             person.follow()
             logging.info("Following user %s" % follower.screen_name )
