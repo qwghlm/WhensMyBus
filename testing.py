@@ -57,11 +57,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         
         self.test_messages_with_ids = (('%s from 52240', '277'),)
 
-        self.test_messages_with_locations = (('%s from Hoxton',           '243',  'Hoxton Station'),
-                                             ('%s from Hoxton station',   '243',  'Hoxton Station'),
+        self.test_messages_with_locations = (('%s from Hoxton',           '243',  'Hoxton Station'),   # Troublesome destinations 
                                              ('%s from Bow Common Lane',  '323',  'Bow Common Lane'),
                                              ('%s from EC1M 4PN',         '55',   'St John Street'),
-                                             ('%s from Trafalgar Square', '25',   'Oxford Street'),
                                             )
 
     def tearDown(self):
@@ -260,15 +258,6 @@ class WhensMyBusTestCase(unittest.TestCase):
             self.assertRegexpMatches(result, route.upper())
             self.assertRegexpMatches(result, '(Canary Wharf Station to .* [0-9]{4}|None shown going)')
             
-            dm = FakeDirectMessage(message)
-            result = self.wmb.process_tweet(dm)
-            for unwanted in ('CANARY WHARF', '<>', '#', '\[DLR\]', '>T<'):                
-                self.assertNotRegexpMatches(result, unwanted)
-
-            self.assertRegexpMatches(result, route.upper())
-            self.assertRegexpMatches(result, '(Canary Wharf Station to .* [0-9]{4}|None shown going)')            
-            
-
     def test_in_london_with_stop_locations(self):
         """
         Test to confirm a message with location name is handled OK
@@ -281,20 +270,11 @@ class WhensMyBusTestCase(unittest.TestCase):
             for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
                 self.assertNotRegexpMatches(result, unwanted)
 
+            # Route number, a semi-colon (i.e. more than one result)
             self.assertRegexpMatches(result, route.upper())
+            self.assertRegexpMatches(result, ';')
+            # Either the stop name or a message saying there is no data
             self.assertRegexpMatches(result, '(%s.* to .* [0-9]{4}|None shown going)' % stop_name)
-            print "Result: %s" % result
-
-            """
-            dm = FakeDirectMessage(message)
-            result = self.wmb.process_tweet(dm)
-            
-            for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
-                self.assertNotRegexpMatches(result, unwanted)
-
-            self.assertRegexpMatches(result, route.upper())
-            self.assertRegexpMatches(result, '(.* to .* [0-9]{4}|None shown going)')
-            """
 
 def test_whensmybus(): 
     """
