@@ -44,6 +44,7 @@ import string
 import sys
 import time
 import urllib2
+import pickle
 from pprint import pprint # For debugging
 
 # Tweepy is available https://github.com/tweepy/tweepy
@@ -149,12 +150,20 @@ class WhensMyTransport:
         """
         self.settings.execute("select setting_value from %s_settings where setting_name = ?" % self.instance_name, (setting_name,))
         row = self.settings.fetchone()
-        return row and row[0]
+        setting_value = row and row[0]
+        if setting_value is not None:
+            try:
+                setting_value = pickle.loads(setting_value.encode('utf-8'))
+            except Exception:    
+                pass
+        return setting_value
+
 
     def update_setting(self, setting_name, setting_value):
         """
         Set value of named setting in settings database
         """
+        setting_value = pickle.dumps(setting_value)
         self.settings.execute("insert or replace into %s_settings (setting_name, setting_value) values (?, ?)" % self.instance_name,
                               (setting_name, setting_value))
         self.settingsdb.commit()
@@ -167,21 +176,26 @@ class WhensMyTransport:
         last_follower_check = self.get_setting("last_follower_check") or 0
         if time.time() - last_follower_check < 3600:
             return
-
+    
         logging.info("Checking to see if I have any new followers...")
         self.update_setting("last_follower_check", time.time())
+
         followers_ids = self.api.followers_ids()[0]
         friends_ids = self.api.friends_ids()[0]
+        # Some users are protected and we need not continually ping them
+        protected_users_to_ignore = self.get_setting("protected_users_to_ignore") or []
         
-        ids_to_follow = [f for f in followers_ids if f not in friends_ids][-20:]        
+        ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:]        
         for id in ids_to_follow[::-1]:
             try:
                 person = self.api.create_friendship(id)
                 logging.info("Following user %s" % person.screen_name )
             except tweepy.error.TweepError:
+                protected_users_to_ignore.append(id)
                 logging.info("Error following user %s, most likely the account is protected" % id)
                 continue
 
+        self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
         self.report_twitter_limit_status()
     
     def check_tweets(self):
