@@ -411,9 +411,7 @@ class WhensMyBus(WhensMyTransport):
         
         # If the above has found stops on this route
         if relevant_stops:
-        
             # In due course, we would filter the stops by the destination specified :)
-            
             time_info = self.get_departure_data(relevant_stops, route_number)
             if not time_info:
                 raise WhensMyTransportException('no_arrival_data')
@@ -593,32 +591,37 @@ class WhensMyBus(WhensMyTransport):
             # Use each heuristic in term, and if it works out add it in...
             for match_function in match_functions:
                 if match_function(normalised_origin, normalised_stop):
-                    logging.debug("Found stop name %s", row['Stop_Name'])
+                    logging.debug("Found stop name %s for Run %s", row['Stop_Name'], row['Run'])
                     stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading')])
                     stop['Distance'] = 0
                     # ... but only if there is no previous match, or the score for this heuristic is better than it 
-                    if not relevant_stops.has_key(row['Run']):
+                    if not row['Run'] in relevant_stops:
                         relevant_stops[row['Run']] = stop
 
-        # If we can't find a location for both directions, use the geocoder to find a location matching that name
-        if len(relevant_stops.items()) < 2 and self.geocoder:
-            logging.debug("No match found, attempting to get geocode placename %s", origin)
-            obj = self.fetch_json(self.geocoder.get_url(origin), 'stop_not_found')
-            points = self.geocoder.parse_results(obj)
-            if not points:
-                raise WhensMyTransportException('stop_not_found', origin)
-                
-            # Get all the corresponding pairs of bus stops for each of the points found, and sort by ascending distance
-            stops = [self.get_stops_by_geolocation(route_number, p) for p in points]
-            
-            # Closest pair of stops wins
-            stops.sort(cmp=sort_stops_by_distance)
-            # Put in the data, but only if we have not found an exact match earlier
-            for (run, stop) in stops[0].items():
-                if not relevant_stops.has_key(run):
-                    relevant_stops[run] = stop
+        # If we can't find a location for directions 1 & 2, use the geocoder to find a location matching that name
+        for run in range(1,3):
+            if not run in relevant_stops and self.geocoder:
+                logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
 
-            logging.debug("Have found stop numbers: %s", ', '.join([s['Bus_Stop_Code'] for s in relevant_stops.values()]))
+                obj = self.fetch_json(self.geocoder.get_url(origin), 'stop_not_found')
+                points = self.geocoder.parse_results(obj)
+                if not points:
+                    logging.debug("Could not find any matching location for %s", origin)
+                    continue
+
+                # Get all corresponding bus stop for this direction for each of the points found....
+                possible_stops = [self.get_stops_by_geolocation(route_number, p).get(run, None) for p in points]
+                possible_stops = [p for p in possible_stops if p]
+                possible_stops.sort(cmp=lambda (a,b) : cmp(a['Distance'], b['Distance']))
+
+                if possible_stops:
+                    relevant_stops[run] = possible_stops[0]
+                    logging.debug("Have found stop named: %s", relevant_stops[run]['Stop_Name'])
+                else:
+                    logging.debug("Found a location, but could not find a nearby stop for %s", origin)
+
+        if not relevant_stops:
+            raise WhensMyTransportException('stop_not_found', origin)
             
         return relevant_stops
             
@@ -692,14 +695,6 @@ def load_database(dbfilename):
     dbs.row_factory = sqlite3.Row
     return (dbs, dbs.cursor())
     
-def sort_stops_by_distance(pair_a, pair_b):
-    """
-    Comparator for comparing two pairs of bus stops, sorting by combined distance of both from a fixed point
-    """
-    combined_distance_a = sum([p['Distance'] for p in pair_a.values()])
-    combined_distance_b = sum([p['Distance'] for p in pair_b.values()])
-    return cmp(combined_distance_a, combined_distance_b)
-
 def normalise_stop_name(name):
     """
     Normalise a bus stop name, sorting out punctuation, capitalisation, abbreviations & symbols
