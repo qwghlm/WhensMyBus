@@ -27,7 +27,6 @@ http://www.movable-type.co.uk/scripts/latlong-gridref.html
 Released under the MIT License
 
 TODO
- - Support for DMs
  - If a stop is the last one on a particular route & run, it should be excluded from our two big SELECT queries
  - Better code for text matches in database
 """
@@ -279,10 +278,6 @@ class WhensMyTransport:
     
     def send_reply_back(self, reply, username, is_direct_message=False, in_reply_to_status_id=None):
     
-        # Do not Tweet if testing
-        if self.testing:
-            return
-        
         if len(username) + len(reply) > 137:
             replies = reply.split("; ", 2)
             replies[0] = "%s..." % replies[0]
@@ -291,15 +286,16 @@ class WhensMyTransport:
             replies = (reply,)
 
         for reply in replies:
-
             try:
                 if is_direct_message:
                     logging.info("Sending direct message to %s: '%s'" % (username, reply))
-                    self.api.send_direct_message(user=username, text=reply)
+                    if not self.testing:
+                        self.api.send_direct_message(user=username, text=reply)
                 else:
                     status = "@%s %s" % (username, reply)
                     logging.info("Making status update: '%s'" % status)
-                    self.api.update_status(status=status    , in_reply_to_status_id=in_reply_to_status_id)
+                    if not self.testing:
+                        self.api.update_status(status=status    , in_reply_to_status_id=in_reply_to_status_id)
 
             # This catches any errors, most typically if we send multiple Tweets to the same person with the same error
             # In which case, not much we can do
@@ -599,7 +595,7 @@ class WhensMyBus(WhensMyTransport):
                         relevant_stops[row['Run']] = stop
 
         # If we can't find a location for directions 1 & 2, use the geocoder to find a location matching that name
-        for run in range(1,3):
+        for run in (1,2):
             if not run in relevant_stops and self.geocoder:
                 logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
 
@@ -612,7 +608,7 @@ class WhensMyBus(WhensMyTransport):
                 # Get all corresponding bus stop for this direction for each of the points found....
                 possible_stops = [self.get_stops_by_geolocation(route_number, p).get(run, None) for p in points]
                 possible_stops = [p for p in possible_stops if p]
-                possible_stops.sort(cmp=lambda (a,b) : cmp(a['Distance'], b['Distance']))
+                possible_stops.sort(cmp=lambda a,b: cmp(a['Distance'], b['Distance']))
 
                 if possible_stops:
                     relevant_stops[run] = possible_stops[0]
@@ -649,32 +645,28 @@ class WhensMyBus(WhensMyTransport):
             bus_data = self.fetch_json(tfl_url)
             arrivals = bus_data.get('arrivals', [])
             
-            if not arrivals:
-                # Handle TfL's JSON-encoded error message
-                if bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
-                    raise WhensMyTransportException('tfl_server_down')
-                else:
-                    logging.error("No arrival data for this stop right now")
+            # Handle TfL's JSON-encoded error message
+            if not arrivals and bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
+                raise WhensMyTransportException('tfl_server_down')
 
+            # Do the user a favour - check for both number and possible Night Bus version of the bus
+            relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
+                                                        and a['isRealTime']
+                                                        and not a['isCancelled']]
+
+            if relevant_arrivals:
+                # Get the first arrival for now
+                arrival = relevant_arrivals[0]
+                # Every character counts! :)
+                scheduled_time =  arrival['scheduledTime'].replace(':', '')
+                # Short hack to get BST working
+                if time.localtime().tm_isdst:
+                    hour = (int(scheduled_time[0:2]) + 1) % 24
+                    scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
+                    
+                time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
             else:
-                # Do the user a favour - check for both number and possible Night Bus version of the bus
-                relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
-                                                            and a['isRealTime']
-                                                            and not a['isCancelled']]
-
-                if relevant_arrivals:
-                    # Get the first arrival for now
-                    arrival = relevant_arrivals[0]
-                    # Every character counts! :)
-                    scheduled_time =  arrival['scheduledTime'].replace(':', '')
-                    # Short hack to get BST working
-                    if time.localtime().tm_isdst:
-                        hour = (int(scheduled_time[0:2]) + 1) % 24
-                        scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
-                        
-                    time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
-                else:
-                    time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
+                time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
         if len(time_info) > 2:
