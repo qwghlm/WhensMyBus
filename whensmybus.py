@@ -251,6 +251,9 @@ class WhensMyTransport:
                 logging.debug("Exception encountered: %s" , exc.value)
                 reply = "Sorry! %s" % exc.value
 
+            if not reply:
+                reply = self.check_politeness(tweet)
+                
             if reply:
                 self.send_reply_back(reply, tweet.user.screen_name, in_reply_to_status_id=tweet.id)
                 self.update_setting('last_answered_tweet', tweet.id)
@@ -276,6 +279,13 @@ class WhensMyTransport:
         else:
             return True
     
+    def check_politeness(self, tweet):
+        message = tweet.text.lower()
+        if message.find('thanks') > -1 or message.find('thank you') > -1:
+            return "No problem :)"
+        else:
+            return ''
+            
     def send_reply_back(self, reply, username, is_direct_message=False, in_reply_to_status_id=None):
     
         if len(username) + len(reply) > 137:
@@ -306,7 +316,7 @@ class WhensMyTransport:
         """
         Placeholder function. This must be overridden by a child class
         """
-        return None
+        return ''
 
     def report_twitter_limit_status(self):
         """

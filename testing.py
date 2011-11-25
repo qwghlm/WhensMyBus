@@ -104,6 +104,11 @@ class WhensMyBusTestCase(unittest.TestCase):
     # Really important tests
     #
 
+    def test_politeness(self):
+        tweet = FakeTweet(self.at_reply + 'Thank you!')
+        result = self.wmb.process_tweet(tweet) or self.wmb.check_politeness(tweet)
+        self.assertRegexpMatches(result, 'No problem')
+
     def test_mention(self):
         """
         Test to confirm we are ignoring Tweets that are just mentions and not replies
@@ -284,7 +289,7 @@ def test_whensmybus():
     parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
     
     init = ('init', 'oauth', 'database',)
-    failures = (  'talking_to_myself', 'mention',
+    failures = (  'politeness', 'talking_to_myself', 'mention',
                   'no_bus_number', 'blank_tweet', 'nonexistent_bus', # Tweet formatting errors
                   'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                     # Geotag errors
                   'bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',                         # Stop ID errors
