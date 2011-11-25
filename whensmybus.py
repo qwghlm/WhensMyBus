@@ -173,7 +173,7 @@ class WhensMyTransport:
         """
         # Don't bother if we have checked in the last ten minutes
         last_follower_check = self.get_setting("last_follower_check") or 0
-        if time.time() - last_follower_check < 3600:
+        if time.time() - last_follower_check < 600:
             return
     
         logging.info("Checking to see if I have any new followers...")
@@ -193,6 +193,10 @@ class WhensMyTransport:
                 protected_users_to_ignore.append(id)
                 logging.info("Error following user %s, most likely the account is protected" % id)
                 continue
+                
+        protected_users_info = self.api.lookup_users(user_ids = protected_users_to_ignore)
+        protected_users_names = ', '.join([user.screen_name for user in protected_users_info])
+        logging.debug("Following users are 'blocked' from following: %s" % protected_users_names)
 
         self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
         self.report_twitter_limit_status()
@@ -283,6 +287,9 @@ class WhensMyTransport:
         message = tweet.text.lower()
         if message.find('thanks') > -1 or message.find('thank you') > -1:
             return "No problem :)"
+        # The worst Easter Egg in the world
+        if message.find('venga bus') > -1 or message.find('vengabus') > -1:
+            return "The Vengabus is coming, and everybody's jumping http://bit.ly/9uGZ9C"
         else:
             return ''
             
