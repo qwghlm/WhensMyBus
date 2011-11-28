@@ -156,7 +156,6 @@ class WhensMyTransport:
                 pass
         return setting_value
 
-
     def update_setting(self, setting_name, setting_value):
         """
         Set value of named setting in settings database
@@ -205,52 +204,35 @@ class WhensMyTransport:
         """
         Check Tweets that are replies to us
         """
-        # Check For @ reply Tweets
+        # Get the IDs of the Tweets and Direct Message we last answered
         last_answered_tweet = self.get_setting('last_answered_tweet')
         last_answered_direct_message = self.get_setting('last_answered_direct_message')
-
+        
+        # Fetch those Tweets and DMs. This is most likely to fail if OAuth is not correctly set up
         try:
             tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
             direct_messages = tweepy.Cursor(self.api.direct_messages, since_id=last_answered_direct_message).items()
-                
-        # This is most likely to fail if OAuth is not correctly set up
         except tweepy.error.TweepError:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
             sys.exit(1)
         
-        # Convert iterator to array so we can reverse it
+        # Convert iterators to arrays so we can reverse them
         tweets = [tweet for tweet in tweets][::-1]
         direct_messages = [dm for dm in direct_messages][::-1]
-
+        
         # No need to bother if no replies
         if not tweets and not direct_messages:
             logging.info("No new Tweets, exiting...")
         else:
-            logging.info("%s replies received!" , len(tweets))
-            logging.info("%s direct messages received!" , len(direct_messages))
+            logging.info("%s replies and %s direct messages received!" , len(tweets), len(direct_messages))
 
-            
-        # First deal with Direct Messages
-        for dm in direct_messages:
-            try:
-                reply = self.process_tweet(dm)
-            except WhensMyTransportException as exc:
-                logging.debug("Exception encountered: %s" , exc.value)
-                reply = "Sorry! %s" % exc.value
-                
-            if reply:
-                self.send_reply_back(reply, dm.sender.screen_name, is_direct_message=True)
-                self.update_setting('last_answered_direct_message', dm.id)
+        for tweet in direct_messages + tweets:
 
-        # And then with @ replies
-        for tweet in tweets:
-        
             if not self.validate_tweet(tweet):
                 continue
         
             try:
                 reply = self.process_tweet(tweet)
-            # Handler for any of the many possible reasons that this could go wrong
             except WhensMyTransportException as exc:
                 logging.debug("Exception encountered: %s" , exc.value)
                 reply = "Sorry! %s" % exc.value
@@ -259,13 +241,22 @@ class WhensMyTransport:
                 reply = self.check_politeness(tweet)
                 
             if reply:
-                self.send_reply_back(reply, tweet.user.screen_name, in_reply_to_status_id=tweet.id)
-                self.update_setting('last_answered_tweet', tweet.id)
+                if isinstance(tweet, tweepy.models.DirectMessage):            
+                    self.send_reply_back(reply, tweet.sender.screen_name, is_direct_message=True)
+                    self.update_setting('last_answered_direct_message', tweet.id)
+                else:
+                    self.send_reply_back(reply, tweet.user.screen_name, in_reply_to_status_id=tweet.id)
+                    self.update_setting('last_answered_tweet', tweet.id)
 
         # Keep an eye on our rate limit, for science
-        self.report_twitter_limit_status()        
+        self.report_twitter_limit_status()
     
     def validate_tweet(self, tweet):
+    
+        # Ignore for DMs
+        if isinstance(tweet, tweepy.models.DirectMessage):
+            return True
+    
         username = tweet.user.screen_name
         message = tweet.text
         logging.info("Have a message from %s: %s", username, message)
@@ -324,6 +315,21 @@ class WhensMyTransport:
         Placeholder function. This must be overridden by a child class
         """
         return ''
+
+    def sanitize_message(self, message):
+        """ 
+        Some standard things to sanitise a message - remove hashtags, @username, whitespace etc.
+        """
+        # Remove hashtags and @username
+        message = re.sub(' +#\w+ ?', '', message)
+        if message.lower().startswith('@%s' % self.username.lower()):
+            message = message[len('@%s ' % self.username):].lstrip()
+        else:
+            message = message.strip()
+
+        if not message:
+            raise WhensMyTransportException('blank_tweet')
+        return message
 
     def report_twitter_limit_status(self):
         """
@@ -445,21 +451,14 @@ class WhensMyBus(WhensMyTransport):
 
     def parse_message(self, message):
         """
-        Parse a message, but do not attempt to attain semantic meaning behind data
+        Parse a Tweet, but do not attempt to attain semantic meaning behind data
         Message is of format: "@whensmybus route_number [from origin] [to destination]"
+        and may or may not have geodata on it
         Tuple returns is of format: (route_number, origin, destination)
         If we cannot find any of these three elements, None is used as default
         """
-        # Remove hashtags and @username
-        message = re.sub(' +#\w+ ?', '', message)
-        if message.lower().startswith('@%s' % self.username.lower()):
-            message = message[len('@%s ' % self.username):].lstrip()
-        else:
-            message = message.strip()
-
-        if not message:
-            raise WhensMyTransportException('blank_tweet')
-
+        message = self.sanitize_message(message)
+        
         # Extract a route number out of the first word by using the regexp for a London bus (0-2 letters then 1-3 numbers)
         match = re.match('^([A-Z]{0,2}[0-9]{1,3})(.*)$', message, re.I)
         # If we can't find a number, it's most likely the person was saying "Thank you" so just skip replying entirely 
