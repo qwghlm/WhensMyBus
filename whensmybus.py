@@ -167,37 +167,42 @@ class WhensMyTransport:
         
     def check_followers(self):
         """
-        Check my followers. If any of them are not following me, follow them back
+        Check my followers. If any of them are not following me, try to follow them back
         """
         # Don't bother if we have checked in the last ten minutes
         last_follower_check = self.get_setting("last_follower_check") or 0
         if time.time() - last_follower_check < 600:
             return
-    
         logging.info("Checking to see if I have any new followers...")
         self.update_setting("last_follower_check", time.time())
 
+        # Get IDs of our friends (people we already follow), and our followers
         followers_ids = self.api.followers_ids()[0]
         friends_ids = self.api.friends_ids()[0]
-        # Some users are protected and we need not continually ping them
+        # Some users are protected and have been requested but not accepted - we need not continually ping them
         protected_users_to_ignore = self.get_setting("protected_users_to_ignore") or []
         
-        ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:]        
+        # Work out the difference between the two, and also ignore protected users we have already requested
+        # Also, limit to the final 20 (as they are given in reverse order)
+        # Reverse these to give them in normal order, and follow each one back!
+        ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:] 
         for id in ids_to_follow[::-1]:
             try:
                 person = self.api.create_friendship(id)
                 logging.info("Following user %s" % person.screen_name )
             except tweepy.error.TweepError:
+                # Protected users throw an error if we try to repeatedly follow them, so keep a track of them
                 protected_users_to_ignore.append(id)
                 logging.info("Error following user %s, most likely the account is protected" % id)
                 continue
 
+        # If there are any protected users we are trying to follow, we log them here for debugging purposes
         if protected_users_to_ignore:
             protected_users_info = self.api.lookup_users(user_ids = protected_users_to_ignore)
             protected_users_names = ', '.join([user.screen_name for user in protected_users_info])
             logging.debug("Following users are 'blocked' from following: %s" % protected_users_names)
-
         self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
+        
         self.report_twitter_limit_status()
     
     def check_tweets(self):
@@ -228,19 +233,25 @@ class WhensMyTransport:
 
         for tweet in direct_messages + tweets:
 
+            # If the Tweet is not valid (e.g. not directly addressed, from ourselves) then skip it
             if not self.validate_tweet(tweet):
                 continue
-        
+                
+            # Try processing the Tweet. This may fail for a number of reasons, in which case we catch the
+            # exception and process an apology accordingly
             try:
                 reply = self.process_tweet(tweet)
             except WhensMyTransportException as exc:
                 logging.debug("Exception encountered: %s" , exc.value)
                 reply = "Sorry! %s" % exc.value
 
+            # If the reply is blank, probably didn't contain a bus number, so check to see if there was a thank-you
             if not reply:
                 reply = self.check_politeness(tweet)
                 
+            # Send a reply back, if we have one
             if reply:
+                # DMs and @ replies have different structures and different handlers
                 if isinstance(tweet, tweepy.models.DirectMessage):            
                     self.send_reply_back(reply, tweet.sender.screen_name, is_direct_message=True)
                     self.update_setting('last_answered_direct_message', tweet.id)
@@ -252,14 +263,19 @@ class WhensMyTransport:
         self.report_twitter_limit_status()
     
     def validate_tweet(self, tweet):
-    
-        # Ignore for DMs
-        if isinstance(tweet, tweepy.models.DirectMessage):
-            return True
-    
-        username = tweet.user.screen_name
+        """
+        Check to see if a Tweet is valid (i.e. we want to reply to it). Tweets from ourselves, and mentions that
+        are not directly addressed to us, are ignored
+        """
         message = tweet.text
-        logging.info("Have a message from %s: %s", username, message)
+
+        # Bit of logging plus always return True for DMs
+        if isinstance(tweet, tweepy.models.DirectMessage):
+            logging.info("Have a DM from %s: %s", tweet.sender.screen_name, message)
+            return True
+        else:
+            username = tweet.user.screen_name
+            logging.info("Have an @ reply from %s: %s", username, message)
 
         # Don't start talking to yourself
         if username == self.username:
@@ -271,10 +287,12 @@ class WhensMyTransport:
             logging.debug("Not a proper @ reply, skipping")
             return False
 
-        else:
-            return True
+        return True
     
     def check_politeness(self, tweet):
+        """
+        In case someone's just being nice to us, send them a "No problem"
+        """
         message = tweet.text.lower()
         if message.find('thanks') > -1 or message.find('thank you') > -1:
             return "No problem :)"
@@ -285,7 +303,11 @@ class WhensMyTransport:
             return ''
             
     def send_reply_back(self, reply, username, is_direct_message=False, in_reply_to_status_id=None):
-    
+        """
+        Send back a reply to the user; this might be a DM or might be a public reply
+        """
+        # Take care of over-long messages. 137 allows us breathing room for a letter D and spaces for
+        # a direct message, so split this kind of reply into two
         if len(username) + len(reply) > 137:
             replies = reply.split("; ", 2)
             replies[0] = "%s..." % replies[0]
@@ -293,6 +315,7 @@ class WhensMyTransport:
         else:
             replies = (reply,)
 
+        # Send the reply/replies we have generated to the user
         for reply in replies:
             try:
                 if is_direct_message:
@@ -303,16 +326,16 @@ class WhensMyTransport:
                     status = "@%s %s" % (username, reply)
                     logging.info("Making status update: '%s'" % status)
                     if not self.testing:
-                        self.api.update_status(status=status    , in_reply_to_status_id=in_reply_to_status_id)
+                        self.api.update_status(status=status, in_reply_to_status_id=in_reply_to_status_id)
 
-            # This catches any errors, most typically if we send multiple Tweets to the same person with the same error
+            # This catches any errors, most typically if we send multiple Tweets to the same person with the same content
             # In which case, not much we can do
             except tweepy.error.TweepError:
                 continue
 
     def process_tweet(self, tweet):
         """
-        Placeholder function. This must be overridden by a child class
+        Placeholder function. This must be overridden by a child class to do anything useful
         """
         return ''
 
@@ -333,7 +356,7 @@ class WhensMyTransport:
 
     def report_twitter_limit_status(self):
         """
-        Helper function to tell us what our Twitter API hit count & limit is
+        Helper function to log what our Twitter API hit count & limit is
         """
         limit_status = self.api.rate_limit_status()
         logging.info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
