@@ -2,6 +2,25 @@ When's My Bus?
 @whensmybus is a Twitter bot that tells you what time London buses are arriving at a stop near you
 See it in action: http://twitter.com/#!/whensmybus
 
+e.g.
+
+    @whensmybus 135
+...will check the Tweet for its geocoded tag and work out the next bus
+
+    @whensmybus 135 from 53452
+...will check the Tweet for the SMS code (usually printed on a sign at the stop) and work out the next bus
+
+    @whensmybus 135 from Canary Wharf
+...will check the Tweet for the departure point name and work out the next bus
+
+This also works with Direct Messages
+
+My thanks go to Adrian Short for inspiring me to write this
+http://adrianshort.co.uk/2011/09/08/open-data-for-everyday-life/
+
+and Chris Veness for his geographic co-ordinate translation scripts
+http://www.movable-type.co.uk/scripts/latlong-gridref.html
+
 More info about how to use the bot, and how to deploy it yourself, here:
 
 http://www.qwghlm.co.uk/whensmybus/
@@ -9,7 +28,3 @@ https://github.com/qwghlm/WhensMyBus
 
 Requires: Python 2.6 or greater to run the bot. Python 2.7 required for unit testing. Not yet tested with Python 3
 See INSTALL for installation instructions and details of dependencies
-
-It's been running for a month now and isn't falling over too often :) so feel free to clone this and use yourself
-
-                                                                                    -- Chris

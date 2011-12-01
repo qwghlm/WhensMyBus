@@ -6,25 +6,6 @@ When's My Bus?
 
 A Twitter bot that takes requests for a bus timetable and @ replies on Twitter
 
-e.g.
-
-    @whensmybus 135
-...will check the Tweet for its geocoded tag and work out the next bus
-
-    @whensmybus 135 from 53452
-...will check the Tweet for the SMS code (usually printed on a sign at the stop) and work out the next bus
-
-    @whensmybus 135 from Canary Wharf
-...will check the Tweet for the departure point name and work out the next bus
-
-This also works with Direct Messages
-
-My thanks go to Adrian Short for inspiring me to write this
-http://adrianshort.co.uk/2011/09/08/open-data-for-everyday-life/
-
-and Chris Veness for his geographic co-ordinate translation scripts
-http://www.movable-type.co.uk/scripts/latlong-gridref.html
-
 (c) 2011 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
@@ -108,7 +89,7 @@ class WhensMyTransport:
             logging.getLogger('').addHandler(rotator)
             logging.debug("Initializing...")
 
-        if testing != None:
+        if testing is not None:
             self.testing = testing
         else:
             self.testing = config.get(self.instance_name, 'test_mode')
@@ -149,6 +130,7 @@ class WhensMyTransport:
         self.settings.execute("select setting_value from %s_settings where setting_name = ?" % self.instance_name, (setting_name,))
         row = self.settings.fetchone()
         setting_value = row and row[0]
+        # Try unpickling, if this doesn't work then return the raw value (to deal with legacy databases)
         if setting_value is not None:
             try:
                 setting_value = pickle.loads(setting_value.encode('utf-8'))
@@ -183,8 +165,8 @@ class WhensMyTransport:
         protected_users_to_ignore = self.get_setting("protected_users_to_ignore") or []
         
         # Work out the difference between the two, and also ignore protected users we have already requested
-        # Also, limit to the final 20 (as they are given in reverse order)
-        # Reverse these to give them in normal order, and follow each one back!
+        # Twitter gives us these in reverse order, so we pick the final twenty (i.e the earliest to follow)
+        # reverse these to give them in normal order, and follow each one back!
         ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:] 
         for id in ids_to_follow[::-1]:
             try:
@@ -192,6 +174,7 @@ class WhensMyTransport:
                 logging.info("Following user %s" % person.screen_name )
             except tweepy.error.TweepError:
                 # Protected users throw an error if we try to repeatedly follow them, so keep a track of them
+                # so we don't repeatedly waste API calls trying to follow them again and again
                 protected_users_to_ignore.append(id)
                 logging.info("Error following user %s, most likely the account is protected" % id)
                 continue
@@ -202,7 +185,6 @@ class WhensMyTransport:
             protected_users_names = ', '.join([user.screen_name for user in protected_users_info])
             logging.debug("Following users are 'blocked' from following: %s" % protected_users_names)
         self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
-        
         self.report_twitter_limit_status()
     
     def check_tweets(self):
@@ -350,6 +332,7 @@ class WhensMyTransport:
         else:
             message = message.strip()
 
+        # Exception if the Tweet contains nothing useful
         if not message:
             raise WhensMyTransportException('blank_tweet')
         return message
@@ -364,7 +347,7 @@ class WhensMyTransport:
 
     def fetch_json(self, url, exception_code='tfl_server_down'):
         """
-        Fetches a JSON URL and returns object representation of it
+        Fetches a JSON URL and returns Python object representation of it
         """
         logging.debug("Fetching URL %s", url)
         try:
@@ -401,6 +384,9 @@ class WhensMyBus(WhensMyTransport):
     (all config is done in the file whensmytransport.cfg) and then call check_tweets()
     """
     def __init__(self, testing=None, silent=False):
+        """
+        Constructor for thw WhensMyBus class
+        """
         WhensMyTransport.__init__(self, 'whensmybus', testing, silent)
 
     def process_tweet(self, tweet):
@@ -434,14 +420,14 @@ class WhensMyBus(WhensMyTransport):
             elif hasattr(tweet, 'place') and tweet.place:
                 raise WhensMyTransportException('placeinfo_only', route_number)
             
-            # If there's no geoinformation at all then say so
+            # If there's no geoinformation at all then raise the appropriate exception
             else:
                 if hasattr(tweet, 'coordinates'):
                     raise WhensMyTransportException('no_geotag', route_number)
                 else:
                     raise WhensMyTransportException('dms_not_taggable', route_number)
 
-        
+        # If there is an origin (either a number or a placename), try parsing it properly
         else:
             relevant_stops = self.get_stops_by_stop_name(route_number, origin)
 
@@ -492,14 +478,15 @@ class WhensMyBus(WhensMyTransport):
         # In case the user has used lowercase letters, fix that (e.g. d3)
         route_number = match.group(1).upper()
 
-        # Work backwards from end of remainder to get destination, then origin
+        # Work backwards from end of remainder to get destination (which may or may not be specified)
         origin, destination = None, None
         remainder = match.group(2)
         match = re.search("( +to\\b *(.*)$)", remainder, re.I)
         destination = match and match.group(2)
+        # Lop off the destination so we can then parse the rest of the message
         if match:
             remainder = remainder[:-1 * len(match.group(1))]
-
+        # And then try getting the origin (which also may or may not be specified)
         match = re.search('( +from +(.*)$)', remainder, re.I)
         origin = match and match.group(2)
             
@@ -509,8 +496,10 @@ class WhensMyBus(WhensMyTransport):
         """
         Take a route number and a tuple specifying latitude & longitude, and works out closest bus stops in each direction
         
-        Returns a dictionary. Keys are numbers of the Run (usually 1 or 2, sometimes 3 or 4). Values are dictionaries
-        with keys: 'Stop_Name', 'Bus_Stop_Code', 'Heading', 'Distance', 'Sequence'
+        Returns a dictionary:
+            Keys are numbers of the Run (usually 1 or 2, sometimes 3 or 4).
+            Values are dictionaries, with keys:
+                'Stop_Name', 'Bus_Stop_Code', 'Heading', 'Distance', 'Sequence'
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert
         logging.debug("Position in WGS84 determined as: %s %s", position[0], position[1])
@@ -520,6 +509,7 @@ class WhensMyBus(WhensMyTransport):
         # Turn it into an Easting/Northing
         easting, northing = LatLongToOSGrid(position[0], position[1])
         gridref = gridrefNumToLet(easting, northing)
+        logging.debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
         
         # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
         if not gridref:
@@ -527,9 +517,6 @@ class WhensMyBus(WhensMyTransport):
         # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough just to make life difficult for me
         elif gridref[:2] not in ('TQ', 'TL', 'SU'):
             raise WhensMyTransportException('not_in_london')            
-
-        logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
-        logging.debug("Translated into Grid Reference %s", gridref)
 
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out the runs
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,))
@@ -554,11 +541,10 @@ class WhensMyBus(WhensMyTransport):
                     LIMIT 1
                     """ % (easting, easting, northing, northing, route_number, run)
     
-            # Note we fetch the Bus_Stop_Code not the Stop_Code_LBSL value out of this row - this is the ID used
-            # in TfL's system
+            # Note we fetch the Bus_Stop_Code not the Stop_Code_LBSL value out of this row - this is the ID used in TfL's system
             self.geodata.execute(query)
             row = self.geodata.fetchone()
-            # Some Runs are non-existent (e.g. Many routes have a Run 4 but not a Run 3) so if this is the case, skip
+            # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so if this is the case, skip
             if not row:
                 continue
             
@@ -629,8 +615,8 @@ class WhensMyBus(WhensMyTransport):
                              
         rows = self.geodata.fetchall()
         for row in rows:
+            # Use each matching function in term, and if it works out add it in...
             normalised_stop = normalise_stop_name(row['Stop_Name'])
-            # Use each heuristic in term, and if it works out add it in...
             for match_function in match_functions:
                 if match_function(normalised_origin, normalised_stop):
                     stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])
@@ -640,7 +626,7 @@ class WhensMyBus(WhensMyTransport):
                         logging.debug("Found stop name %s for Run %s", row['Stop_Name'], row['Run'])
                         relevant_stops[row['Run']] = stop
 
-        # If we can't find a location for directions 1 & 2, use the geocoder to find a location matching that name
+        # If we can't find a location for either direction 1 or 2, use the geocoder to find a location matching that name
         for run in (1,2):
             if not run in relevant_stops and self.geocoder:
                 logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
@@ -651,7 +637,7 @@ class WhensMyBus(WhensMyTransport):
                     logging.debug("Could not find any matching location for %s", origin)
                     continue
 
-                # Get all corresponding bus stop for this direction for each of the points found....
+                # For each of the places found, get the nearest stop that serves this run
                 possible_stops = [self.get_stops_by_geolocation(route_number, p).get(run, None) for p in points]
                 possible_stops = [p for p in possible_stops if p]
                 possible_stops.sort(cmp=lambda a,b: cmp(a['Distance'], b['Distance']))
