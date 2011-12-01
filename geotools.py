@@ -7,7 +7,7 @@ to convert between different co-ordinate systems
 import math
 import urllib
 from pprint import pprint
-
+from utils import fetch_json
 
 # Geocoders Define the URL and how to parse the resulting JSON object
 
@@ -22,6 +22,13 @@ class BaseGeocoder():
         self.url = ''
         self.params = {}
         return
+    
+    def fetch_result(self):
+        """
+        Fetch a JSON result using URL and params
+        """
+        query_url = self.url % urllib.urlencode(self.params)
+        return fetch_json(query_url, 'stop_not_found')
         
 class BingGeocoder(BaseGeocoder):
     """
@@ -36,17 +43,13 @@ class BingGeocoder(BaseGeocoder):
                 'key' : api_key
             }
 
-    def get_url(self, query):
+    def geocode(self, placename):
         """
-        Get URL to access API, given a search query
+        Geocode a placename, return list of matching place(s), each represented by a (latitude, longitude) tuple
         """
-        self.params['query'] = query + ', London'
-        return self.url % urllib.urlencode(self.params)
-
-    def parse_results(self, obj):
-        """
-        Parse results
-        """
+        self.params['query'] = placename + ', London'
+        obj = self.fetch_result()
+        
         if obj['resourceSets'][0]['estimatedTotal'] == 0:
             return []
 
@@ -69,17 +72,13 @@ class YahooGeocoder(BaseGeocoder):
                 'locale' : 'en_GB'
               }
 
-    def get_url(self, query):
+    def goecode(self, placename):
         """
-        Get URL to access API, given a search query
+        Geocode a placename, return list of matching place(s), each represented by a (latitude, longitude) tuple
         """
-        self.params['q'] = query + ', London, UK'
-        return self.url % urllib.urlencode(self.params)
+        self.params['q'] = placename + ', London, UK'
+        obj = self.fetch_result()
 
-    def parse_results(self, obj):
-        """
-        Parse results
-        """
         if obj['ResultSet']['Error'] or obj['ResultSet']['Found'] == 0:
             return []
 
@@ -102,17 +101,13 @@ class GoogleGeocoder(BaseGeocoder):
                 'sensor' : 'false'
             }
 
-    def get_url(self, query):
+    def geocode(self, placename):
         """
         Get URL to access API, given a search query
         """
-        self.params['address'] = query + ', London'
-        return self.url % urllib.urlencode(self.params)
+        self.params['address'] = placename + ', London'
+        obj = self.fetch_result()
 
-    def parse_results(self, obj):
-        """
-        Parse results
-        """
         if not obj['results'] or obj['status'] == 'ZERO_RESULTS':
             return []
             

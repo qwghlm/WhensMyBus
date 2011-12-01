@@ -17,17 +17,14 @@ TODO
 """
 # Standard libraries of Python 2.6
 import ConfigParser
-import json
 import logging
 import logging.handlers
 import math
 import os
 import re
-import sqlite3
 import string
 import sys
 import time
-import urllib2
 import pickle
 from pprint import pprint # For debugging
 
@@ -37,6 +34,7 @@ import tweepy
 # From other modules in this package
 from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet, YahooGeocoder, heading_to_direction
 from exception_handling import WhensMyTransportException
+from utils import fetch_json, load_database
 
 # Some constants we use
 VERSION_NUMBER = 0.40
@@ -49,7 +47,7 @@ class WhensMyTransport:
     """
     def __init__(self, instance_name, testing=None, silent=False):
         """
-        Read config and set up logging, URL opener, settings database, geocoding and Twitter OAuth       
+        Read config and set up logging, settings database, geocoding and Twitter OAuth       
         """
         # Instance name is something like 'whensmybus', 'whensmytube' 
         self.instance_name = instance_name
@@ -103,11 +101,6 @@ class WhensMyTransport:
         self.settings.execute("create table if not exists %s_settings (setting_name unique, setting_value)" % self.instance_name)
         self.settingsdb.commit()
 
-        # That which fetches the JSON
-        self.opener = urllib2.build_opener()
-        self.opener.addheaders = [('User-agent', 'When\'s My Transport? v. %s' % VERSION_NUMBER),
-                                  ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
-        
         # API keys
         yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')
         self.geocoder = yahoo_app_id and YahooGeocoder(yahoo_app_id)
@@ -167,23 +160,23 @@ class WhensMyTransport:
         # Work out the difference between the two, and also ignore protected users we have already requested
         # Twitter gives us these in reverse order, so we pick the final twenty (i.e the earliest to follow)
         # reverse these to give them in normal order, and follow each one back!
-        ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:] 
-        for id in ids_to_follow[::-1]:
+        twitter_ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:] 
+        for twitter_id in twitter_ids_to_follow[::-1]:
             try:
-                person = self.api.create_friendship(id)
-                logging.info("Following user %s" % person.screen_name )
+                person = self.api.create_friendship(twitter_id)
+                logging.info("Following user %s", person.screen_name )
             except tweepy.error.TweepError:
                 # Protected users throw an error if we try to repeatedly follow them, so keep a track of them
                 # so we don't repeatedly waste API calls trying to follow them again and again
-                protected_users_to_ignore.append(id)
-                logging.info("Error following user %s, most likely the account is protected" % id)
+                protected_users_to_ignore.append(twitter_id)
+                logging.info("Error following user %s, most likely the account is protected", twitter_id)
                 continue
 
         # If there are any protected users we are trying to follow, we log them here for debugging purposes
         if protected_users_to_ignore:
             protected_users_info = self.api.lookup_users(user_ids = protected_users_to_ignore)
             protected_users_names = ', '.join([user.screen_name for user in protected_users_info])
-            logging.debug("Following users are 'blocked' from following: %s" % protected_users_names)
+            logging.debug("Following users are 'blocked' from following: %s", protected_users_names)
         self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
         self.report_twitter_limit_status()
     
@@ -301,12 +294,12 @@ class WhensMyTransport:
         for reply in replies:
             try:
                 if is_direct_message:
-                    logging.info("Sending direct message to %s: '%s'" % (username, reply))
+                    logging.info("Sending direct message to %s: '%s'", username, reply)
                     if not self.testing:
                         self.api.send_direct_message(user=username, text=reply)
                 else:
                     status = "@%s %s" % (username, reply)
-                    logging.info("Making status update: '%s'" % status)
+                    logging.info("Making status update: '%s'", status)
                     if not self.testing:
                         self.api.update_status(status=status, in_reply_to_status_id=in_reply_to_status_id)
 
@@ -319,6 +312,7 @@ class WhensMyTransport:
         """
         Placeholder function. This must be overridden by a child class to do anything useful
         """
+        # FIXME Declare as abstract? 
         return ''
 
     def sanitize_message(self, message):
@@ -344,33 +338,6 @@ class WhensMyTransport:
         limit_status = self.api.rate_limit_status()
         logging.info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
         logging.debug("Next reset time is %s", (limit_status['reset_time']))
-
-    def fetch_json(self, url, exception_code='tfl_server_down'):
-        """
-        Fetches a JSON URL and returns Python object representation of it
-        """
-        logging.debug("Fetching URL %s", url)
-        try:
-            response = self.opener.open(url)
-            json_data = response.read()
-    
-        # Handle browsing error
-        except urllib2.HTTPError, exc:
-            logging.error("HTTP Error %s reading %s, aborting", exc.code, url)
-            raise WhensMyTransportException(exception_code)
-        except Exception, exc:
-            logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, url)
-            raise WhensMyTransportException(exception_code)
-    
-        # Try to parse this as JSON
-        if json_data:
-            try:
-                obj = json.loads(json_data)
-                return obj
-            # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
-            except ValueError, exc:
-                logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
-                raise WhensMyTransportException(exception_code)  
 
 #
 #
@@ -622,17 +589,15 @@ class WhensMyBus(WhensMyTransport):
                     stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])
                     stop['Distance'] = 0
                     # ... but only if there is no previous match, or the score for this heuristic is better than it 
-                    if not row['Run'] in relevant_stops:
+                    if row['Run'] not in relevant_stops:
                         logging.debug("Found stop name %s for Run %s", row['Stop_Name'], row['Run'])
                         relevant_stops[row['Run']] = stop
 
         # If we can't find a location for either direction 1 or 2, use the geocoder to find a location matching that name
-        for run in (1,2):
-            if not run in relevant_stops and self.geocoder:
+        for run in (1, 2):
+            if run not in relevant_stops and self.geocoder:
                 logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
-
-                obj = self.fetch_json(self.geocoder.get_url(origin), 'stop_not_found')
-                points = self.geocoder.parse_results(obj)
+                points = self.geocoder.geocode(origin)
                 if not points:
                     logging.debug("Could not find any matching location for %s", origin)
                     continue
@@ -640,7 +605,7 @@ class WhensMyBus(WhensMyTransport):
                 # For each of the places found, get the nearest stop that serves this run
                 possible_stops = [self.get_stops_by_geolocation(route_number, p).get(run, None) for p in points]
                 possible_stops = [p for p in possible_stops if p]
-                possible_stops.sort(cmp=lambda a,b: cmp(a['Distance'], b['Distance']))
+                possible_stops.sort(cmp=lambda a, b: cmp(a['Distance'], b['Distance']))
 
                 if possible_stops:
                     relevant_stops[run] = possible_stops[0]
@@ -674,7 +639,7 @@ class WhensMyBus(WhensMyTransport):
             stop_name = string.capwords(stop_name.strip())
         
             tfl_url = TFL_API_URL % stop_number
-            bus_data = self.fetch_json(tfl_url)
+            bus_data = fetch_json(tfl_url)
             arrivals = bus_data.get('arrivals', [])
             
             # Handle TfL's JSON-encoded error message
@@ -683,8 +648,7 @@ class WhensMyBus(WhensMyTransport):
 
             # Do the user a favour - check for both number and possible Night Bus version of the bus
             relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
-                                                        and a['isRealTime']
-                                                        and not a['isCancelled']]
+                                                        and a['isRealTime'] and not a['isCancelled']]
 
             if relevant_arrivals:
                 # Get the first arrival for now
@@ -707,6 +671,7 @@ class WhensMyBus(WhensMyTransport):
 
         return time_info
 
+"""
 class WhensMyTube(WhensMyTransport):
     def __init__(self, testing=None, silent=False):
         WhensMyTransport.__init__(self, 'whensmytube', testing, silent)
@@ -729,17 +694,8 @@ class WhensMyTube(WhensMyTransport):
     def get_departure_data(self, stop, destinaton):
         return ''
 
+"""
 # Helper functions
-
-def load_database(dbfilename):
-    """
-    Helper function to load a database and return links to it and its cursor
-    """
-    logging.debug("Opening database %s", dbfilename)
-    dbs = sqlite3.connect(HOME_DIR + '/db/' + dbfilename)
-    dbs.row_factory = sqlite3.Row
-    return (dbs, dbs.cursor())
-    
 def normalise_stop_name(name):
     """
     Normalise a bus stop name, sorting out punctuation, capitalisation, abbreviations & symbols
@@ -756,18 +712,8 @@ def normalise_stop_name(name):
     # Remove non-alphanumerics and return
     normalised_name = re.sub('[\W]', '', normalised_name)
     return normalised_name
-    
+
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
     WMB.check_followers()
-
-    sys.exit(0)
-    
-    WMT = WhensMyTube()
-    WMT.check_tweets()
-    WMT.check_followers()
-
-
-
-

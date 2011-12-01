@@ -3,11 +3,57 @@
 Utilities for WhensMyTransport
 """
 import csv
+import json
+import logging
+import sqlite3
+import urllib2
 import subprocess
 import tempfile
 import tweepy
 import sys
 import ConfigParser
+
+from whensmybus import WhensMyTransportException, VERSION_NUMBER, HOME_DIR
+
+def load_database(dbfilename):
+    """
+    Helper function to load a database and return links to it and its cursor
+    """
+    logging.debug("Opening database %s", dbfilename)
+    dbs = sqlite3.connect(HOME_DIR + '/db/' + dbfilename)
+    dbs.row_factory = sqlite3.Row
+    return (dbs, dbs.cursor())
+
+def fetch_json(url, exception_code='tfl_server_down'):
+    """
+    Fetches a JSON URL and returns Python object representation of it
+    """
+    opener = urllib2.build_opener()
+    opener.addheaders = [('User-agent', 'When\'s My Transport? v. %s' % VERSION_NUMBER),
+                         ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
+    
+    logging.debug("Fetching URL %s", url)
+    try:
+        response = opener.open(url)
+        json_data = response.read()
+
+    # Handle browsing error
+    except urllib2.HTTPError, exc:
+        logging.error("HTTP Error %s reading %s, aborting", exc.code, url)
+        raise WhensMyTransportException(exception_code)
+    except Exception, exc:
+        logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, url)
+        raise WhensMyTransportException(exception_code)
+
+    # Try to parse this as JSON
+    if json_data:
+        try:
+            obj = json.loads(json_data)
+            return obj
+        # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
+        except ValueError, exc:
+            logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
+            raise WhensMyTransportException(exception_code)  
 
 def import_bus_csv_to_db():
     """
