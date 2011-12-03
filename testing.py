@@ -49,12 +49,12 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         Setup test
         """
-        self.wmb = WhensMyBus(testing=True, silent=False)
+        self.wmb = WhensMyBus(testing=True, silent=True)
         
         self.at_reply = '@%s ' % self.wmb.username
         
-        # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number
-        self.test_standard_data = (('15', 'Limehouse Station', '53452', -0.0397, 51.5124, 'Poplar', '73923'),)
+        # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin
+        self.test_standard_data = (('15', 'Limehouse Station', '53452', -0.0397, 51.5124, 'Poplar', '73923', 'Limehouse Station'),)
 
         self.test_anomalous_data = (('%s from Stratford to Walthamstow', '257', 'The Grove'),
                                     ('%s from Hoxton',           '243',  'Hoxton Station'),   # Troublesome destinations 
@@ -71,6 +71,7 @@ class WhensMyBusTestCase(unittest.TestCase):
     #
     # Fundamental functionality tests
     #
+    
 
     def test_init(self):
         """
@@ -171,38 +172,38 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         Test to confirm lack of geotag handled OK
         """
-        for (text, route) in self.test_messages:
-            message = text % route
-            tweet = FakeTweet(self.at_reply + message)
+        for test_data in self.test_standard_data:
+            route = test_data[0]
+            tweet = FakeTweet(self.at_reply + route)
             self._test_correct_exception_produced(tweet, 'no_geotag', route)
-            dm = FakeDirectMessage(message)
+            dm = FakeDirectMessage(route)
             self._test_correct_exception_produced(dm, 'dms_not_taggable', route)
 
     def test_placeinfo_only(self):
         """
         Test to confirm ambiguous place information handled OK
         """
-        for (text, route) in self.test_messages:
-            message = text % route
-            tweet = FakeTweet(self.at_reply + message, place='foo')
+        for test_data in self.test_standard_data:
+            route = test_data[0]
+            tweet = FakeTweet(self.at_reply + route, place='foo')
             self._test_correct_exception_produced(tweet, 'placeinfo_only', route)
             
     def test_not_in_uk(self):
         """
         Test to confirm geolocations outside UK handled OK
         """
-        for (text, route) in self.test_messages:
-            message = text % route
-            tweet = FakeTweet(self.at_reply + message, -73.985656, 40.748433) # Empire State Building, New York
+        for test_data in self.test_standard_data:
+            route = test_data[0]
+            tweet = FakeTweet(self.at_reply + route, -73.985656, 40.748433) # Empire State Building, New York
             self._test_correct_exception_produced(tweet, 'not_in_uk')
 
     def test_not_in_london(self):
         """
         Test to confirm geolocations outside London handled OK
         """
-        for (text, route) in self.test_messages:
-            message = text % route
-            tweet = FakeTweet(self.at_reply + message, -3.200833, 55.948611) # Edinburgh Castle, Edinburgh
+        for test_data in self.test_standard_data:
+            route = test_data[0]
+            tweet = FakeTweet(self.at_reply + route, -3.200833, 55.948611) # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
 
     def test_bad_stop_id(self):
@@ -242,7 +243,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         Generic test for standard-issue messages
         """
-        for (route, origin_name, origin_id, lon, lat, destination_name, destination_id) in self.test_standard_data:
+        for (route, origin_name, origin_id, lon, lat, destination_name, destination_id, expected_origin) in self.test_standard_data:
         
             # Nine different types of message: 3 types of origin (geotag, ID, name) and 3 types of destination
             # (none, ID, name)
@@ -268,10 +269,10 @@ class WhensMyBusTestCase(unittest.TestCase):
 
                 result = self.wmb.process_tweet(tweet)
 
-                for unwanted in ('LIMEHOUSE STATION', '<>', '#', '\[DLR\]', '>T<'):                
+                for unwanted in (expected_origin.upper(), '<>', '#', '\[DLR\]', '>T<'):                
                     self.assertNotRegexpMatches(result, unwanted)
                 self.assertRegexpMatches(result, route.upper())
-                self.assertRegexpMatches(result, '(Limehouse Station to .* [0-9]{4}|None shown going)')
+                self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
 
                 # We should get two results and hence a semi-colon separating them, if this is not from a specific stop
                 if message.find(' to ') == -1 and message.find(origin_id) == -1:

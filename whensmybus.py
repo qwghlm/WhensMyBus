@@ -4,7 +4,7 @@
 
 When's My Bus?
 
-A Twitter bot that takes requests for a bus timetable and @ replies on Twitter
+A Twitter bot that takes requests for a bus time and replies the real-time data from TfL on Twitter
 
 (c) 2011 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
@@ -352,7 +352,7 @@ class WhensMyBus(WhensMyTransport):
     """
     def __init__(self, testing=None, silent=False):
         """
-        Constructor for thw WhensMyBus class
+        Constructor for the WhensMyBus class
         """
         WhensMyTransport.__init__(self, 'whensmybus', testing, silent)
 

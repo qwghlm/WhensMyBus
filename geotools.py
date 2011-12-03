@@ -72,7 +72,7 @@ class YahooGeocoder(BaseGeocoder):
                 'locale' : 'en_GB'
               }
 
-    def goecode(self, placename):
+    def geocode(self, placename):
         """
         Geocode a placename, return list of matching place(s), each represented by a (latitude, longitude) tuple
         """
