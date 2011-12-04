@@ -23,14 +23,14 @@ class FakeTweet:
     """
     Fake Tweet object to simulate tweepy's Tweet object being passed to various functions
     """
-    def __init__(self, text, longitude=None, latitude=None, place=None, username='testuser'):
+    def __init__(self, text, coordinates=(), place=None, username='testuser'):
         self.user = lambda:1
         self.user.screen_name = username
         self.text = text
         self.place = place
         self.coordinates = {}
-        if longitude and latitude:
-            self.coordinates['coordinates'] = [longitude, latitude]
+        if coordinates:
+            self.coordinates['coordinates'] = coordinates
         
 class FakeDirectMessage:
     """
@@ -106,6 +106,9 @@ class WhensMyBusTestCase(unittest.TestCase):
     #
 
     def test_politeness(self):
+        """
+        Test to see if we are replying to polite messagess correctly
+        """
         tweet = FakeTweet(self.at_reply + 'Thank you!')
         result = self.wmb.process_tweet(tweet) or self.wmb.check_politeness(tweet)
         self.assertRegexpMatches(result, 'No problem')
@@ -131,8 +134,8 @@ class WhensMyBusTestCase(unittest.TestCase):
         message = 'Thanks!'
         tweet = FakeTweet(self.at_reply + message)
         self.assertFalse(self.wmb.process_tweet(tweet))
-        dm = FakeDirectMessage(message)
-        self.assertFalse(self.wmb.process_tweet(dm))
+        direct_message = FakeDirectMessage(message)
+        self.assertFalse(self.wmb.process_tweet(direct_message))
 
     def _test_correct_exception_produced(self, tweet, exception_id, *string_params):
         """
@@ -154,8 +157,8 @@ class WhensMyBusTestCase(unittest.TestCase):
                      '         '):
             tweet = FakeTweet(self.at_reply + message)
             self._test_correct_exception_produced(tweet, 'blank_tweet')
-            dm = FakeDirectMessage(message)
-            self._test_correct_exception_produced(dm, 'blank_tweet')
+            direct_message = FakeDirectMessage(message)
+            self._test_correct_exception_produced(direct_message, 'blank_tweet')
 
     def test_nonexistent_bus(self):
         """
@@ -164,8 +167,8 @@ class WhensMyBusTestCase(unittest.TestCase):
         for message in ('218', '   218', '   218   #hashtag'):
             tweet = FakeTweet(self.at_reply + message)
             self._test_correct_exception_produced(tweet, 'nonexistent_bus', '218')
-            dm = FakeDirectMessage(message)
-            self._test_correct_exception_produced(dm, 'nonexistent_bus', '218')
+            direct_message = FakeDirectMessage(message)
+            self._test_correct_exception_produced(direct_message, 'nonexistent_bus', '218')
 
 
     def test_no_geotag(self):
@@ -176,8 +179,8 @@ class WhensMyBusTestCase(unittest.TestCase):
             route = test_data[0]
             tweet = FakeTweet(self.at_reply + route)
             self._test_correct_exception_produced(tweet, 'no_geotag', route)
-            dm = FakeDirectMessage(route)
-            self._test_correct_exception_produced(dm, 'dms_not_taggable', route)
+            direct_message = FakeDirectMessage(route)
+            self._test_correct_exception_produced(direct_message, 'dms_not_taggable', route)
 
     def test_placeinfo_only(self):
         """
@@ -194,7 +197,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         for test_data in self.test_standard_data:
             route = test_data[0]
-            tweet = FakeTweet(self.at_reply + route, -73.985656, 40.748433) # Empire State Building, New York
+            tweet = FakeTweet(self.at_reply + route, (-73.985656, 40.748433)) # Empire State Building, New York
             self._test_correct_exception_produced(tweet, 'not_in_uk')
 
     def test_not_in_london(self):
@@ -203,7 +206,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         for test_data in self.test_standard_data:
             route = test_data[0]
-            tweet = FakeTweet(self.at_reply + route, -3.200833, 55.948611) # Edinburgh Castle, Edinburgh
+            tweet = FakeTweet(self.at_reply + route, (-3.200833, 55.948611)) # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
 
     def test_bad_stop_id(self):
@@ -213,8 +216,8 @@ class WhensMyBusTestCase(unittest.TestCase):
         message = '15 from 00000'
         tweet = FakeTweet(self.at_reply + message) 
         self._test_correct_exception_produced(tweet, 'bad_stop_id', '00000') # Stop IDs begin at 47000
-        dm = FakeDirectMessage(message) 
-        self._test_correct_exception_produced(dm, 'bad_stop_id', '00000') # Stop IDs begin at 47000
+        direct_message = FakeDirectMessage(message) 
+        self._test_correct_exception_produced(direct_message, 'bad_stop_id', '00000') # Stop IDs begin at 47000
         
     def test_stop_id_mismatch(self):
         """
@@ -223,8 +226,8 @@ class WhensMyBusTestCase(unittest.TestCase):
         message = '15 from 52240'
         tweet = FakeTweet(self.at_reply + message) 
         self._test_correct_exception_produced(tweet, 'stop_id_mismatch', '15', '52240') # The 15 does not go from Canary Wharf
-        dm = FakeDirectMessage(message) 
-        self._test_correct_exception_produced(dm, 'stop_id_mismatch', '15', '52240') 
+        direct_message = FakeDirectMessage(message) 
+        self._test_correct_exception_produced(direct_message, 'stop_id_mismatch', '15', '52240') 
     
     def test_stop_name_nonsense(self):
         """
@@ -263,7 +266,7 @@ class WhensMyBusTestCase(unittest.TestCase):
             for message in test_messages:
                 message = self.at_reply + message
                 if message.find('from') == -1:
-                    tweet = FakeTweet(message, lon, lat)
+                    tweet = FakeTweet(message, (lon, lat))
                 else:
                     tweet = FakeTweet(message)
 
