@@ -5,6 +5,7 @@ Utilities for WhensMyTransport
 import csv
 import json
 import logging
+import os
 import sqlite3
 import urllib2
 import subprocess
@@ -13,14 +14,16 @@ import tweepy
 import sys
 import ConfigParser
 
-import whensmybus 
 from exception_handling import WhensMyTransportException
+
+HOME_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def load_database(dbfilename):
     """
     Helper function to load a database and return links to it and its cursor
     """
     logging.debug("Opening database %s", dbfilename)
-    dbs = sqlite3.connect(whensmybus.HOME_DIR + '/db/' + dbfilename)
+    dbs = sqlite3.connect(HOME_DIR + '/db/' + dbfilename)
     dbs.row_factory = sqlite3.Row
     return (dbs, dbs.cursor())
 
@@ -29,7 +32,7 @@ def fetch_json(url, exception_code='tfl_server_down'):
     Fetches a JSON URL and returns Python object representation of it
     """
     opener = urllib2.build_opener()
-    opener.addheaders = [('User-agent', 'When\'s My Transport? v. %s' % whensmybus.VERSION_NUMBER),
+    opener.addheaders = [('User-agent', 'When\'s My Transport?'),
                          ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
     
     logging.debug("Fetching URL %s", url)
