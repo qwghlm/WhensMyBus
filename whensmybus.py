@@ -10,13 +10,12 @@ A Twitter bot that takes requests for a bus time and replies the real-time data 
 Released under the MIT License
 
 TODO
- - If a stop is the last one on a particular route & run, it should be excluded from our two big SELECT queries
- - Better code for text matches in database (fuzzy string matching etc.)
  - Tube, Train, Tram, DLR & Boat equivalents
  - Multiple buses per Tweet
 """
 # Standard libraries of Python 2.6
 import ConfigParser
+import difflib
 import logging
 import logging.handlers
 import math
@@ -28,7 +27,7 @@ import time
 import pickle
 from pprint import pprint # For debugging
 
-# Tweepy is available https://github.com/tweepy/tweepy
+# Tweepy is a Twitter API library available from https://github.com/tweepy/tweepy
 import tweepy
 
 # From other modules in this package
@@ -59,9 +58,9 @@ class WhensMyTransport:
                                                      'debug_level' : 'INFO',
                                                      'yahoo_app_id' : None})
             config.read(HOME_DIR + '/whensmytransport.cfg')
-            
+            config.get(self.instance_name, 'debug_level')            
         except (ConfigParser.Error, IOError):
-            print "Fatal error: can't find a valid config file. Please make sure there is a %s file in this directory" % config_file
+            print "Fatal error: can't find a valid config file with options for %s. Please make sure there is a %s file in this directory" % (self.instance_name, config_file)
             sys.exit(1)
 
         # Set up some logging
@@ -312,7 +311,6 @@ class WhensMyTransport:
         """
         Placeholder function. This must be overridden by a child class to do anything useful
         """
-        # FIXME Declare as abstract? 
         return ''
 
     def sanitize_message(self, message):
@@ -448,7 +446,7 @@ class WhensMyBus(WhensMyTransport):
         # Work backwards from end of remainder to get destination (which may or may not be specified)
         origin, destination = None, None
         remainder = match.group(2)
-        match = re.search("( +to\\b *(.*)$)", remainder, re.I)
+        match = re.search(r"( +to\b *(.*)$)", remainder, re.I)
         destination = match and match.group(2)
         # Lop off the destination so we can then parse the rest of the message
         if match:
@@ -485,7 +483,7 @@ class WhensMyBus(WhensMyTransport):
         elif gridref[:2] not in ('TQ', 'TL', 'SU'):
             raise WhensMyTransportException('not_in_london')            
 
-        # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out the runs
+        # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,))
         max_runs = int(self.geodata.fetchone()[0])
         
@@ -511,13 +509,11 @@ class WhensMyBus(WhensMyTransport):
             # Note we fetch the Bus_Stop_Code not the Stop_Code_LBSL value out of this row - this is the ID used in TfL's system
             self.geodata.execute(query)
             row = self.geodata.fetchone()
-            # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so if this is the case, skip
-            if not row:
-                continue
-            
-            stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])
-            stop['Distance'] = round(math.sqrt(row['dist_squared']))
-            relevant_stops[run] = stop
+            # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
+            if row:
+                stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])
+                stop['Distance'] = round(math.sqrt(row['dist_squared']))
+                relevant_stops[run] = stop
         
         if relevant_stops:
             logging.debug("Have found stop numbers: %s", ', '.join([s['Bus_Stop_Code'] for s in relevant_stops.values()]))
@@ -561,39 +557,35 @@ class WhensMyBus(WhensMyTransport):
         if match:
             return self.get_stops_by_stop_number(route_number, origin)
 
-        # Try to get a match against bus stop names in database, n exact match, a match with a bus station
-        # or a match with a rail or tube station
+        # First off, try to get a match against bus stop names in database
+        # Users may not give exact details, so we try to match fuzzily
         logging.debug("Attempting to get a match on placename %s", origin)
         relevant_stops = {}
-        match_functions = (lambda origin, stop: stop == origin,
-                           lambda origin, stop: origin.find("BUSSTN") > -1 and stop.startswith(origin),
-                           lambda origin, stop: origin.find("STN") > -1 and stop.startswith(origin),
-                           lambda origin, stop: stop == origin + "BUSSTN",
-                           lambda origin, stop: stop.startswith(origin + "BUSSTN"),
-                           lambda origin, stop: stop == origin + "STN",
-                           lambda origin, stop: stop.startswith(origin + "STN"),
-                          )
                      
-        # We normalise our names to take care of punctuation, capitalisation, abbreviations for road names
-        normalised_origin = normalise_stop_name(origin)
-        self.geodata.execute("""
-                             SELECT * FROM routes WHERE Route=?
-                             """, (route_number,))
-                             
-        rows = self.geodata.fetchall()
-        for row in rows:
-            # Use each matching function in term, and if it works out add it in...
-            normalised_stop = normalise_stop_name(row['Stop_Name'])
-            for match_function in match_functions:
-                if match_function(normalised_origin, normalised_stop):
-                    stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])
+        # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
+        self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,))
+        max_runs = int(self.geodata.fetchone()[0])
+        
+        for run in range(1, max_runs+1):
+            self.geodata.execute("""
+                                 SELECT * FROM routes WHERE Route=? AND Run=?
+                                 """, (route_number, run))
+            rows = self.geodata.fetchall()
+            # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
+            if rows:
+                # Get tuples of matches, each a (row, confidence) pair : confidence is between 0 and 100 and reflects 
+                # how confident we are that that row's stop name matches the name we have asked for
+                matches = [(row, get_name_similarity(origin, row['Stop_Name'])) for row in rows]
+                matches.sort(lambda a, b: cmp(a[1], b[1]))
+                (best_match, confidence) = matches[-1]
+                # 70% is a good confidence figure from our experience
+                if confidence >= 70:
+                    stop = dict([(key, best_match[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])                
                     stop['Distance'] = 0
-                    # ... but only if there is no previous match, or the score for this heuristic is better than it 
-                    if row['Run'] not in relevant_stops:
-                        logging.debug("Found stop name %s for Run %s", row['Stop_Name'], row['Run'])
-                        relevant_stops[row['Run']] = stop
+                    logging.info("Found stop name %s for Run %s with confidence %s", best_match['Stop_Name'], best_match['Run'], confidence)
+                    relevant_stops[run] = stop
 
-        # If we can't find a location for either direction 1 or 2, use the geocoder to find a location matching that name
+        # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name
         for run in (1, 2):
             if run not in relevant_stops and self.geocoder:
                 logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
@@ -702,16 +694,51 @@ def normalise_stop_name(name):
     """
     # Upper-case and abbreviate road names
     normalised_name = name.upper()
-    for (word, abbreviation) in (('SQUARE', 'SQ'), ('AVENUE', 'AVE'), ('STREET', 'ST'), ('ROAD', 'RD'), ('STATION', 'STN')):
-        normalised_name = re.sub('\\b' + word + '\\b', abbreviation, normalised_name)
+    for (word, abbreviation) in (('SQUARE', 'SQ'), ('AVENUE', 'AVE'), ('STREET', 'ST'), ('ROAD', 'RD'), ('STATION', 'STN'), ('PUBLIC HOUSE', 'PUB')):
+        normalised_name = re.sub(r'\b' + word + r'\b', abbreviation, normalised_name)
+
+    # Get rid of common words like 'The'
+    for common_word in ('THE',):
+        normalised_name = re.sub(r'\b' + common_word + r'\b', '', normalised_name)
         
     # Remove Tfl's ASCII symbols for Tube, rail, DLR & Tram
     for unwanted in ('<>', '#', '[DLR]', '>T<'):
         normalised_name = normalised_name.replace(unwanted, '')
     
-    # Remove non-alphanumerics and return
+    # Remove spaces and punctuation and return
     normalised_name = re.sub('[\W]', '', normalised_name)
     return normalised_name
+
+def get_name_similarity(origin, stop):
+    """
+    Takes a user-defiend origin, and a stop name from database, and work out how well they match, returning an integer
+    between 0 (no match) and 100 (perfect). 70 or more seems to be a confident enough match 
+    """
+    # Use the above function to normalise our names and facilitate easier comparison
+    origin, stop = normalise_stop_name(origin), normalise_stop_name(stop)
+    
+    # Exact match is obviously best
+    if origin == stop:
+        return 100
+        
+    # If user has specified a station or bus station, then a partial match at start or end of string works for us
+    # We prioritise, just slightly, names that have the match at the beginning
+    if re.search("(BUS)?STN", origin):
+        if stop.startswith(origin):
+            return 95
+        if stop.endswith(origin):
+            return 94
+            
+    # If on the other hand, we add station or bus station to the origin name and it matches, that's also pretty good
+    if re.search("^%s(BUS)?STN" % origin, stop):
+        return 91
+    if re.search("%s(BUS)?STN$" % origin, stop):
+        return 90 
+
+    # If the above fail, use our fuzzy string matching, which scores between 0 and 100 on a string match based
+    # on difflib's string similarity algorithm
+    # Based on https://github.com/seatgeek/fuzzywuzzy/blob/master/fuzzywuzzy/fuzz.py
+    return int(100 * difflib.SequenceMatcher(None, origin, stop).ratio())
 
 if __name__ == "__main__":
     WMB = WhensMyBus()
