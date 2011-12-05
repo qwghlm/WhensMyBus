@@ -13,6 +13,7 @@ class WhensMyTransportException(Exception):
     #
     # Error message should be no longer than 115 chars so we can put a username and the word Sorry and still be under 140
     exception_values = {
+        # Bus stuff
         'blank_tweet'     : "I need to have a bus number in order to find the times for it",
         'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
         'placeinfo_only'  : "The Place info on your Tweet isn't precise enough. Please make sure you have GPS enabled, or say '%s from <place>'",
@@ -26,6 +27,9 @@ class WhensMyTransportException(Exception):
         'no_stops_nearby' : "I could not find any stops near you",
         'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
         'no_arrival_data' : "There is no arrival data on the TfL website for your stop - most likely no buses are due",
+        
+        # Tube stuff
+        'nonexistent_line' : "I couldn't recognise that line (%s) as a London Underground line",
     }
     
     def __init__(self, msgid, *string_params):
