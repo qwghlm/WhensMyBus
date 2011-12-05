@@ -130,6 +130,10 @@ def import_bus_csv_to_db():
     print subprocess.check_output(["sqlite3", "./db/whensmybus.geodata.db"], stdin=open(tempf.name))
 
 def import_tube_xml_to_db():
+    inputpath = 'tube-references.yaml'
+    inputfile =  open('./sourcedata/' + inputpath)
+    # https://github.com/mollyproject/mollyproject/blob/6ea42dba2d268e7907926574f6a000d8e6b8c5af/molly/apps/places/data/tube-references.yaml
+    """
     f = open('/Users/chrisapplegate/Desktop/StationLocations_v1.Kml')
     dom = parse(f)
     stations = dom.getElementsByTagName('Placemark')
@@ -138,7 +142,7 @@ def import_tube_xml_to_db():
         coordinates = station.getElementsByTagName('coordinates')[0].firstChild.data.strip()
         coordinates = tuple([float(c) for c in coordinates.split(',')[0:2]])
         print name, coordinates
-
+    """
 # OAuth stuff
 
 def make_oauth_key(instance_name='whensmybus'):
