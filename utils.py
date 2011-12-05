@@ -13,6 +13,7 @@ import tempfile
 import tweepy
 import sys
 import ConfigParser
+from xml.dom.minidom import parse, parseString
 
 from exception_handling import WhensMyTransportException
 
@@ -127,6 +128,16 @@ def import_bus_csv_to_db():
     tempf.write(sql)
     tempf.flush()
     print subprocess.check_output(["sqlite3", "./db/whensmybus.geodata.db"], stdin=open(tempf.name))
+
+def import_tube_xml_to_db():
+    f = open('/Users/chrisapplegate/Desktop/StationLocations_v1.Kml')
+    dom = parse(f)
+    stations = dom.getElementsByTagName('Placemark')
+    for station in stations:
+        name = station.getElementsByTagName('name')[0].firstChild.data.strip().replace(' Station', '')
+        coordinates = station.getElementsByTagName('coordinates')[0].firstChild.data.strip()
+        coordinates = tuple([float(c) for c in coordinates.split(',')[0:2]])
+        print name, coordinates
 
 # OAuth stuff
 
