@@ -18,6 +18,8 @@ from exception_handling import WhensMyTransportException
 
 HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Database stuff
+
 def load_database(dbfilename):
     """
     Helper function to load a database and return links to it and its cursor
@@ -26,6 +28,8 @@ def load_database(dbfilename):
     dbs = sqlite3.connect(HOME_DIR + '/db/' + dbfilename)
     dbs.row_factory = sqlite3.Row
     return (dbs, dbs.cursor())
+
+# JSON stuff
 
 def fetch_json(url, exception_code='tfl_server_down'):
     """
@@ -57,6 +61,8 @@ def fetch_json(url, exception_code='tfl_server_down'):
         except ValueError, exc:
             logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
             raise WhensMyTransportException(exception_code)  
+
+# Data importing stuff
 
 def import_bus_csv_to_db():
     """
@@ -121,6 +127,8 @@ def import_bus_csv_to_db():
     tempf.write(sql)
     tempf.flush()
     print subprocess.check_output(["sqlite3", "./db/whensmybus.geodata.db"], stdin=open(tempf.name))
+
+# OAuth stuff
 
 def make_oauth_key(instance_name='whensmybus'):
     """
