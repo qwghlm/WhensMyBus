@@ -15,7 +15,6 @@ TODO
 """
 # Standard libraries of Python 2.6
 import ConfigParser
-import difflib
 import logging
 import logging.handlers
 import math
@@ -34,6 +33,7 @@ import tweepy
 from geotools import LatLongToOSGrid, convertWGS84toOSGB36, gridrefNumToLet, YahooGeocoder, heading_to_direction
 from exception_handling import WhensMyTransportException
 from utils import fetch_json, load_database
+from fuzzy_matching import *
 
 # Some constants we use
 VERSION_NUMBER = 0.40
@@ -573,16 +573,11 @@ class WhensMyBus(WhensMyTransport):
             rows = self.geodata.fetchall()
             # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
             if rows:
-                # Get tuples of matches, each a (row, confidence) pair : confidence is between 0 and 100 and reflects 
-                # how confident we are that that row's stop name matches the name we have asked for
-                matches = [(row, get_name_similarity(origin, row['Stop_Name'])) for row in rows]
-                matches.sort(lambda a, b: cmp(a[1], b[1]))
-                (best_match, confidence) = matches[-1]
-                # 70% is a good confidence figure from our experience
-                if confidence >= 70:
+                best_match = get_best_fuzzy_match(origin, rows, 'Stop_Name', get_bus_stop_name_similarity)
+                if best_match:
                     stop = dict([(key, best_match[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])                
                     stop['Distance'] = 0
-                    logging.info("Found stop name %s for Run %s with confidence %s", best_match['Stop_Name'], best_match['Run'], confidence)
+                    logging.info("Found stop name %s for Run %s via fuzzy matching", best_match['Stop_Name'], best_match['Run'])
                     relevant_stops[run] = stop
 
         # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name
@@ -663,7 +658,6 @@ class WhensMyBus(WhensMyTransport):
 
         return time_info
 
-"""
 class WhensMyTube(WhensMyTransport):
     def __init__(self, testing=None, silent=False):
         WhensMyTransport.__init__(self, 'whensmytube', testing, silent)
@@ -671,76 +665,49 @@ class WhensMyTube(WhensMyTransport):
     def process_tweet(self, tweet):
         # Get route number, from and to from the message
         message = tweet.text
-        (origin, destination) = self.parse_message(message)
+        (line, origin, destination) = self.parse_message(message)
         return ''
         
     def parse_message(self, message):
-        return (None, None)
-        
-    def get_stop_by_geolocation(self, position):
-        return ''
     
-    def get_stop_by_name(self, name):
-        return ''
-        
-    def get_departure_data(self, stop, destinaton):
-        return ''
+        # Strip tokens out of 
+        message = self.sanitize_message(message)
+        tokens = re.split("\\b(from|to)\\b", message, maxsplit=2, flags=re.I)
 
-"""
-# Helper functions
-def normalise_stop_name(name):
-    """
-    Normalise a bus stop name, sorting out punctuation, capitalisation, abbreviations & symbols
-    """
-    # Upper-case and abbreviate road names
-    normalised_name = name.upper()
-    for (word, abbreviation) in (('SQUARE', 'SQ'), ('AVENUE', 'AVE'), ('STREET', 'ST'), ('ROAD', 'RD'), ('STATION', 'STN'), ('PUBLIC HOUSE', 'PUB')):
-        normalised_name = re.sub(r'\b' + word + r'\b', abbreviation, normalised_name)
-
-    # Get rid of common words like 'The'
-    for common_word in ('THE',):
-        normalised_name = re.sub(r'\b' + common_word + r'\b', '', normalised_name)
-        
-    # Remove Tfl's ASCII symbols for Tube, rail, DLR & Tram
-    for unwanted in ('<>', '#', '[DLR]', '>T<'):
-        normalised_name = normalised_name.replace(unwanted, '')
+        parsed_line = re.sub(' +Line', '', tokens[0].strip(), flags=re.I)
+        origin = len(tokens) > 2 and tokens[2].strip().upper() or None
+        destination = len(tokens) > 4 and tokens[4].strip().upper() or None
     
-    # Remove spaces and punctuation and return
-    normalised_name = re.sub('[\W]', '', normalised_name)
-    return normalised_name
-
-def get_name_similarity(origin, stop):
-    """
-    Takes a user-defiend origin, and a stop name from database, and work out how well they match, returning an integer
-    between 0 (no match) and 100 (perfect). 70 or more seems to be a confident enough match 
-    """
-    # Use the above function to normalise our names and facilitate easier comparison
-    origin, stop = normalise_stop_name(origin), normalise_stop_name(stop)
+        line = parsed_line.upper()
     
-    # Exact match is obviously best
-    if origin == stop:
-        return 100
-        
-    # If user has specified a station or bus station, then a partial match at start or end of string works for us
-    # We prioritise, just slightly, names that have the match at the beginning
-    if re.search("(BUS)?STN", origin):
-        if stop.startswith(origin):
-            return 95
-        if stop.endswith(origin):
-            return 94
-            
-    # If on the other hand, we add station or bus station to the origin name and it matches, that's also pretty good
-    if re.search("^%s(BUS)?STN" % origin, stop):
-        return 91
-    if re.search("%s(BUS)?STN$" % origin, stop):
-        return 90 
-
-    # If the above fail, use our fuzzy string matching, which scores between 0 and 100 on a string match based
-    # on difflib's string similarity algorithm
-    # Based on https://github.com/seatgeek/fuzzywuzzy/blob/master/fuzzywuzzy/fuzz.py
-    return int(100 * difflib.SequenceMatcher(None, origin, stop).ratio())
+        line_names = (
+            'BAKERLOO',
+            'CENTRAL',
+            'DISTRICT',
+            'HAMMERSMITH & CIRCLE',
+            'JUBILEE',
+            'METROPOLITAN',
+            'NORTHERN',
+            'PICCADILLY',
+            'VICTORIA',
+            'WATERLOO & CITY',
+        )
+        if line == 'CIRCLE':
+            line = 'HAMMERSMITH & CIRCLE'
+        if line not in line_names:
+            line = get_best_fuzzy_match(line, line_names)
+            if line is None:
+                raise WhensMyTransportException('nonexistent_line', parsed_line)
+        line_code = line[0]
+    
+        print (line_code, origin, destination)
 
 if __name__ == "__main__":
-    WMB = WhensMyBus()
-    WMB.check_tweets()
-    WMB.check_followers()
+    #WMB = WhensMyBus()
+    #WMB.check_tweets()
+    #WMB.check_followers()
+    
+    WMT = WhensMyTube(testing=True)
+    WMT.parse_message("Norvern Line")
+    WMT.parse_message("Picadildo Line from Acton Town")
+    WMT.parse_message("Picadilly Line from Acton Town to Heathrow")
