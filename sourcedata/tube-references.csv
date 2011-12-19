@@ -1,0 +1,264 @@
+stop_id,stop_name,stop_desc,stop_lat,stop_lon,zone_id,fsa_stop_id,fsa_stop_routes
+NAC,"North Acton",,,,,NAC,C
+CPK,"Canons Park",,,,,CPK,J
+GST,"Goodge Street",,,,,GST,N
+CPN,"Clapham North",,,,,CPN,N
+EPY,"East Putney",,,,,EPY,D
+HMP,"Hampstead",,,,,HMP,N
+BOR,"Borough",,,,,BOR,N
+BOS,"Boston Manor",,,,,BOS,P
+OAK,"Oakwood",,,,,OAK,P
+NEL,"North Ealing",,,,,NEL,P
+EPP,"Epping",,,,,EPP,C
+SGT,"Southgate",,,,,SGT,P
+BGR,"Bounds Green",,,,,BGR,P
+HBY,"Highbury & Islington",,,,,HBY,V
+EPK,"Elm Park",,,,,EPK,D
+WLO,"Waterloo",,,,,WLO,B;J;N;W
+GHL,"Gants Hill",,,,,GHL,C
+HBT,"High Barnet",,,,,HBT,N
+WAT,"Watford",,,,,WAT,M
+CPS,"Clapham South",,,,,CPS,N
+AGR,"Arnos Grove",,,,,AGR,P
+WLG,"Willesden Green",,,,,WLG,J
+QPK,"Queen's Park",,,,,QPK,B
+BWR,"Bow Road",,,,,BWR,O;D;H
+HRF,"Heathrow Terminal 4",,,,,HRF,P
+PIM,"Pimlico",,,,,PIM,V
+HSD,"Harlesden",,,,,HSD,B
+LYS,"Leytonstone",,,,,LYS,C
+PIC,"Piccadilly Circus",,,,,PIC,B;P
+THB,"Theydon Bois",,,,,THB,C
+WRP,"West Ruislip",,,,,WRP,C
+SPK,"Stonebridge Park",,,,,SPK,B
+UXB,"Uxbridge",,,,,UXB,M;P
+HST,"High Street Kensington",,,,,HST,O;D;H
+VIC,"Victoria",,,,,VIC,O;D;H;V
+HAW,"Harrow & Wealdstone",,,,,HAW,B
+PRY,"Park Royal",,,,,PRY,P
+HAI,"Hainault",,,,,HAI,C
+CPC,"Clapham Common",,,,,CPC,N
+CHF,"Chalk Farm",,,,,CHF,N
+CHG,"Chigwell",,,,,CHG,C
+WMS,"Westminster",,,,,WMS,O;D;H;J
+QBY,"Queensbury",,,,,QBY,J
+HRV,"Heathrow Terminal 5",,,,,HRV,P
+KNB,"Knightsbridge",,,,,KNB,P
+WEM,"Wembley Central",,,,,WEM,B
+BNK,"Bank",,,,,BNK,C;N;W
+RLN,"Rayners Lane",,,,,RLN,M;P
+WDN,"Wimbledon",,,,,WDN,D
+WAR,"Warwick Avenue",,,,,WAR,B
+CHX,"Charing Cross",,,,,CHX,B;J;N
+HRD,"Holloway Road",,,,,HRD,P
+KNT,"Kenton",,,,,KNT,B
+EHM,"East Ham",,,,,EHM,O;D;H
+BNG,"Bethnal Green",,,,,BNG,C
+SVS,"Seven Sisters",,,,,SVS,V
+HRC,"Heathrow Terminals 1, 2, 3",,,,,HRC,P
+GPS,"Great Portland Street",,,,,GPS,O;H;M
+LAM,"Lambeth North",,,,,LAM,B
+LAN,"Lancaster Gate",,,,,LAN,C
+MAR,"Marble Arch",,,,,MAR,C
+SNB,"Snaresbrook",,,,,SNB,C
+RUM,"Ruislip Manor",,,,,RUM,M;P
+SFS,"Southfields",,,,,SFS,D
+RMD,"Richmond",,,,,RMD,D
+KIL,"Kilburn",,,,,KIL,J
+PAD,"Paddington",,,,,PAD,B;C;O
+SFD,"Stratford",,,,,SFD,C;J
+ALD,"Aldgate",,,,,ALD,O;H;M
+OVL,"Oval",,,,,OVL,N
+MAN,"Mansion House",,,,,MAN,O;D;H
+SKT,"South Kenton",,,,,SKT,B
+WMP,"Wimbledon Park",,,,,WMP,D
+EMB,"Embankment",,,,,EMB,B;O;D;H;N
+BEC,"Becontree",,,,,BEC,D
+CRX,"Croxley",,,,,CRX,M
+ETE,"Eastcote",,,,,ETE,M;P
+RSQ,"Russell Square",,,,,RSQ,P
+GUN,"Gunnersbury",,,,,GUN,D
+WFD,"Woodford",,,,,WFD,C
+NGW,"North Greenwich",,,,,NGW,J
+CRD,"Caledonian Road",,,,,CRD,P
+BER,"Bermondsey",,,,,BER,J
+HDN,"Hillingdon",,,,,HDN,M;P
+DEB,"Debden",,,,,DEB,C
+SKN,"South Kensington",,,,,SKN,O;D;H;P
+ROD,"Roding Valley",,,,,ROD,C
+NWP,"Northwick Park",,,,,NWP,M
+STB,"Stamford Brook",,,,,STB,D
+BUR,"Burnt Oak",,,,,BUR,N
+ROA,"Royal Oak",,,,,ROA,O;H
+MNR,"Manor House",,,,,MNR,P
+AME,"Amersham",,,,,AME,M
+OST,"Osterley",,,,,OST,P
+HMS,"Hammersmith (Circle and Hammersmith & City)",,,,,HMS,O;H
+NWD,"Northwood",,,,,NWD,M
+LST,"Liverpool Street",,,,,LST,C;O;H;M
+KBY,"Kingsbury",,,,,KBY,J
+UPM,"Upminster",,,,,UPM,D
+RED,"Redbridge",,,,,RED,C
+LSQ,"Leicester Square",,,,,LSQ,N;P
+HMD,"Hammersmith (District and Piccadilly)",,,,,HMD,D;P
+NWM,"North Wembley",,,,,NWM,B
+NWH,"Northwood Hills",,,,,NWH,M
+STN,"Sudbury Town",,,,,STN,P
+PUT,"Putney Bridge",,,,,PUT,D
+BDE,"Barkingside",,,,,BDE,C
+EFY,"East Finchley",,,,,EFY,N
+SHR,"South Harrow",,,,,SHR,P
+NFD,"Northfields",,,,,NFD,P
+UPK,"Upton Park",,,,,UPK,O;D;H
+MHE,"Mill Hill East",,,,,MHE,N
+UPB,"Upminster Bridge",,,,,UPB,D
+MPK,"Moor Park",,,,,MPK,M
+GRD,"Gloucester Road",,,,,GRD,D;H;O;P
+TCR,"Tottenham Court Road",,,,,TCR,C;N
+HOH,"Harrow on the Hill",,,,,HOH,M
+BDS,"Bond Street",,,,,BDS,C;J
+UPY,"Upney",,,,,UPY,D
+CST,"Cannon Street",,,,,CST,O;D;H
+HCH,"Hornchurch",,,,,HCH,D
+BLF,"Blackfriars",,,,,BLF,O;D;H
+SHL,"Sudbury Hill",,,,,SHL,P
+GRH,"Grange Hill",,,,,GRH,C
+OXC,"Oxford Circus",,,,,OXC,B;C;V
+TBY,"Tooting Broadway",,,,,TBY,N
+ANG,"Angel",,,,,ANG,N
+PIN,"Pinner",,,,,PIN,M
+MOR,"Morden",,,,,MOR,N
+DGE,"Dagenham East",,,,,DGE,D
+SSQ,"Sloane Square",,,,,SSQ,O;D;H
+BTX,"Brent Cross",,,,,BTX,N
+KXX,"King's Cross St. Pancras",,,,,KXX,O;H;M;N;P;V
+HLN,"Hanger Lane",,,,,HLN,C
+MON,"Monument",,,,,MON,O;D;H
+QWY,"Queensway",,,,,QWY,C
+MGT,"Moorgate",,,,,MGT,O;H;M;N
+TBE,"Tooting Bec",,,,,TBE,N
+ECM,"Ealing Common",,,,,ECM,D;P
+MCR,"Mornington Crescent",,,,,MCR,N
+HTX,"Hatton Cross",,,,,HTX,P
+HNC,"Hounslow Central",,,,,HNC,P
+HNE,"Hounslow East",,,,,HNE,P
+HND,"Hendon Central",,,,,HND,N
+COV,"Covent Garden",,,,,COV,P
+NHR,"North Harrow",,,,,NHR,M
+WGN,"Wood Green",,,,,WGN,P
+WBT,"West Brompton",,,,,WBT,D
+PER,"Perivale",,,,,PER,C
+NEA,"Neasden",,,,,NEA,J
+HNW,"Hounslow West",,,,,HNW,P
+ACT,"Acton Town",,,,,ACT,D;P
+BCT,"Barons Court",,,,,BCT,D;P
+SWM,"South Wimbledon",,,,,SWM,N
+CTN,"Camden Town",,,,,CTN,N
+THL,"Tower Hill",,,,,THL,O;D;H
+COL,"Colindale",,,,,COL,N
+NEP,"Newbury Park",,,,,NEP,C
+WHD,"West Hampstead",,,,,WHD,J
+BKG,"Barking",,,,,BKG,O;D;H
+OLD,"Old Street",,,,,OLD,N
+TEM,"Temple",,,,,TEM,O;D;H
+GGR,"Golders Green",,,,,GGR,N
+BST,"Baker Street",,,,,BST,B;O;H;J;M
+WHM,"West Ham",,,,,WHM,O;D;H;J
+DGH,"Dagenham Heathway",,,,,DGH,D
+STG,"Stepney Green",,,,,STG,O;D;H
+WCL,"Whitechapel",,,,,WCL,O;D;H;M
+VUX,"Vauxhall",,,,,VUX,V
+ECT,"Earl's Court",,,,,ECT,D;P
+KPK,"Kilburn Park",,,,,KPK,B
+FLP,"Fairlop",,,,,FLP,C
+TPL,"Turnpike Lane",,,,,TPL,P
+OLY,"Kensington (Olympia)",,,,,OLY,D
+SEL,"South Ealing",,,,,SEL,P
+MDV,"Maida Vale",,,,,MDV,B
+SWC,"Swiss Cottage",,,,,SWC,J
+WAN,"Wanstead",,,,,WAN,C
+WAL,"Walthamstow Central",,,,,WAL,V
+LBG,"Ladbroke Grove",,,,,LBG,O;H
+FRD,"Finchley Road",,,,,FRD,J;M
+RCP,"Ravenscourt Park",,,,,RCP,D
+CLF,"Chalfont & Latimer",,,,,CLF,M
+WPK,"Wembley Park",,,,,WPK,J;M
+WAC,"West Acton",,,,,WAC,C
+BBB,"Bromley-by-Bow",,,,,BBB,O;D;H
+ELE,"Elephant & Castle",,,,,ELE,B;N
+SRP,"South Ruislip",,,,,SRP,C
+WBP,"Westbourne Park",,,,,WBP,O;H
+CLW,"Colliers Wood",,,,,CLW,N
+LTN,"Loughton",,,,,LTN,C
+EUS,"Euston",,,,,EUS,N;V
+PLW,"Plaistow",,,,,PLW,O;D;H
+KEN,"Kennington",,,,,KEN,N
+MYB,"Marylebone",,,,,MYB,B
+EDG,"Edgware",,,,,EDG,N
+BRX,"Brixton",,,,,BRX,V
+FBY,"Fulham Broadway",,,,,FBY,D
+ALE,"Aldgate East",,,,,ALE,D;H
+RUG,"Ruislip Gardens",,,,,RUG,C
+SBC,"Shepherd's Bush",,,,,SBC,C
+WFY,"West Finchley",,,,,WFY,N
+KEW,"Kew Gardens",,,,,KEW,D
+LEY,"Leyton",,,,,LEY,C
+ALP,"Alperton",,,,,ALP,P
+WHR,"West Harrow",,,,,WHR,M
+SWK,"Southwark",,,,,SWK,J
+BAR,"Barbican",,,,,BAR,O;H;M
+RUI,"Ruislip",,,,,RUI,M;P
+BPK,"Belsize Park",,,,,BPK,N
+LON,"London Bridge",,,,,LON,J;N
+TOT,"Totteridge & Whetstone",,,,,TOT,N
+BAY,"Bayswater",,,,,BAY,O;H
+ERD,"Edgware Road (Hammersmith & City)",,,,,ERD,O;D;H
+WSP,"Woodside Park",,,,,WSP,M;N
+TTH,"Tottenham Hale",,,,,TTH,V
+STK,"Stockwell",,,,,STK,N;V
+WST,"Warren Street",,,,,WST,N;V
+ERB,"Edgware Road (Bakerloo)",,,,,ERB,B
+BAL,"Balham",,,,,BAL,N
+TGR,"Turnham Green",,,,,TGR,D;P
+FYC,"Finchley Central",,,,,FYC,N
+NHG,"Notting Hill Gate",,,,,NHG,C;O;H
+FAR,"Farringdon",,,,,FAR,O;H;M
+EAC,"East Acton",,,,,EAC,C
+GPK,"Green Park",,,,,GPK,J;P;V
+RKY,"Rickmansworth",,,,,RKY,M
+NHT,"Northolt",,,,,NHT,C
+PGR,"Parsons Green",,,,,PGR,D
+HIG,"Highgate",,,,,HIG,N
+RPK,"Regent's Park",,,,,RPK,B
+SJP,"St. James's Park",,,,,SJP,O;D;H
+CYL,"Chancery Lane",,,,,CYL,C
+ICK,"Ickenham",,,,,ICK,M;P
+WJN,"Willesden Junction",,,,,WJN,B
+CNT,"Canning Town",,,,,CNT,J
+DHL,"Dollis Hill",,,,,DHL,J
+STA,"Stanmore",,,,,STA,J
+ESQ,"Euston Square",,,,,ESQ,O;H;M
+MLE,"Mile End",,,,,MLE,C;D;H;O
+TPK,"Tufnell Park",,,,,TPK,N
+HOL,"Holborn",,,,,HOL,C;P
+CWR,"Canada Water",,,,,CWR,J
+FPK,"Finsbury Park",,,,,FPK,P;V
+SJW,"St. John's Wood",,,,,SJW,J
+HPK,"Holland Park",,,,,HPK,C
+KTN,"Kentish Town",,,,,KTN,N
+STP,"St. Paul's",,,,,STP,C
+HPC,"Hyde Park Corner",,,,,HPC,P
+CWD,"Chorleywood",,,,,CWD,M
+CWF,"Canary Wharf",,,,,CWF,J
+CHP,"Chiswick Park",,,,,CHP,D
+BHL,"Buckhurst Hill",,,,,BHL,C
+WCT,"White City",,,,,WCT,C
+WKN,"West Kensington",,,,,WKN,D
+SWF,"South Woodford",,,,,SWF,C
+CFS,"Cockfosters",,,,,CFS,P
+ARC,"Archway",,,,,ARC,N
+BHR,"Blackhorse Road",,,,,BHR,V
+ARL,"Arsenal",,,,,ARL,P
+EBY,"Ealing Broadway",,,,,EBY,C;D
+GFD,"Greenford",,,,,GFD,C
+KGN,"Kensal Green",,,,,KGN,B
