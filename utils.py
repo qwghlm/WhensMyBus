@@ -7,15 +7,19 @@ import json
 import logging
 import os
 import sqlite3
+import sys
 import urllib2
 import subprocess
 import tempfile
 import tweepy
-import sys
 import ConfigParser
+
 from xml.dom.minidom import parse, parseString
 
+from pprint import pprint
+
 from exception_handling import WhensMyTransportException
+#from geotools import convertWGS84toOSGB36, LatLongToOSGrid, gridrefNumToLet
 
 HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -67,10 +71,10 @@ def fetch_json(url, exception_code='tfl_server_down'):
 
 def import_bus_csv_to_db():
     """
-    Utility script that produces the script for converting TfL's CSV into sqlite
+    Utility script that produces the script for converting TfL's bus data CSV into sqlite
     
     If you are updating the database, you first have to download the CSV file
-    from the TfL website: http://www.tfl.gov.uk/businessandpartners/syndication/
+    from the TfL website. Signup as a developer here: http://www.tfl.gov.uk/businessandpartners/syndication/
     
     Save the the routes as ./sourcedata/routes.csv
     
@@ -130,19 +134,76 @@ def import_bus_csv_to_db():
     print subprocess.check_output(["sqlite3", "./db/whensmybus.geodata.db"], stdin=open(tempf.name))
 
 def import_tube_xml_to_db():
-    inputpath = 'tube-references.yaml'
-    inputfile =  open('./sourcedata/' + inputpath)
-    # https://github.com/mollyproject/mollyproject/blob/6ea42dba2d268e7907926574f6a000d8e6b8c5af/molly/apps/places/data/tube-references.yaml
     """
-    f = open('/Users/chrisapplegate/Desktop/StationLocations_v1.Kml')
-    dom = parse(f)
-    stations = dom.getElementsByTagName('Placemark')
-    for station in stations:
+    Utility script that produces the script for converting TfL's Tube data KML into a sqlite database
+        
+    Pulls together data from two files:
+    
+    1. The data for Tube station codes & line details, from:
+    https://raw.github.com/blech/gae-fakesubwayapis-data/d365a8b56d7b5abfec378816e3d91fb901f0cc59/data/tfl/stops.txt
+    corrected for station names, and saved as tube-references.csv
+    
+    2. The data for Tube station locations, originally from TfL but augmented with new data (Heathrow Terminal 5) 
+    corrected for station names (e.g. Shepherd's Bush Market), and saved as tube-locations.kml
+    
+    """
+    tablename = 'locations'
+    
+    fieldnames = ('name', 'code', 'line', 'easting INT', 'northing INT')
+    
+    sql = ""
+    sql += "drop table if exists %s;\r\n" % tablename
+    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
+
+    stations = {}
+    
+    dom = parse(open('./sourcedata/tube-locations.kml'))
+    station_geodata = dom.getElementsByTagName('Placemark')    
+    for station in station_geodata:
+    
         name = station.getElementsByTagName('name')[0].firstChild.data.strip().replace(' Station', '')
+        style = station.getElementsByTagName('styleUrl')[0].firstChild.data.strip()
+        # Ignore non-Tube stations
+        if style != "#tubeStyle" or name in ('Shadwell', 'Wapping', 'Rotherhithe', 'Surrey Quays', 'New Cross', 'New Cross Gate'):
+            continue
+
         coordinates = station.getElementsByTagName('coordinates')[0].firstChild.data.strip()
-        coordinates = tuple([float(c) for c in coordinates.split(',')[0:2]])
-        print name, coordinates
-    """
+        (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
+        (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
+        (easting, northing) = LatLongToOSGrid(lat, lon)
+        gridref = gridrefNumToLet(easting, northing)
+        stations[name.lower()] = { 'name' : name, 'easting' : easting, 'northing' : northing, 'code' : '', 'lines' : '' }
+
+    g = open('./sourcedata/tube-references.csv')
+    reader = csv.reader(g)
+    fieldnames = reader.next()
+    for line in reader:
+        code = line[0]
+        name = line[1]
+        lines = line[-1].split(";")
+        if name.lower() in stations:
+            stations[name.lower()]['code'] = code
+            stations[name.lower()]['lines'] = lines            
+        else:
+            print "Cannot find %s in geodata!" % name
+        
+    for station in stations.values():
+        if not station['code']:
+            print "Could not find a code for %s!" % station['name']
+            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['name'], '', '', str(station['easting']), str(station['northing'])))
+            
+        else:
+            for line in station['lines']:
+                if line != 'O': 
+                    sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['name'], station['code'], line, str(station['easting']), str(station['northing'])))
+
+    sql += "CREATE INDEX code_index ON locations (code);\r\n"
+
+    tempf = tempfile.NamedTemporaryFile('w')
+    tempf.write(sql)
+    tempf.flush()
+    print subprocess.check_output(["sqlite3", "./db/whensmytube.geodata.db"], stdin=open(tempf.name))
+
 # OAuth stuff
 
 def make_oauth_key(instance_name='whensmybus'):
@@ -175,4 +236,5 @@ def make_oauth_key(instance_name='whensmybus'):
 if __name__ == "__main__":
     #import_bus_csv_to_db()
     #make_oauth_key()
+    import_tube_xml_to_db()
     pass
