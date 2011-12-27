@@ -56,10 +56,11 @@ class WhensMyBusTestCase(unittest.TestCase):
         # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin
         self.test_standard_data = (('15', 'Limehouse Station', '53452', -0.0397, 51.5124, 'Poplar', '73923', 'Limehouse Station'),)
 
-        self.test_anomalous_data = (('%s from Stratford to Walthamstow', '257', 'The Grove'),
-                                    ('%s from Hoxton',           '243',  'Hoxton Station'),   # Troublesome destinations 
-                                    ('%s from Bow Common Lane',  '323',  'Bow Common Lane'),
-                                    ('%s from EC1M 4PN',         '55',   'St John Street'),
+        self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',), 'The Grove'),
+                                    ('%s from Hoxton',           ('243',),  'Hoxton Station'),   # Troublesome destinations 
+                                    ('%s from Bow Common Lane',  ('323',),  'Bow Common Lane'),
+                                    ('%s from EC1M 4PN',         ('55',),   'St John Street'),
+                                    ('%s from Clerkenwell',      ('55', '243'), 'St John Street'),
                                    )
 
     def tearDown(self):
@@ -164,7 +165,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         Test to confirm non-existent buses handled OK
         """
-        for message in ('218', '   218', '   218   #hashtag'):
+        for message in ('218 from Trafalgar Square', '   218 from Trafalgar Square', '   218   from Trafalgar Square #hashtag'):
             tweet = FakeTweet(self.at_reply + message)
             self._test_correct_exception_produced(tweet, 'nonexistent_bus', '218')
             direct_message = FakeDirectMessage(message)
@@ -225,9 +226,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         message = '15 from 52240'
         tweet = FakeTweet(self.at_reply + message) 
-        self._test_correct_exception_produced(tweet, 'stop_id_mismatch', '15', '52240') # The 15 does not go from Canary Wharf
+        self._test_correct_exception_produced(tweet, 'stop_id_not_found', '15', '52240') # The 15 does not go from Canary Wharf
         direct_message = FakeDirectMessage(message) 
-        self._test_correct_exception_produced(direct_message, 'stop_id_mismatch', '15', '52240') 
+        self._test_correct_exception_produced(direct_message, 'stop_id_not_found', '15', '52240') 
     
     def test_stop_name_nonsense(self):
         """
@@ -235,12 +236,12 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         message = '15 from eucg;#$78' 
         tweet = FakeTweet(self.at_reply + message) 
-        self._test_correct_exception_produced(tweet, 'stop_not_found', 'eucg;#$78')
+        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;#$78')
         
     def test_destination_is_wrong(self):
         message = '15 from eucg;#$78' 
         tweet = FakeTweet(self.at_reply + message) 
-        self._test_correct_exception_produced(tweet, 'stop_not_found', 'eucg;#$78')
+        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;#$78')
         
     def test_standard_messages(self):
         """
@@ -283,24 +284,24 @@ class WhensMyBusTestCase(unittest.TestCase):
                 else:
                     self.assertNotRegexpMatches(result, ';')
                     
-    def test_anomalous_messages(self):
+    def test_nonstandard_messages(self):
         """
-        Test to confirm a message with location name is handled OK
+        Test to confirm a message that can be troublesome comes out OK
         """
-        for (text, route, stop_name) in self.test_anomalous_data:
-            message = text % route
-            tweet = FakeTweet(self.at_reply + message)
-            result = self.wmb.process_tweet(tweet)
-            
-            for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
-                self.assertNotRegexpMatches(result, unwanted)
-            self.assertRegexpMatches(result, route.upper())
-            if message.find(' to ') == -1:
-                self.assertRegexpMatches(result, ';')
-            else:
-                self.assertNotRegexpMatches(result, ';')
-            self.assertRegexpMatches(result, '(%s.* to .* [0-9]{4}|None shown going)' % stop_name)
-
+        for (text, routes, stop_name) in self.test_nonstandard_data:
+            for route in routes:
+                message = text % route
+                tweet = FakeTweet(self.at_reply + message)
+                result = self.wmb.process_tweet(tweet)
+                
+                for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
+                    self.assertNotRegexpMatches(result, unwanted)
+                self.assertRegexpMatches(result, route.upper())
+                if message.find(' to ') == -1:
+                    self.assertRegexpMatches(result, ';')
+                else:
+                    self.assertNotRegexpMatches(result, ';')
+                self.assertRegexpMatches(result, '(%s.* to .* [0-9]{4}|None shown going)' % stop_name)
 
 def test_whensmybus(): 
     """
@@ -315,12 +316,12 @@ def test_whensmybus():
                   'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                     # Geotag errors
                   'bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',                         # Stop ID errors
                 )
-    successes = ('anomalous_messages', 'standard_messages',)
+    successes = ('nonstandard_messages', 'standard_messages',)
     
     if parser.parse_args().dologin:
         test_names = init + failures + successes
     else:
-        test_names = successes
+        test_names = failures + successes
             
     suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in test_names]))
     runner = unittest.TextTestRunner(verbosity=1, failfast=1, buffer=False)
