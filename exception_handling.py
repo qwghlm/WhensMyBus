@@ -13,21 +13,24 @@ class WhensMyTransportException(Exception):
     #
     # Error message should be no longer than 115 chars so we can put a username and the word Sorry and still be under 140
     exception_values = {
-        # Bus stuff
+    
+        # WhensMyBus Fatal errors
         'blank_tweet'     : "I need to have a bus number in order to find the times for it",
-        'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",
         'placeinfo_only'  : "The Place info on your Tweet isn't precise enough. Please make sure you have GPS enabled, or say '%s from <place>'",
         'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you have GPS enabled on your Tweet, or say '%s from <place>'",
         'dms_not_taggable': "Direct messages can't use geotagging. Please send your message in the format '%s from <place>'",
+        'not_in_uk'       : "You do not appear to be located in the United Kingdom",    
+        'not_in_london'   : "You do not appear to be located in the London Buses area", 
         'bad_stop_id'     : "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
-        'stop_id_mismatch': "That bus (%s) does not appear to stop at that stop (%s)",
-        'stop_not_found'  : "I couldn't find any bus stops on your route by that name (%s)",
-        'not_in_uk'       : "You do not appear to be located in the United Kingdom",
-        'not_in_london'   : "You do not appear to be located in the London Buses area",
-        'no_stops_nearby' : "I could not find any stops near you",
-        'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
-        'no_arrival_data' : "There is no arrival data on the TfL website for your stop - most likely no buses are due",
+        'no_stops_nearby' : "I could not find any bus stops near you",
+        'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(", 
         
+        # WhensMyBus Non-Fatal errors
+        'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",     
+        'no_arrival_data' : "There's no data from TfL for the %s - most likely no bus is due",
+        'stop_name_not_found' : "I couldn't find any bus stops on the %s route by that name (%s)",
+        'stop_id_not_found'  : "The %s route doesn't call at the stop with ID %s",
+                
         # Tube stuff
         'nonexistent_line' : "I couldn't recognise that line (%s) as a London Underground line",
     }
