@@ -300,6 +300,15 @@ def convert(lat, lon, height, e1, t, e2):
     
     return (math.degrees(phi), math.degrees(Lambda), H)
     
+def convertWGS84toOSGrid(position):
+    """
+    Convert a WGS84 (lat, lon) tuple into a (easting, northing, gridref) tuple
+    """
+    position = convertWGS84toOSGB36(*position)
+    easting, northing = LatLongToOSGrid(position[0], position[1])
+    gridref = gridrefNumToLet(easting, northing)
+    return (easting, northing, gridref)
+
 # Final function to make headings more user-friendly
     
 def heading_to_direction(heading):
