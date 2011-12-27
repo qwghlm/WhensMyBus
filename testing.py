@@ -144,11 +144,18 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         # Get the message for the exception_id specified, applying C string formatting if applicable
         # Then escape it so that regular expression module doesn't accidentally interpret brackets etc
-        expected_error = re.escape(WhensMyTransportException.exception_values[exception_id] % string_params)
-        
-        # Match the expected Exception message against the actual Exception raised when we try to process Tweet
-        self.assertRaisesRegexp(WhensMyTransportException, expected_error, self.wmb.process_tweet, tweet)    
-        
+        expected_error = re.escape(WhensMyTransportException(exception_id, *string_params).value)
+
+        # Try processing the relevant Tweet        
+        try:
+            message = self.wmb.process_tweet(tweet)
+        # If an exception is thrown, then see if its message matches the one we want
+        except WhensMyTransportException as exc:
+            self.assertRegexpMatches(exc.value, expected_error)
+        # If there is no exception thrown, then see if the reply generated matches what we want
+        else:
+            self.assertRegexpMatches(message, expected_error)
+
     def test_blank_tweet(self):
         """
         Test to confirm we are ignoring blank replies
