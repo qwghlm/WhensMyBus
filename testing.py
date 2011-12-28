@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#pylint: disable=C0103
 """
 A set of unit tests for When's My Bus?
 
@@ -246,6 +247,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;#$78')
         
     def test_destination_is_wrong(self):
+        """
+        Test to confirm when destination given is gibberish
+        """
         message = '15 from eucg;#$78' 
         tweet = FakeTweet(self.at_reply + message) 
         self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;#$78')
