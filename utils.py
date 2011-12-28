@@ -233,6 +233,13 @@ def make_oauth_key(instance_name='whensmybus'):
     print "key : %s" % auth.access_token.key
     print "secret : %s" % auth.access_token.secret
 
+# String util
+def capwords(str):
+    """
+    Capitalize each word in a string. A word is defined as anything with a space separating it from the next word.   
+    """
+    return ' '.join([s.capitalize() for s in str.split(' ')])
+
 if __name__ == "__main__":
     #import_bus_csv_to_db()
     #make_oauth_key()
