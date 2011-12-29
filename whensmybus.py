@@ -12,10 +12,6 @@ Released under the MIT License
 TODO
  - Tube, Train, Tram, DLR & Boat equivalents
  - Maybe deprecate use of "From", or a better error message for it (use proper natural language parsing?)
-
-Before next release:
- - Better unit testing for multiple routes in same geolocation
- - Caching URL lookups (split this out as a separate WMBBrowser object?)
 """
 # Standard libraries of Python 2.6
 import ConfigParser
@@ -35,7 +31,7 @@ import tweepy
 # From other modules in this package
 from geotools import convertWGS84toOSGrid, YahooGeocoder, heading_to_direction
 from exception_handling import WhensMyTransportException
-from utils import fetch_json, load_database, capwords
+from utils import WMBBrowser, load_database, capwords
 from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity
 
 # Some constants we use
@@ -103,7 +99,10 @@ class WhensMyTransport:
         (self.settingsdb, self.settings) = load_database('%s.settings.db' % self.instance_name)
         self.settings.execute("create table if not exists %s_settings (setting_name unique, setting_value)" % self.instance_name)
         self.settingsdb.commit()
-
+        
+        # JSON Browser
+        self.browser = WMBBrowser()
+        
         # API keys
         yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')
         self.geocoder = yahoo_app_id and YahooGeocoder(yahoo_app_id)
@@ -614,7 +613,9 @@ class WhensMyBus(WhensMyTransport):
         for run in (1, 2):
             if run not in relevant_stops and self.geocoder:
                 logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
-                points = self.geocoder.geocode(origin)
+                geocode_url = self.geocoder.get_geocode_url(origin)
+                geodata = self.browser.fetch_json(geocode_url)
+                points = self.geocoder.parse_geodata(geodata)
                 if not points:
                     logging.debug("Could not find any matching location for %s", origin)
                     continue
@@ -653,7 +654,7 @@ class WhensMyBus(WhensMyTransport):
             stop_name = capwords(stop_name.strip())
         
             tfl_url = TFL_API_URL % stop_number
-            bus_data = fetch_json(tfl_url)
+            bus_data = self.browser.fetch_json(tfl_url)
             arrivals = bus_data.get('arrivals', [])
             
             # Handle TfL's JSON-encoded error message
@@ -736,12 +737,12 @@ class WhensMyTube(WhensMyTransport):
                 raise WhensMyTransportException('nonexistent_line', parsed_line)
         line_code = line[0]
     
-        print (line_code, origin, destination)
+        #print (line_code, origin, destination)
 
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
-    #WMB.check_followers()
+    WMB.check_followers()
     
     #WMT = WhensMyTube(testing=True)
     #WMT.parse_message("Norvern Line")

@@ -7,7 +7,6 @@ to convert between different co-ordinate systems
 import math
 import urllib
 from pprint import pprint
-from utils import fetch_json
 
 # Geocoders Define the URL and how to parse the resulting JSON object
 
@@ -23,12 +22,12 @@ class BaseGeocoder():
         self.params = {}
         return
     
-    def fetch_result(self):
+    def get_query_url(self):
         """
-        Fetch a JSON result using URL and params
+        Fetch a URL to fetch geodata
         """
         query_url = self.url % urllib.urlencode(self.params)
-        return fetch_json(query_url, 'stop_not_found')
+        return query_url
         
 class BingGeocoder(BaseGeocoder):
     """
@@ -43,13 +42,17 @@ class BingGeocoder(BaseGeocoder):
                 'key' : api_key
             }
 
-    def geocode(self, placename):
+    def get_geocode_url(self, placename):
         """
-        Geocode a placename, return list of matching place(s), each represented by a (latitude, longitude) tuple
+        Get URL to access API, given a search query
         """
         self.params['query'] = placename + ', London'
-        obj = self.fetch_result()
-        
+        return self.get_query_url()
+
+    def parse_geodata(self, obj):        
+        """
+        Given a JSON object of geodata for a query, return list of matching place(s), each represented by a (latitude, longitude) tuple
+        """
         if obj['resourceSets'][0]['estimatedTotal'] == 0:
             return []
 
@@ -72,13 +75,17 @@ class YahooGeocoder(BaseGeocoder):
                 'locale' : 'en_GB'
               }
 
-    def geocode(self, placename):
+    def get_geocode_url(self, placename):
         """
-        Geocode a placename, return list of matching place(s), each represented by a (latitude, longitude) tuple
+        Get URL to access API, given a search query
         """
         self.params['q'] = placename + ', London, UK'
-        obj = self.fetch_result()
+        return self.get_query_url()
 
+    def parse_geodata(self, obj):        
+        """
+        Given a JSON object of geodata for a query, return list of matching place(s), each represented by a (latitude, longitude) tuple
+        """
         if obj['ResultSet']['Error'] or obj['ResultSet']['Found'] == 0:
             return []
 
@@ -94,20 +101,26 @@ class GoogleGeocoder(BaseGeocoder):
     Geocoder for Google Maps
     """
     def __init__(self):
-
+        """
+        Constructor
+        """
         self.url = 'http://maps.googleapis.com/maps/api/geocode/json?%s'
         self.params = {
                 'region' : 'uk',
                 'sensor' : 'false'
             }
 
-    def geocode(self, placename):
+    def get_geocode_url(self, placename):
         """
         Get URL to access API, given a search query
         """
         self.params['address'] = placename + ', London'
-        obj = self.fetch_result()
+        return self.get_query_url()
 
+    def parse_geodata(self, obj):        
+        """
+        Given a JSON object of geodata for a query, return list of matching place(s), each represented by a (latitude, longitude) tuple
+        """
         if not obj['results'] or obj['status'] == 'ZERO_RESULTS':
             return []
             
