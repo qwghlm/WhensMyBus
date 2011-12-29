@@ -4,7 +4,6 @@
 A set of unit tests for When's My Bus?
 
 IMPORTANT: These unit tests require Python 2.7, although When's My Bus will happily run in Python 2.6
-
 """
 import sys
 if sys.version_info < (2, 7):
@@ -55,13 +54,16 @@ class WhensMyBusTestCase(unittest.TestCase):
         self.at_reply = '@%s ' % self.wmb.username
         
         # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin
-        self.test_standard_data = (('15', 'Limehouse Station', '53452', -0.0397, 51.5124, 'Poplar', '73923', 'Limehouse Station'),)
-
-        self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',), 'The Grove'),
-                                    ('%s from Hoxton',           ('243',),  'Hoxton Station'),   # Troublesome destinations 
-                                    ('%s from Bow Common Lane',  ('323',),  'Bow Common Lane'),
-                                    ('%s from EC1M 4PN',         ('55',),   'St John Street'),
-                                    ('%s from Clerkenwell',      ('55', '243'), 'St John Street'),
+        self.test_standard_data = (
+                                   ('15', 'Limehouse Station', '53452', -0.0397, 51.5124, 'Poplar', '73923', 'Limehouse Station'),
+                                   ('425 25 205', 'Bow Road Station', '55489',  -0.02472, 51.52722, 'Mile End station', '76239', 'Bow Road Station'),
+                                   )
+        # Troublesome destinations 
+        self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'The Grove'),
+                                        ('%s from Hoxton',                     ('243',),      'Hoxton Station  / Geffrye Museum'),  
+                                        ('%s from Bow Common Lane',            ('323',),      'Bow Common Lane'),
+                                        ('%s from EC1M 4PN',                   ('55',),       'St John Street'),
+                                        ('%s from Clerkenwell',                ('55', '243'), 'St John Street'),
                                    )
 
     def tearDown(self):
@@ -71,9 +73,52 @@ class WhensMyBusTestCase(unittest.TestCase):
         self.wmb = None  
 
     #
+    # Generic tests that we use repeatedly below, refactored into functions of their own. One for failures, one for succeses
+    #
+
+    def _test_correct_exception_produced(self, tweet, exception_id, *string_params):
+        """
+        Generic test for the correct exception message
+        """
+        # Get the message for the exception_id specified, applying C string formatting if applicable
+        # Then escape it so that regular expression module doesn't accidentally interpret brackets etc
+        expected_error = re.escape(WhensMyTransportException(exception_id, *string_params).value)
+
+        # Try processing the relevant Tweet        
+        try:
+            messages = self.wmb.process_tweet(tweet)
+        # If an exception is thrown, then see if its message matches the one we want
+        except WhensMyTransportException as exc:
+            self.assertRegexpMatches(exc.value, expected_error)
+        # If there is no exception thrown, then see if the reply generated matches what we want
+        else:
+            for message in messages:
+                self.assertRegexpMatches(message, expected_error)
+                
+    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_not_specified=True):
+        """
+        Generic test to confirm message is being produced correctly
+        """
+
+        # No TfL garbage please, and no all-caps either
+        for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
+            self.assertNotRegexpMatches(result, unwanted)
+        self.assertNotEqual(result, result.upper())
+        
+        # Should say one of our route numbers, expected origin and a time
+        route_regex = "^(%s)" % '|'.join(routes_specified.upper().split(' '))
+        self.assertRegexpMatches(result, route_regex)
+        self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
+        
+        # We should get two results and hence a semi-colon separating them, if this is not from a specific stop
+        if destination_not_specified:
+            self.assertRegexpMatches(result, ';')
+        else:
+            self.assertNotRegexpMatches(result, ';')
+
+    #
     # Fundamental functionality tests
     #
-    
 
     def test_init(self):
         """
@@ -112,8 +157,8 @@ class WhensMyBusTestCase(unittest.TestCase):
         Test to see if we are replying to polite messagess correctly
         """
         tweet = FakeTweet(self.at_reply + 'Thank you!')
-        result = self.wmb.process_tweet(tweet) or self.wmb.check_politeness(tweet)
-        self.assertRegexpMatches(result, 'No problem')
+        self.assertFalse(self.wmb.process_tweet(tweet)) 
+        self.assertRegexpMatches(self.wmb.check_politeness(tweet), 'No problem')
 
     def test_mention(self):
         """
@@ -139,23 +184,6 @@ class WhensMyBusTestCase(unittest.TestCase):
         direct_message = FakeDirectMessage(message)
         self.assertFalse(self.wmb.process_tweet(direct_message))
 
-    def _test_correct_exception_produced(self, tweet, exception_id, *string_params):
-        """
-        Generic test for the correct exception message
-        """
-        # Get the message for the exception_id specified, applying C string formatting if applicable
-        # Then escape it so that regular expression module doesn't accidentally interpret brackets etc
-        expected_error = re.escape(WhensMyTransportException(exception_id, *string_params).value)
-
-        # Try processing the relevant Tweet        
-        try:
-            message = self.wmb.process_tweet(tweet)
-        # If an exception is thrown, then see if its message matches the one we want
-        except WhensMyTransportException as exc:
-            self.assertRegexpMatches(exc.value, expected_error)
-        # If there is no exception thrown, then see if the reply generated matches what we want
-        else:
-            self.assertRegexpMatches(message, expected_error)
 
     def test_blank_tweet(self):
         """
@@ -282,19 +310,23 @@ class WhensMyBusTestCase(unittest.TestCase):
                 else:
                     tweet = FakeTweet(message)
 
-                result = self.wmb.process_tweet(tweet)
+                results = self.wmb.process_tweet(tweet)
+                for result in results:
+                    self._test_correct_successes(result, route, expected_origin, (message.find(' to ') == -1 and message.find(origin_id) == -1))
 
-                for unwanted in (expected_origin.upper(), '<>', '#', '\[DLR\]', '>T<'):                
-                    self.assertNotRegexpMatches(result, unwanted)
-                self.assertRegexpMatches(result, route.upper())
-                self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
-
-                # We should get two results and hence a semi-colon separating them, if this is not from a specific stop
-                if message.find(' to ') == -1 and message.find(origin_id) == -1:
-                    self.assertRegexpMatches(result, ';')
-                else:
-                    self.assertNotRegexpMatches(result, ';')
-                    
+    def test_multiple_routes(self):
+        """
+        Test multiple routes from different bus stops in the same area (unlike the above function which
+        tests multiple routes going in the same direction, from the same stop(s)
+        """
+        test_data = (("277 15", (-0.030286, 51.511694), "(East India Dock Road|Limehouse Town Hall)"),) 
+        
+        for (route, position, expected_result_regex) in test_data:        
+            tweet = FakeTweet(self.at_reply + route, position)
+            results = self.wmb.process_tweet(tweet)
+            for result in results:
+                self._test_correct_successes(result, route, expected_result_regex, True)
+               
     def test_nonstandard_messages(self):
         """
         Test to confirm a message that can be troublesome comes out OK
@@ -303,16 +335,9 @@ class WhensMyBusTestCase(unittest.TestCase):
             for route in routes:
                 message = text % route
                 tweet = FakeTweet(self.at_reply + message)
-                result = self.wmb.process_tweet(tweet)
-                
-                for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
-                    self.assertNotRegexpMatches(result, unwanted)
-                self.assertRegexpMatches(result, route.upper())
-                if message.find(' to ') == -1:
-                    self.assertRegexpMatches(result, ';')
-                else:
-                    self.assertNotRegexpMatches(result, ';')
-                self.assertRegexpMatches(result, '(%s.* to .* [0-9]{4}|None shown going)' % stop_name)
+                results = self.wmb.process_tweet(tweet)
+                for result in results:
+                    self._test_correct_successes(result, route, stop_name, (message.find(' to ') == -1))
 
 def test_whensmybus(): 
     """
@@ -327,8 +352,8 @@ def test_whensmybus():
                   'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                     # Geotag errors
                   'bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',                         # Stop ID errors
                 )
-    successes = ('nonstandard_messages', 'standard_messages',)
-    
+    successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
+
     if parser.parse_args().dologin:
         test_names = init + failures + successes
     else:
