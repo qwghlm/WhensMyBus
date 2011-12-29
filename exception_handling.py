@@ -16,8 +16,8 @@ class WhensMyTransportException(Exception):
     
         # WhensMyBus Fatal errors
         'blank_tweet'     : "I need to have a bus number in order to find the times for it",
-        'placeinfo_only'  : "The Place info on your Tweet isn't precise enough http://bit.ly/rCbVmP Please enable GPS on your device, or specify '%s from <place>'",
-        'no_geotag'       : "Your Tweet wasn't geotagged. Please make sure you have GPS enabled, or say '%s from <placename>'",
+        'placeinfo_only'  : "The Place info on your Tweet isn't precise enough http://bit.ly/rCbVmP Please enable GPS, or say '%s from <place>'",
+        'no_geotag'       : "Your Tweet wasn't geotagged. Please enable GPS, or say '%s from <placename>' http://bit.ly/sJbgBe",
         'dms_not_taggable': "Direct messages can't use geotagging. Please send your message in the format '%s from <placename>'",
         'not_in_uk'       : "You do not appear to be located in the United Kingdom",    
         'not_in_london'   : "You do not appear to be located in the London Buses area", 
