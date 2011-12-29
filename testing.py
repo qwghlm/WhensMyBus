@@ -158,7 +158,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         tweet = FakeTweet(self.at_reply + 'Thank you!')
         self.assertFalse(self.wmb.process_tweet(tweet)) 
-        self.assertRegexpMatches(self.wmb.check_politeness(tweet), 'No problem')
+        self.assertRegexpMatches(self.wmb.check_politeness(tweet)[0], 'No problem')
 
     def test_mention(self):
         """
