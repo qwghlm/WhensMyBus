@@ -44,6 +44,7 @@ class WhensMyTransportException(Exception):
         value = WhensMyTransportException.exception_values.get(msgid, '') % string_params
         super(WhensMyTransportException, self).__init__(value)
         logging.debug("Application exception encountered: %s", value)
+        self.msgid = msgid
         self.value = value[:115]
 
     def __str__(self):
