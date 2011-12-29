@@ -717,7 +717,7 @@ class WhensMyTube(WhensMyTransport):
     
         line = parsed_line.upper()
     
-        line_names = {
+        line_names = (
             'BAKERLOO',
             'CENTRAL',
             'DISTRICT',
@@ -728,7 +728,7 @@ class WhensMyTube(WhensMyTransport):
             'PICCADILLY',
             'VICTORIA',
             'WATERLOO & CITY',
-        }
+        )
         if line == 'CIRCLE':
             line = 'HAMMERSMITH & CIRCLE'
         if line not in line_names:
