@@ -11,7 +11,6 @@ Released under the MIT License
 
 TODO
  - Tube, Train, Tram, DLR & Boat equivalents
- - Maybe deprecate use of "From", or a better error message for it (use proper natural language parsing?)
 """
 # Standard libraries of Python 2.6
 import ConfigParser
@@ -341,7 +340,7 @@ class WhensMyTransport:
         Some standard things to sanitise a message - remove hashtags, @username, whitespace etc.
         """
         # Remove hashtags and @username
-        message = re.sub(r"\b#\w+\b", '', message)
+        message = re.sub(r"\s#\w+\b", '', message)
         if message.lower().startswith('@%s' % self.username.lower()):
             message = message[len('@%s ' % self.username):].lstrip()
         else:
@@ -428,34 +427,39 @@ class WhensMyBus(WhensMyTransport):
     def parse_message(self, message):
         """
         Parse a Tweet, but do not attempt to attain semantic meaning behind data
-        Message is of format: "@whensmybus route_number [from origin] [to destination]"
+        Message is of format: "@whensmybus route_numbers [from origin] [to destination]"
         and may or may not have geodata on it
-        Tuple returns is of format: (route_number, origin, destination)
+        Tuple returns is of format: (route_numbers, origin, destination)
         If we cannot find any of these three elements, None is used as default
         """
+        # Split the message into tokens
         message = self.sanitize_message(message)
-        # Extract a route number or numbers out of the first word by using the regexp for a London bus (0-2 letters then 1-3 numbers)
-        match = re.match(r"(([A-Z]{0,2}[0-9]{1,3}\b *)+)(.*)$", message, re.I)
-        # If we can't find a number, it's most likely the person was saying "Thank you" so just skip replying entirely 
-        if not match:
+        tokens = re.split('\s', message)
+        
+        # Count along from the start and match as many tokens that look like a route number as possible
+        route_regex = "[A-Z]{0,2}[0-9]{1,3}"
+        r = 0
+        while r < len(tokens) and re.match(route_regex, tokens[r], re.I):
+            r += 1
+        route_numbers = [re.match(route_regex, t, re.I).group(0).upper() for t in tokens[:r]]
+        if not route_numbers:
             logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
             return (None, None, None)
+
+        # Work out what boundaries "from" and "to" exist at
+        if "from" in tokens:
+            from_index = tokens.index("from")
+        else:
+            from_index = r-1
+
+        if "to" in tokens:
+            to_index = tokens.index("to")
+        else:
+            to_index = len(tokens)
+
+        origin = ' '.join(tokens[from_index+1:to_index]) or None
+        destination = ' '.join(tokens[to_index+1:]) or None
         
-        # A maximum of three route numbers - we also stip out space and uppercase everything to be sure
-        route_numbers = match.group(1).strip().upper().split(' ')[:3]
-        
-        # Work backwards from end of remainder to get destination (which may or may not be specified)
-        origin, destination = None, None
-        remainder = match.group(3)
-        match = re.search(r"(\bto\b +(.*)$)", remainder, re.I)
-        destination = match and match.group(2).strip()
-        # Lop off the destination so we can then parse the rest of the message
-        if match:
-            remainder = remainder[:-1 * len(match.group(1))]
-        # And then try getting the origin (which also may or may not be specified)
-        match = re.search(r"(\bfrom +(.*)$)", remainder, re.I)
-        origin = match and match.group(2).strip()
-            
         return (route_numbers, origin, destination)
 
     def process_individual_request(self, route_number, origin, destination, position=None):
@@ -743,6 +747,7 @@ if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
     WMB.check_followers()
+    
     
     #WMT = WhensMyTube(testing=True)
     #WMT.parse_message("Norvern Line")
