@@ -436,12 +436,12 @@ class WhensMyBus(WhensMyTransport):
         message = self.sanitize_message(message)
         tokens = re.split('\s', message)
         
-        # Count along from the start and match as many tokens that look like a route number as possible
+        # Count along from the start and match as many tokens that look like a route number in a row as possible
         route_regex = "[A-Z]{0,2}[0-9]{1,3}"
-        r = 0
-        while r < len(tokens) and re.match(route_regex, tokens[r], re.I):
-            r += 1
-        route_numbers = [re.match(route_regex, t, re.I).group(0).upper() for t in tokens[:r]]
+        route_count = 0
+        while route_count < len(tokens) and re.match(route_regex, tokens[route_count], re.I):
+            route_count += 1
+        route_numbers = [re.match(route_regex, t, re.I).group(0).upper() for t in tokens[:route_count]]
         if not route_numbers:
             logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
             return (None, None, None)
@@ -450,16 +450,22 @@ class WhensMyBus(WhensMyTransport):
         if "from" in tokens:
             from_index = tokens.index("from")
         else:
-            from_index = r-1
+            from_index = route_count - 1
 
         if "to" in tokens:
             to_index = tokens.index("to")
+        elif "towards" in tokens:
+            to_index = tokens.index("towards")        
         else:
             to_index = len(tokens)
-
-        origin = ' '.join(tokens[from_index+1:to_index]) or None
-        destination = ' '.join(tokens[to_index+1:]) or None
-        
+    
+        if from_index < to_index:
+            origin = ' '.join(tokens[from_index+1:to_index]) or None
+            destination = ' '.join(tokens[to_index+1:]) or None
+        else:
+            origin = ' '.join(tokens[from_index+1:]) or None
+            destination = ' '.join(tokens[to_index+1:from_index]) or None
+            
         return (route_numbers, origin, destination)
 
     def process_individual_request(self, route_number, origin, destination, position=None):
