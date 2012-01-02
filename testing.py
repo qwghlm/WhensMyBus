@@ -59,11 +59,11 @@ class WhensMyBusTestCase(unittest.TestCase):
                                    ('425 25 205', 'Bow Road Station', '55489',  -0.02472, 51.52722, 'Mile End station', '76239', 'Bow Road Station'),
                                    )
         # Troublesome destinations 
-        self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'The Grove'),
+        self.test_nonstandard_data = (('%s Stratford to Walthamstow', ('257',),      'The Grove'),
                                         ('%s from Hoxton',                     ('243',),      'Hoxton Station  / Geffrye Museum'),  
                                         ('%s from Bow Common Lane',            ('323',),      'Bow Common Lane'),
                                         ('%s from EC1M 4PN',                   ('55',),       'St John Street'),
-                                        ('%s from Clerkenwell',                ('55', '243'), 'St John Street'),
+                                        ('%s Mile End',                   ('d6', 'd7'),  'Mile End \w+'),
                                    )
 
     def tearDown(self):
@@ -270,18 +270,10 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         Test to confirm when route and stop do not match up is handled OK
         """
-        message = '15 from eucg;#$78' 
+        message = '15 from eucg;$78' 
         tweet = FakeTweet(self.at_reply + message) 
-        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;#$78')
-        
-    def test_destination_is_wrong(self):
-        """
-        Test to confirm when destination given is gibberish
-        """
-        message = '15 from eucg;#$78' 
-        tweet = FakeTweet(self.at_reply + message) 
-        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;#$78')
-        
+        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;$78')
+                
     def test_standard_messages(self):
         """
         Generic test for standard-issue messages
