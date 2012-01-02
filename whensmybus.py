@@ -353,13 +353,23 @@ class WhensMyTransport:
 
     def tokenize_message(self, message):
         """
-        Split the message into tokens
+        Split a message into tokens
         Message is of format: "@username specified_lines_or_routes [from origin] [to destination]"
         and may or may not have geodata on it
         Tuple returns is of format: (specified_lines_or_routes, origin, destination)
         If we cannot find any of these three elements, None is used as default
         """
-        message = self.sanitize_message(message)
+        # Remove hashtags and @username
+        message = re.sub(r"\s#\w+\b", '', message)
+        if message.lower().startswith('@%s' % self.username.lower()):
+            message = message[len('@%s ' % self.username):].lstrip()
+        else:
+            message = message.strip()
+
+        # Exception if the Tweet contains nothing useful
+        if not message:
+            raise WhensMyTransportException('blank_tweet')
+
         tokens = re.split('\s+', message)
     
         # Work out what boundaries "from" and "to" exist at
@@ -385,22 +395,6 @@ class WhensMyTransport:
             destination = ' '.join(tokens[to_index+1:from_index]) or None
             
         return (request, origin, destination)
-
-    def sanitize_message(self, message):
-        """ 
-        Some standard things to sanitise a message - remove hashtags, @username, whitespace etc.
-        """
-        # Remove hashtags and @username
-        message = re.sub(r"\s#\w+\b", '', message)
-        if message.lower().startswith('@%s' % self.username.lower()):
-            message = message[len('@%s ' % self.username):].lstrip()
-        else:
-            message = message.strip()
-
-        # Exception if the Tweet contains nothing useful
-        if not message:
-            raise WhensMyTransportException('blank_tweet')
-        return message
 
     def report_twitter_limit_status(self):
         """
@@ -767,11 +761,9 @@ class WhensMyTube(WhensMyTransport):
         return ((line_code,), origin, destination) 
         
 if __name__ == "__main__":
-    #WMB = WhensMyBus()
-    #WMB.check_tweets()
-    #WMB.check_followers()
+    WMB = WhensMyBus()
+    WMB.check_tweets()
+    WMB.check_followers()
     
-    WMT = WhensMyTube(testing=True)
-    WMT.parse_message("Norvern Line")
-    WMT.parse_message("Picadildo Line from Acton Town")
-    WMT.parse_message("Picadilly Line from Acton Town to Heathrow T123")
+    #WMT = WhensMyTube(testing=True)
+    
