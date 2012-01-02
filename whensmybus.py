@@ -265,17 +265,33 @@ class WhensMyTransport:
 
         return True
 
-    def validate_geolocation(self, position):
+    def get_tweet_geolocation(self, tweet, user_request):
         """
-        Ensure any geolocation on a Tweet is valid
+        Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a tuple; longitude first then latitude
         """
-        gridref = convertWGS84toOSGrid(position)[-1]
-        # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
-        if not gridref:
-            raise WhensMyTransportException('not_in_uk')
-        # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough just to make life difficult for me
-        elif gridref[:2] not in ('TQ', 'TL', 'SU'):
-            raise WhensMyTransportException('not_in_london')           
+        if hasattr(tweet, 'coordinates') and tweet.coordinates:
+            logging.debug("Detect geolocation on Tweet")
+            # Twitter gives latitude then longitude, so need to reverse this
+            position = tweet.coordinates['coordinates'][::-1]
+            gridref = convertWGS84toOSGrid(position)[-1]
+            # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
+            if not gridref:
+                raise WhensMyTransportException('not_in_uk')
+            # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough just to make life difficult for me
+            elif gridref[:2] not in ('TQ', 'TL', 'SU'):
+                raise WhensMyTransportException('not_in_london')
+            else:
+                return position
+
+        # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
+        elif hasattr(tweet, 'place') and tweet.place:
+            raise WhensMyTransportException('placeinfo_only', user_request)
+        # If there's no geoinformation at all then raise the appropriate exception
+        else:
+            if hasattr(tweet, 'coordinates'):
+                raise WhensMyTransportException('no_geotag', user_request)
+            else:
+                raise WhensMyTransportException('dms_not_taggable', user_request)
 
     def check_politeness(self, tweet):
         """
@@ -326,7 +342,7 @@ class WhensMyTransport:
         Placeholder function. This must be overridden by a child class to do anything useful
         """
         #pylint: disable=W0613
-        return ()
+        return []
 
     def process_exception(self, exc):
         """
@@ -334,6 +350,41 @@ class WhensMyTransport:
         """
         logging.debug("Exception encountered: %s" , exc.value)
         return "Sorry! %s" % exc.value
+
+    def tokenize_message(self, message):
+        """
+        Split the message into tokens
+        Message is of format: "@username specified_lines_or_routes [from origin] [to destination]"
+        and may or may not have geodata on it
+        Tuple returns is of format: (specified_lines_or_routes, origin, destination)
+        If we cannot find any of these three elements, None is used as default
+        """
+        message = self.sanitize_message(message)
+        tokens = re.split('\s+', message)
+    
+        # Work out what boundaries "from" and "to" exist at
+        if "from" in tokens:
+            from_index = tokens.index("from")
+        else:
+            from_index = len(tokens)
+
+        if "to" in tokens:
+            to_index = tokens.index("to")
+        elif "towards" in tokens:
+            to_index = tokens.index("towards")        
+        else:
+            to_index = len(tokens)
+
+        if from_index < to_index:
+            request = ' '.join(tokens[:from_index]) or None
+            origin = ' '.join(tokens[from_index+1:to_index]) or None
+            destination = ' '.join(tokens[to_index+1:]) or None
+        else:
+            request = ' '.join(tokens[:to_index]) or None
+            origin = ' '.join(tokens[from_index+1:]) or None
+            destination = ' '.join(tokens[to_index+1:from_index]) or None
+            
+        return (request, origin, destination)
 
     def sanitize_message(self, message):
         """ 
@@ -387,26 +438,14 @@ class WhensMyBus(WhensMyTransport):
         (route_numbers, origin, destination) = self.parse_message(message)
         
         if route_numbers == None:
-            return ''
+            return []
         
         # If no origin specified, let's see if we have co-ordinates on the Tweet
-        position = None
         if origin == None:
-            if hasattr(tweet, 'coordinates') and tweet.coordinates:
-                logging.debug("Detect geolocation on Tweet, locating stops")
-                # Twitter gives latitude then longitude, so need to reverse this
-                position = tweet.coordinates['coordinates'][::-1]
-                self.validate_geolocation(position)
-            # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
-            elif hasattr(tweet, 'place') and tweet.place:
-                raise WhensMyTransportException('placeinfo_only', ' '.join(route_numbers))
-            # If there's no geoinformation at all then raise the appropriate exception
-            else:
-                if hasattr(tweet, 'coordinates'):
-                    raise WhensMyTransportException('no_geotag', ' '.join(route_numbers))
-                else:
-                    raise WhensMyTransportException('dms_not_taggable', ' '.join(route_numbers))
-                    
+            position = self.get_tweet_geolocation(tweet, ' '.join(route_numbers))
+        else:
+            position = None
+
         replies = []
         
         for route_number in route_numbers:
@@ -426,47 +465,19 @@ class WhensMyBus(WhensMyTransport):
         
     def parse_message(self, message):
         """
-        Parse a Tweet, but do not attempt to attain semantic meaning behind data
-        Message is of format: "@whensmybus route_numbers [from origin] [to destination]"
-        and may or may not have geodata on it
-        Tuple returns is of format: (route_numbers, origin, destination)
-        If we cannot find any of these three elements, None is used as default
+        Parse a Tweet - tokenize it and then pull out any bus numbers in it
         """
-        # Split the message into tokens
-        message = self.sanitize_message(message)
-        tokens = re.split('\s', message)
-        
-        # Count along from the start and match as many tokens that look like a route number in a row as possible
+        (route_string, origin, destination) = self.tokenize_message(message)
+        # Count along from the start and match as many tokens that look like a route number
         route_regex = "[A-Z]{0,2}[0-9]{1,3}"
-        route_count = 0
-        while route_count < len(tokens) and re.match(route_regex, tokens[route_count], re.I):
-            route_count += 1
-        route_numbers = [re.match(route_regex, t, re.I).group(0).upper() for t in tokens[:route_count]]
+        route_token_matches = [re.match(route_regex, r, re.I) for r in route_string.split(' ')]
+        route_numbers = [r.group(0).upper() for r in route_token_matches if r]
         if not route_numbers:
             logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
             return (None, None, None)
 
-        # Work out what boundaries "from" and "to" exist at
-        if "from" in tokens:
-            from_index = tokens.index("from")
-        else:
-            from_index = route_count - 1
-
-        if "to" in tokens:
-            to_index = tokens.index("to")
-        elif "towards" in tokens:
-            to_index = tokens.index("towards")        
-        else:
-            to_index = len(tokens)
-    
-        if from_index < to_index:
-            origin = ' '.join(tokens[from_index+1:to_index]) or None
-            destination = ' '.join(tokens[to_index+1:]) or None
-        else:
-            origin = ' '.join(tokens[from_index+1:]) or None
-            destination = ' '.join(tokens[to_index+1:from_index]) or None
-            
         return (route_numbers, origin, destination)
+
 
     def process_individual_request(self, route_number, origin, destination, position=None):
         """
@@ -565,7 +576,7 @@ class WhensMyBus(WhensMyTransport):
             
     def get_stops_by_stop_number(self, route_number, stop_number):
         """
-        Return a single dictionary representing a stop that has an ID of stop_number
+        Return a single dictionary representing a bus stop that has an ID of stop_number
         """
         # Pull the stop ID out of the routes database and see if it exists
         self.geodata.execute("SELECT * FROM routes WHERE Bus_Stop_Code=?", (stop_number, ))
@@ -706,28 +717,34 @@ class WhensMyTube(WhensMyTransport):
 
     def process_tweet(self, tweet):
         """
-        Process a single Tweet object and return a reply string
+        Process a single Tweet object and return a list of reply strings
         """
         # Get route number, from and to from the message
         message = tweet.text
-        self.parse_message(message)
-        return ''
+        (lines, origin, destination) = self.parse_message(message)
+        if lines == None:
+            return []
+
+        # If no origin specified, let's see if we have co-ordinates on the Tweet
+        if origin == None:
+            position = self.get_tweet_geolocation(tweet, ' '.join(lines))
+        else:
+            position = None
+
+        replies = []
+        return replies
         
     def parse_message(self, message):
         """
         Parse a Tweet, but do not attempt to attain semantic meaning behind data
         """
-        # Strip tokens out of 
-        message = self.sanitize_message(message)
-        tokens = re.split(r"\b(from|to)\b", message, maxsplit=2, flags=re.I)
-
-        parsed_line = re.sub(' +Line', '', tokens[0].strip(), flags=re.I)
-        origin = len(tokens) > 2 and tokens[2].strip().upper() or None
-        destination = len(tokens) > 4 and tokens[4].strip().upper() or None
+        (line_string, origin, destination) = self.tokenize_message(message)
+        if line_string == 'CIRCLE':
+            line_string = 'HAMMERSMITH & CIRCLE'
+        
+        line_string = line_string.upper().replace(" LINE", "")
     
-        line = parsed_line.upper()
-    
-        line_names = {
+        line_names = (
             'BAKERLOO',
             'CENTRAL',
             'DISTRICT',
@@ -738,24 +755,23 @@ class WhensMyTube(WhensMyTransport):
             'PICCADILLY',
             'VICTORIA',
             'WATERLOO & CITY',
-        }
-        if line == 'CIRCLE':
-            line = 'HAMMERSMITH & CIRCLE'
-        if line not in line_names:
-            line = get_best_fuzzy_match(line, line_names)
+        )
+        if line_string not in line_names:
+            line = get_best_fuzzy_match(line_string, line_names)
             if line is None:
-                raise WhensMyTransportException('nonexistent_line', parsed_line)
+                raise WhensMyTransportException('nonexistent_line', line_string)
+        else:
+            line = line_string
+            
         line_code = line[0]
-    
-        #print (line_code, origin, destination)
-
+        return ((line_code,), origin, destination) 
+        
 if __name__ == "__main__":
-    WMB = WhensMyBus()
-    WMB.check_tweets()
-    WMB.check_followers()
+    #WMB = WhensMyBus()
+    #WMB.check_tweets()
+    #WMB.check_followers()
     
-    
-    #WMT = WhensMyTube(testing=True)
-    #WMT.parse_message("Norvern Line")
-    #WMT.parse_message("Picadildo Line from Acton Town")
-    #WMT.parse_message("Picadilly Line from Acton Town to Heathrow")
+    WMT = WhensMyTube(testing=True)
+    WMT.parse_message("Norvern Line")
+    WMT.parse_message("Picadildo Line from Acton Town")
+    WMT.parse_message("Picadilly Line from Acton Town to Heathrow T123")
