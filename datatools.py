@@ -92,7 +92,7 @@ def import_tube_xml_to_db():
     """
     tablename = 'locations'
     
-    fieldnames = ('name', 'code', 'line', 'easting INT', 'northing INT')
+    fieldnames = ('Name', 'Code', 'Line', 'Location_Easting INT', 'Location_Northing INT')
     
     sql = ""
     sql += "drop table if exists %s;\r\n" % tablename
@@ -115,7 +115,7 @@ def import_tube_xml_to_db():
         (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
         (easting, northing) = LatLongToOSGrid(lat, lon)
         gridref = gridrefNumToLet(easting, northing)
-        stations[name.lower()] = { 'name' : name, 'easting' : easting, 'northing' : northing, 'code' : '', 'lines' : '' }
+        stations[name.lower()] = { 'Name' : name, 'Location_Easting' : easting, 'Location_Northing' : northing, 'Code' : '', 'Lines' : '' }
 
     tube_data = open('./sourcedata/tube-references.csv')
     reader = csv.reader(tube_data)
@@ -125,20 +125,20 @@ def import_tube_xml_to_db():
         name = line[1]
         lines = line[-1].split(";")
         if name.lower() in stations:
-            stations[name.lower()]['code'] = code
-            stations[name.lower()]['lines'] = lines            
+            stations[name.lower()]['Code'] = code
+            stations[name.lower()]['Lines'] = lines            
         else:
             print "Cannot find %s in geodata!" % name
         
     for station in stations.values():
-        if not station['code']:
-            print "Could not find a code for %s!" % station['name']
-            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['name'], '', '', str(station['easting']), str(station['northing'])))
+        if not station['Code']:
+            print "Could not find a code for %s!" % station['Name']
+            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['Name'], '', '', str(station['Location_Easting']), str(station['Location_Northing'])))
             
         else:
-            for line in station['lines']:
+            for line in station['Lines']:
                 if line != 'O': 
-                    sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['name'], station['code'], line, str(station['easting']), str(station['northing'])))
+                    sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['Name'], station['Code'], line, str(station['Location_Easting']), str(station['Location_Northing'])))
 
     sql += "CREATE INDEX code_index ON locations (code);\r\n"
 
@@ -150,5 +150,5 @@ def import_tube_xml_to_db():
 
 if __name__ == "__main__":
     #import_bus_csv_to_db()
-    #import_tube_xml_to_db()
+    import_tube_xml_to_db()
     pass
