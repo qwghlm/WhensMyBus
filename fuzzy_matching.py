@@ -27,7 +27,7 @@ def normalise_stop_name(name):
 
 def get_bus_stop_name_similarity(origin, stop):
     """
-    Takes a user-defiend origin, and a stop name from database, and work out how well they match, returning an integer
+    Takes a user-defined origin, and a stop name from database, and work out how well they match, returning an integer
     between 0 (no match) and 100 (perfect). 70 or more seems to be a confident enough match 
     """
     # Use the above function to normalise our names and facilitate easier comparison
