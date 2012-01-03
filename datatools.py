@@ -8,6 +8,7 @@ import tempfile
 import subprocess
 
 from xml.dom.minidom import parse
+from pprint import pprint
 
 # Local files
 from geotools import convertWGS84toOSGB36, LatLongToOSGrid, gridrefNumToLet
@@ -81,13 +82,13 @@ def import_tube_xml_to_db():
     Utility script that produces the script for converting TfL's Tube data KML into a sqlite database
         
     Pulls together data from two files:
+
+    1. The data for Tube station locations, originally from TfL but augmented with new data (Heathrow Terminal 5) 
+    corrected for station names (e.g. Shepherd's Bush Market), and saved as tube-locations.kml
     
-    1. The data for Tube station codes & line details, from:
+    2. The data for Tube station codes & line details, from:
     https://raw.github.com/blech/gae-fakesubwayapis-data/d365a8b56d7b5abfec378816e3d91fb901f0cc59/data/tfl/stops.txt
     corrected for station names, and saved as tube-references.csv
-    
-    2. The data for Tube station locations, originally from TfL but augmented with new data (Heathrow Terminal 5) 
-    corrected for station names (e.g. Shepherd's Bush Market), and saved as tube-locations.kml
     
     """
     tablename = 'locations'
@@ -100,6 +101,7 @@ def import_tube_xml_to_db():
 
     stations = {}
     
+    # Parse our XML file of locations
     dom = parse(open('./sourcedata/tube-locations.kml'))
     station_geodata = dom.getElementsByTagName('Placemark')    
     for station in station_geodata:
@@ -132,8 +134,14 @@ def import_tube_xml_to_db():
         
     for station in stations.values():
         if not station['Code']:
+            # Some stations do not have a code, so use code XXX for time being
             print "Could not find a code for %s!" % station['Name']
-            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['Name'], '', '', str(station['Location_Easting']), str(station['Location_Northing'])))
+            if station['Name'] in ('Chesham', 'Preston Road'):
+                line_code = 'M'
+            elif station['Name'] in ('Goldhawk Road', 'Latimer Road', "Shepherd's Bush Market"):
+                line_code = 'H'
+            
+            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['Name'], 'XXX', line_code, str(station['Location_Easting']), str(station['Location_Northing'])))
             
         else:
             for line in station['Lines']:
