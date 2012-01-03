@@ -11,6 +11,7 @@ import time
 import urllib2
 import tweepy
 import ConfigParser
+import xml.dom.minidom
 
 from pprint import pprint
 
@@ -45,22 +46,21 @@ class WMBBrowser:
         logging.debug("Starting up browser")
         
         self.cache = {}
-    
-
-    def fetch_json(self, url, exception_code='tfl_server_down'):
+        
+    def fetch_url(self, url, exception_code):
         """
-        Fetches a JSON URL and returns Python object representation of it
+        Fetches a URL and returns the raw data as a string
         """
         if url in self.cache and (time.time() - self.cache[url]['time']) < 30:
             logging.debug("Using cached URL %s", url)
-            json_data = self.cache[url]['data']
+            url_data = self.cache[url]['data']
             
         else:
             logging.debug("Fetching URL %s", url)
             try:
                 response = self.opener.open(url)
-                json_data = response.read()
-                self.cache[url] = { 'data' : json_data, 'time' : time.time() }
+                url_data = response.read()
+                self.cache[url] = { 'data' : url_data, 'time' : time.time() }
             # Handle browsing error
             except urllib2.HTTPError, exc:
                 logging.error("HTTP Error %s reading %s, aborting", exc.code, url)
@@ -68,6 +68,14 @@ class WMBBrowser:
             except Exception, exc:
                 logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, url)
                 raise WhensMyTransportException(exception_code)
+                
+        return url_data
+
+    def fetch_json(self, url, exception_code='tfl_server_down'):
+        """
+        Fetches a JSON URL and returns Python object representation of it
+        """
+        json_data = self.fetch_url(url, exception_code)
     
         # Try to parse this as JSON
         if json_data:
@@ -77,6 +85,21 @@ class WMBBrowser:
             # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
             except ValueError, exc:
                 logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
+                raise WhensMyTransportException(exception_code)  
+
+    def fetch_xml(self, url, exception_code='tfl_server_down'):
+        """
+        Fetches an XML URL and returns Python object representation of the DOM
+        """
+        xml_data = self.fetch_url(url, exception_code)
+    
+        # Try to parse this as XML
+        if xml_data:
+            try:
+                dom = xml.dom.minidom.parseString(xml_data)
+                return dom
+            except Exception, exc:
+                logging.error("%s encountered when parsing %s - likely not XML!", exc, url)
                 raise WhensMyTransportException(exception_code)  
 
 # OAuth stuff
