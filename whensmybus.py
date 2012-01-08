@@ -13,13 +13,11 @@ TODO
 
 WhensMyTube:
 
- - Handle abbreviations for Tube lines (e.g. Met)
+ - Unit testing!
  - Custom name similarity function for Tube stations
  - Multiple trains
  - Destination handling
  - Direction handling
- - No line name for single-line stations
- - Unit testing
 
 General:
 
@@ -747,10 +745,6 @@ class WhensMyTube(WhensMyTransport):
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it
         """
-        # Circle is now combined with H&C
-        if line_name == 'CIRCLE':
-            line_name = 'HAMMERSMITH & CIRCLE'
-    
         # Match with the line name that we know of
         line_names = (
             'BAKERLOO',
@@ -764,12 +758,19 @@ class WhensMyTube(WhensMyTransport):
             'VICTORIA',
             'WATERLOO & CITY',
         )
+        # Turn the above into a lookup to handle abbreviated three-letter versions (e.g. "Met") plus one-word versions
+        # (e.g. "Hammersmith")
+        line_names = dict([(name, name) for name in line_names] + [(name[:3], name) for name in line_names] + [(name.split(' ')[0], name) for name in line_names])
+        line_names['CIRCLE'] = 'HAMMERSMITH & CIRCLE'
+        line_names['HAMMERSMITH & CITY'] = 'HAMMERSMITH & CIRCLE'
+
         if line_name not in line_names:
-            line = get_best_fuzzy_match(line_name, line_names)
+            line = get_best_fuzzy_match(line_name, line_names.values())
+
             if line is None:
                 raise WhensMyTransportException('nonexistent_line', line_name)
         else:
-            line = line_name
+            line = line_names[line_name]
             
         line_code = line[0]
         
@@ -874,7 +875,7 @@ class WhensMyTube(WhensMyTransport):
                     trains.append('to %s %s' % (destination, departure_time))
                     
             # Else say there are non shown in this particular direction
-            # FIXME: Won't work for White City
+            # FIXME: Won't work for White City (or Stratford?)
             else:
                 direction = platform.getAttribute('N').split(' ')[0]
                 trains.append('None shown %s' % direction)
@@ -891,3 +892,4 @@ if __name__ == "__main__":
     
     WMT = WhensMyTube(testing=True)
     WMT.check_tweets()
+    WMT.check_followers()
