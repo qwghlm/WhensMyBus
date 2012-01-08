@@ -138,7 +138,7 @@ def import_tube_xml_to_db():
             print "Could not find a code for %s!" % station['Name']
             if station['Name'] in ('Chesham', 'Preston Road'):
                 line_code = 'M'
-            elif station['Name'] in ('Goldhawk Road', 'Latimer Road', "Shepherd's Bush Market"):
+            elif station['Name'] in ('Goldhawk Road', 'Latimer Road', "Shepherd's Bush Market", "Wood Lane"):
                 line_code = 'H'
             
             sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['Name'], 'XXX', line_code, str(station['Location_Easting']), str(station['Location_Northing'])))
