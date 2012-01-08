@@ -40,8 +40,149 @@ class FakeDirectMessage:
         self.user = lambda:1
         self.user.screen_name = username
         self.text = text
+        
+class WhensMyTransportTestCase(unittest.TestCase):
+    """
+    Parent Test case for all When's My * bots
+    """
+    # setUp is left to the individual test suite
+
+    def tearDown(self):
+        """
+        Tear down test
+        """
+        self.bot = None  
+
+    def _test_correct_exception_produced(self, tweet, exception_id, *string_params):
+        """
+        A generic test that the correct exception message is produced
+        """
+        # Get the message for the exception_id specified, applying C string formatting if applicable
+        # Then escape it so that regular expression module doesn't accidentally interpret brackets etc
+        expected_error = re.escape(WhensMyTransportException(exception_id, *string_params).value)
+
+        # Try processing the relevant Tweet        
+        try:
+            messages = self.bot.process_tweet(tweet)
+        # If an exception is thrown, then see if its message matches the one we want
+        except WhensMyTransportException as exc:
+            self.assertRegexpMatches(exc.value, expected_error)
+        # If there is no exception thrown, then see if the reply generated matches what we want
+        else:
+            for message in messages:
+                self.assertRegexpMatches(message, expected_error)    
+
+    #
+    # Fundamental functionality tests
+    #
+
+    def test_init(self):
+        """
+        Test to see if we can load the class in the first place
+        """
+        self.assertTrue(True)
+
+    def test_database(self):
+        """
+        Test to see if databases have loaded correctly and files exist
+        """
+        self.bot.settings.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='%s_settings'" % self.bot.instance_name)
+        row = self.bot.settings.fetchone()
+        self.assertIsNotNone(row, 'Settings table does not exist')
+
+        for name in self.geodata_table_names:
+            self.bot.geodata.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'" % name)
+            row = self.bot.geodata.fetchone()
+            self.assertIsNotNone(row, '%s table does not exist' % name)        
+
+    def test_oauth(self):
+        """
+        Test to see if our OAuth login details are correct
+        """
+        self.assertTrue(self.bot.api.verify_credentials())
+
+    #
+    # Tests that Tweets are in the right format
+    #
+
+    def test_politeness(self):
+        """
+        Test to see if we are replying to polite messagess correctly
+        """
+        tweet = FakeTweet(self.at_reply + 'Thank you!')
+        self.assertFalse(self.bot.process_tweet(tweet)) 
+        self.assertRegexpMatches(self.bot.check_politeness(tweet)[0], 'No problem')
+
+    def test_mention(self):
+        """
+        Test to confirm we are ignoring Tweets that are just mentions and not replies
+        """
+        tweet = FakeTweet('Hello @%s' % self.bot.username)
+        self.assertFalse(self.bot.validate_tweet(tweet))
+
+    def test_talking_to_myself(self):
+        """
+        Test to confirm we are ignoring Tweets from the bot itself
+        """
+        tweet = FakeTweet(self.at_reply + self.test_standard_data[0][0], username=self.bot.username)
+        self.assertFalse(self.bot.validate_tweet(tweet))
+
+    def test_blank_tweet(self):
+        """
+        Test to confirm we are ignoring blank replies
+        """
+        for message in ('',
+                     ' ',
+                     '         '):
+            tweet = FakeTweet(self.at_reply + message)
+            self._test_correct_exception_produced(tweet, 'blank_tweet')
+            direct_message = FakeDirectMessage(message)
+            self._test_correct_exception_produced(direct_message, 'blank_tweet')
+    
+    #
+    # Geotagging tests
+    #
+
+    def test_no_geotag(self):
+        """
+        Test to confirm lack of geotag handled OK
+        """
+        for test_data in self.test_standard_data:
+            request = test_data[0]
+            tweet = FakeTweet(self.at_reply + request)
+            self._test_correct_exception_produced(tweet, 'no_geotag', request)
+            direct_message = FakeDirectMessage(request)
+            self._test_correct_exception_produced(direct_message, 'dms_not_taggable', request)
+
+    def test_placeinfo_only(self):
+        """
+        Test to confirm ambiguous place information handled OK
+        """
+        for test_data in self.test_standard_data:
+            request = test_data[0]
+            tweet = FakeTweet(self.at_reply + request, place='foo')
+            self._test_correct_exception_produced(tweet, 'placeinfo_only', request)
             
-class WhensMyBusTestCase(unittest.TestCase):
+    def test_not_in_uk(self):
+        """
+        Test to confirm geolocations outside UK handled OK
+        """
+        for test_data in self.test_standard_data:
+            request = test_data[0]
+            tweet = FakeTweet(self.at_reply + request, (-73.985656, 40.748433)) # Empire State Building, New York
+            self._test_correct_exception_produced(tweet, 'not_in_uk')
+
+    def test_not_in_london(self):
+        """
+        Test to confirm geolocations outside London handled OK
+        """
+        for test_data in self.test_standard_data:
+            request = test_data[0]
+            tweet = FakeTweet(self.at_reply + request, (-3.200833, 55.948611)) # Edinburgh Castle, Edinburgh
+            self._test_correct_exception_produced(tweet, 'not_in_london')
+
+
+class WhensMyBusTestCase(WhensMyTransportTestCase):
     """
     Main Test Case for When's My Bus
     """
@@ -49,9 +190,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         Setup test
         """
-        self.wmb = WhensMyBus(testing=True, silent=True)
-        
-        self.at_reply = '@%s ' % self.wmb.username
+        self.bot = WhensMyBus(testing=True, silent=True)
+        self.at_reply = '@%s ' % self.bot.username
+        self.geodata_table_names = ('routes', )
         
         # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin
         self.test_standard_data = (
@@ -66,40 +207,12 @@ class WhensMyBusTestCase(unittest.TestCase):
                                         ('%s from Mile End',                   ('d6', 'd7'),  'Mile End \w+'),
                                    )
 
-    def tearDown(self):
-        """
-        Tear down test
-        """
-        self.wmb = None  
+    # Generic but bus-specific success results
 
-    #
-    # Generic tests that we use repeatedly below, refactored into functions of their own. One for failures, one for succeses
-    #
-
-    def _test_correct_exception_produced(self, tweet, exception_id, *string_params):
-        """
-        Generic test for the correct exception message
-        """
-        # Get the message for the exception_id specified, applying C string formatting if applicable
-        # Then escape it so that regular expression module doesn't accidentally interpret brackets etc
-        expected_error = re.escape(WhensMyTransportException(exception_id, *string_params).value)
-
-        # Try processing the relevant Tweet        
-        try:
-            messages = self.wmb.process_tweet(tweet)
-        # If an exception is thrown, then see if its message matches the one we want
-        except WhensMyTransportException as exc:
-            self.assertRegexpMatches(exc.value, expected_error)
-        # If there is no exception thrown, then see if the reply generated matches what we want
-        else:
-            for message in messages:
-                self.assertRegexpMatches(message, expected_error)
-                
     def _test_correct_successes(self, result, routes_specified, expected_origin, destination_not_specified=True):
         """
         Generic test to confirm message is being produced correctly
         """
-
         # No TfL garbage please, and no all-caps either
         for unwanted in ('<>', '#', '\[DLR\]', '>T<'):                
             self.assertNotRegexpMatches(result, unwanted)
@@ -117,62 +230,8 @@ class WhensMyBusTestCase(unittest.TestCase):
             self.assertNotRegexpMatches(result, ';')
 
     #
-    # Fundamental functionality tests
+    # Bus-specific tests
     #
-
-    def test_init(self):
-        """
-        Test to see if we can load the class in the first place
-        """
-        self.assertTrue(True)
-        
-    def test_database(self):
-        """
-        Test to see if databases have loaded correctly and files exist
-        """
-        self.wmb.settings.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='whensmybus_settings'")
-        row = self.wmb.settings.fetchone()
-        self.assertIsNotNone(row, 'Settings table does not exist')
-
-        #self.wmb.geodata.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='locations'")
-        #row = self.wmb.geodata.fetchone()
-        #self.assertIsNotNone(row, 'Locations table does not exist')
-
-        self.wmb.geodata.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='routes'")
-        row = self.wmb.geodata.fetchone()
-        self.assertIsNotNone(row, 'Routes table does not exist')
-        
-    def test_oauth(self):
-        """
-        Test to see if our OAuth login details are correct
-        """
-        self.assertTrue(self.wmb.api.verify_credentials())
-        
-    #
-    # Really important tests
-    #
-
-    def test_politeness(self):
-        """
-        Test to see if we are replying to polite messagess correctly
-        """
-        tweet = FakeTweet(self.at_reply + 'Thank you!')
-        self.assertFalse(self.wmb.process_tweet(tweet)) 
-        self.assertRegexpMatches(self.wmb.check_politeness(tweet)[0], 'No problem')
-
-    def test_mention(self):
-        """
-        Test to confirm we are ignoring Tweets that are just mentions and not replies
-        """
-        tweet = FakeTweet('Hello @%s' % self.wmb.username)
-        self.assertFalse(self.wmb.validate_tweet(tweet))
-
-    def test_talking_to_myself(self):
-        """
-        Test to confirm we are ignoring Tweets from the bot itself
-        """
-        tweet = FakeTweet(self.at_reply + '15', username=self.wmb.username)
-        self.assertFalse(self.wmb.validate_tweet(tweet))
 
     def test_no_bus_number(self):
         """
@@ -180,22 +239,9 @@ class WhensMyBusTestCase(unittest.TestCase):
         """
         message = 'Thanks!'
         tweet = FakeTweet(self.at_reply + message)
-        self.assertFalse(self.wmb.process_tweet(tweet))
+        self.assertFalse(self.bot.process_tweet(tweet))
         direct_message = FakeDirectMessage(message)
-        self.assertFalse(self.wmb.process_tweet(direct_message))
-
-
-    def test_blank_tweet(self):
-        """
-        Test to confirm we are ignoring blank replies
-        """
-        for message in ('',
-                     ' ',
-                     '         '):
-            tweet = FakeTweet(self.at_reply + message)
-            self._test_correct_exception_produced(tweet, 'blank_tweet')
-            direct_message = FakeDirectMessage(message)
-            self._test_correct_exception_produced(direct_message, 'blank_tweet')
+        self.assertFalse(self.bot.process_tweet(direct_message))
 
     def test_nonexistent_bus(self):
         """
@@ -207,44 +253,9 @@ class WhensMyBusTestCase(unittest.TestCase):
             direct_message = FakeDirectMessage(message)
             self._test_correct_exception_produced(direct_message, 'nonexistent_bus', '218')
 
-
-    def test_no_geotag(self):
-        """
-        Test to confirm lack of geotag handled OK
-        """
-        for test_data in self.test_standard_data:
-            route = test_data[0]
-            tweet = FakeTweet(self.at_reply + route)
-            self._test_correct_exception_produced(tweet, 'no_geotag', route)
-            direct_message = FakeDirectMessage(route)
-            self._test_correct_exception_produced(direct_message, 'dms_not_taggable', route)
-
-    def test_placeinfo_only(self):
-        """
-        Test to confirm ambiguous place information handled OK
-        """
-        for test_data in self.test_standard_data:
-            route = test_data[0]
-            tweet = FakeTweet(self.at_reply + route, place='foo')
-            self._test_correct_exception_produced(tweet, 'placeinfo_only', route)
-            
-    def test_not_in_uk(self):
-        """
-        Test to confirm geolocations outside UK handled OK
-        """
-        for test_data in self.test_standard_data:
-            route = test_data[0]
-            tweet = FakeTweet(self.at_reply + route, (-73.985656, 40.748433)) # Empire State Building, New York
-            self._test_correct_exception_produced(tweet, 'not_in_uk')
-
-    def test_not_in_london(self):
-        """
-        Test to confirm geolocations outside London handled OK
-        """
-        for test_data in self.test_standard_data:
-            route = test_data[0]
-            tweet = FakeTweet(self.at_reply + route, (-3.200833, 55.948611)) # Edinburgh Castle, Edinburgh
-            self._test_correct_exception_produced(tweet, 'not_in_london')
+    #
+    # Stop-related errors
+    #
 
     def test_bad_stop_id(self):
         """
@@ -302,7 +313,7 @@ class WhensMyBusTestCase(unittest.TestCase):
                 else:
                     tweet = FakeTweet(message)
 
-                results = self.wmb.process_tweet(tweet)
+                results = self.bot.process_tweet(tweet)
                 for result in results:
                     self._test_correct_successes(result, route, expected_origin, (message.find(' to ') == -1 and message.find(origin_id) == -1))
 
@@ -315,7 +326,7 @@ class WhensMyBusTestCase(unittest.TestCase):
         
         for (route, position, expected_result_regex) in test_data:        
             tweet = FakeTweet(self.at_reply + route, position)
-            results = self.wmb.process_tweet(tweet)
+            results = self.bot.process_tweet(tweet)
             for result in results:
                 self._test_correct_successes(result, route, expected_result_regex, True)
                
@@ -327,7 +338,7 @@ class WhensMyBusTestCase(unittest.TestCase):
             for route in routes:
                 message = text % route
                 tweet = FakeTweet(self.at_reply + message)
-                results = self.wmb.process_tweet(tweet)
+                results = self.bot.process_tweet(tweet)
                 for result in results:
                     self._test_correct_successes(result, route, stop_name, (message.find(' to ') == -1))
 
@@ -339,11 +350,14 @@ def test_whensmybus():
     parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
     
     init = ('init', 'oauth', 'database',)
-    failures = (  'politeness', 'talking_to_myself', 'mention',
-                  'no_bus_number', 'blank_tweet', 'nonexistent_bus', # Tweet formatting errors
-                  'no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',                     # Geotag errors
-                  'bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',                         # Stop ID errors
-                )
+    
+    format_errors = ('politeness', 'talking_to_myself', 'mention', 'blank_tweet',)
+    geotag_errors = ('no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',)
+    bus_errors = ('no_bus_number', 'nonexistent_bus',)
+    stop_errors = ('bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',)
+    
+    failures = format_errors + geotag_errors + bus_errors + stop_errors
+    
     successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
 
     if parser.parse_args().dologin:
