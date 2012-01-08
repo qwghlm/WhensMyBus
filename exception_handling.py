@@ -34,7 +34,8 @@ class WhensMyTransportException(Exception):
         # Tube stuff
         'nonexistent_line' : "I couldn't recognise that line (%s) as a Tube line",
         'tube_station_no_data' : "TfL don't provide live departure data for %s station :(",
-        'tube_station_name_not_found' : "I couldn't recognise that station (%s) as a station on the %s line",
+        'tube_station_name_not_found' : "I couldn't recognise that station (%s) as being on the %s line",
+        'tube_station_closed' : "%s station is closed %s",
     }
     
     def __init__(self, msgid, *string_params):
