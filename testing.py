@@ -11,7 +11,7 @@ if sys.version_info < (2, 7):
     print "Please upgrade!"
     sys.exit(1)    
 
-from whensmybus import WhensMyBus
+from whensmybus import WhensMyBus, WhensMyTube
 from exception_handling import WhensMyTransportException
 
 import argparse
@@ -51,6 +51,8 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Tear down test
         """
+        # Bit of a hack - we insist that any print statements are output, after the tests regardless of whether we failed or not
+        self._resultForDoCleanups._mirrorOutput = True
         self.bot = None  
 
     def _test_correct_exception_produced(self, tweet, exception_id, *string_params):
@@ -342,32 +344,136 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                 for result in results:
                     self._test_correct_successes(result, route, stop_name, (message.find(' to ') == -1))
 
-def test_whensmybus(): 
+class WhensMyTubeTestCase(WhensMyTransportTestCase):
     """
-    Run a suite of tests
+    Main Test Case for When's My Tube
     """
-    parser = argparse.ArgumentParser("Unit testing for When's My Bus?")
+    def setUp(self):
+        """
+        Setup test
+        """
+        self.bot = WhensMyTube(testing=True, silent=True)
+        self.at_reply = '@%s ' % self.bot.username
+        self.geodata_table_names = ('locations', )
+        
+        self.test_standard_data = (
+                                   #('District', 'Mile End', -0.033, 51.525, 'Upminster', 'Mile End'),
+                                   #('Hammersmith', 'Mile End', -0.033, 51.525, 'Kings Cross', 'Mile End'),
+                                   ('Metropolitan', 'Kings Cross'),
+                                   ('District', "Earl's Court"),
+                                   ('Piccadilly', "Acton Town"),
+                                   ('Jubilee', "Swiss Cottage"),
+                                   ('Northern', "Camden Town"),
+                                   ('Central', "North Acton"),
+                                   ('District', "Edgware Road"),
+                                   ('Hammersmith & City', "Wood Lane"),
+                                  )
+        self.test_nonstandard_data = ()
+
+    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_not_specified=True):
+        """
+        Generic test to confirm message is being produced correctly
+        """
+        self.assertNotEqual(result, result.upper())
+        #self.assertRegexpMatches(result, r"(%s to .* (due|[0-9]{1,2}min)|None shown \w+bound)" % expected_origin)
+        
+        print result
+        
+        # We should get two results and hence a semi-colon separating them, if this is not from a specific stop
+        #if destination_not_specified:
+        #    self.assertRegexpMatches(result, ';')
+        #else:
+        #   self.assertNotRegexpMatches(result, ';')
+
+
+    def test_bad_line_name(self):
+        """
+        Test to confirm bad line names are handled OK
+        """
+        message = 'Xrongwoihrwg line from Oxford Circus'
+        tweet = FakeTweet(self.at_reply + message) 
+        self._test_correct_exception_produced(tweet, 'nonexistent_line', 'Xrongwoihrwg')
+
+    def test_missing_station_data(self):
+        """
+        Test to confirm certan stations which have no data are correctly reported
+        """
+        message = 'Metropolitan Line from Preston Road'
+        tweet = FakeTweet(self.at_reply + message) 
+        self._test_correct_exception_produced(tweet, 'tube_station_no_data', 'Preston Road')
+
+    def test_station_line_mismatch(self):
+        """
+        Test to confirm stations on the wrong lines are correctly error reported
+        """
+        message = 'District Line from Stratford'
+        tweet = FakeTweet(self.at_reply + message) 
+        self._test_correct_exception_produced(tweet, 'tube_station_name_not_found', 'Stratford', 'District')
+    
+    def test_standard_messages(self):
+        """
+        Generic test for standard-issue messages
+        """
+        for (line, origin_name) in self.test_standard_data:
+        #for (line, origin_name, lon, lat, destination_name, expected_origin) in self.test_standard_data:
+        
+            test_messages = (
+                #"%s line"               % (line),
+                "%s line from %s"       % (line, origin_name),
+                #"%s line to %s"         % (line, destination_name),
+                #"%s line from %s to %s" % (line, origin_name, destination_name),
+            )
+
+            for message in test_messages[:1]:
+                message = self.at_reply + message
+                if message.find('from') == -1:
+                    tweet = FakeTweet(message, (lon, lat))
+                else:
+                    tweet = FakeTweet(message)
+
+                results = self.bot.process_tweet(tweet)
+                for result in results:
+                    self._test_correct_successes(result, line, origin_name, False)
+
+def run_tests(): 
+    """
+    Run a suite of tests for When's My Transport
+    """
+    parser = argparse.ArgumentParser("Unit testing for When's My Transport?")
     parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
+    parser.add_argument("-c", dest="test_case_name", action="store", default="WhensMyTube") 
     
+    test_case_name = parser.parse_args().test_case_name
+
+    # Init tests (same for all)    
     init = ('init', 'oauth', 'database',)
-    
+
+    # Common errors for all
     format_errors = ('politeness', 'talking_to_myself', 'mention', 'blank_tweet',)
     geotag_errors = ('no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',)
-    bus_errors = ('no_bus_number', 'nonexistent_bus',)
-    stop_errors = ('bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',)
     
-    failures = format_errors + geotag_errors + bus_errors + stop_errors
-    
-    successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
+    if test_case_name == "WhensMyBus":
+        bus_errors = ('no_bus_number', 'nonexistent_bus',)
+        stop_errors = ('bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',)
+        failures = format_errors + geotag_errors + bus_errors + stop_errors
+        successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
+
+    elif test_case_name == "WhensMyTube":
+        tube_errors = ('bad_line_name',)
+        station_errors = ('missing_station_data', 'station_line_mismatch')
+        
+        failures = tube_errors + station_errors + format_errors + geotag_errors
+        successes = ('standard_messages',)
 
     if parser.parse_args().dologin:
         test_names = init + failures + successes
     else:
         test_names = failures + successes
             
-    suite = unittest.TestSuite(map(WhensMyBusTestCase, ['test_%s' % t for t in test_names]))
-    runner = unittest.TextTestRunner(verbosity=1, failfast=1, buffer=False)
+    suite = unittest.TestSuite(map(eval(test_case_name + 'TestCase'), ['test_%s' % t for t in test_names]))
+    runner = unittest.TextTestRunner(verbosity=1, failfast=1, buffer=True)
     runner.run(suite)
 
 if __name__ == "__main__":
-    test_whensmybus()
+    run_tests()
+    
