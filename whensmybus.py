@@ -13,9 +13,7 @@ TODO
 
 WhensMyTube:
 
- - Unit testing!
- - Custom name similarity function for Tube stations
- - Multiple trains
+ - Better handling of multiple platforms
  - Destination handling
  - Direction handling
 
@@ -45,7 +43,7 @@ import tweepy
 from geotools import convertWGS84toOSGrid, YahooGeocoder, heading_to_direction
 from exception_handling import WhensMyTransportException
 from utils import WMBBrowser, load_database, capwords
-from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity
+from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity, get_tube_station_name_similarity
 
 # Some constants we use
 VERSION_NUMBER = 0.50
@@ -737,7 +735,9 @@ class WhensMyTube(WhensMyTransport):
         Parse a Tweet - tokenize it, and get the line(s) specified by the user
         """
         (line_name, origin, destination) = self.tokenize_message(message)
-        line_name = line_name.upper().replace(" LINE", "")
+        # FIXME
+        if line_name.lower().startswith('thank'):
+            return (None, None, None)
         return ((line_name,), origin, destination) 
         
     def process_individual_request(self, line_name, origin, destination, position):
@@ -745,24 +745,28 @@ class WhensMyTube(WhensMyTransport):
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it
         """
+        line_name = line_name and capwords(line_name).replace(" Line", "")
+        origin = origin and capwords(origin).replace(" Station", "")
+        destination = destination and capwords(destination).replace(" Station", "")
+        
         # Match with the line name that we know of
         line_names = (
-            'BAKERLOO',
-            'CENTRAL',
-            'DISTRICT',
-            'HAMMERSMITH & CIRCLE',
-            'JUBILEE',
-            'METROPOLITAN',
-            'NORTHERN',
-            'PICCADILLY',
-            'VICTORIA',
-            'WATERLOO & CITY',
+            'Bakerloo',
+            'Central',
+            'District',
+            'Hammersmith & Circle',
+            'Jubilee',
+            'Metropolitan',
+            'Northern',
+            'Piccadilly',
+            'Victoria',
+            'Waterloo & City',
         )
         # Turn the above into a lookup to handle abbreviated three-letter versions (e.g. "Met") plus one-word versions
         # (e.g. "Hammersmith")
         line_names = dict([(name, name) for name in line_names] + [(name[:3], name) for name in line_names] + [(name.split(' ')[0], name) for name in line_names])
-        line_names['CIRCLE'] = 'HAMMERSMITH & CIRCLE'
-        line_names['HAMMERSMITH & CITY'] = 'HAMMERSMITH & CIRCLE'
+        line_names['Circle'] = 'Hammersmith & Circle'
+        line_names['Hammersmith & City'] = 'Hammersmith & Circle'
 
         if line_name not in line_names:
             line = get_best_fuzzy_match(line_name, line_names.values())
@@ -781,6 +785,10 @@ class WhensMyTube(WhensMyTransport):
         else:
             (station_name, station_code) = self.get_station_by_station_name(line_code, origin)
         
+        # Shorten stations such as Hammersmith/Edgware Road which are disambiguated by brackets, get rid of them
+        if station_name and station_name.find('(') > -1 and station_name != "Kensington (Olympia)":
+            station_name = station_name[:station_name.find('(') - 1]
+        
         # Dummy code - what do we do with destination data (?)
         if destination:
             pass
@@ -791,9 +799,9 @@ class WhensMyTube(WhensMyTransport):
             if station_code == "XXX":
                 raise WhensMyTransportException('tube_station_no_data', station_name)
 
-            time_info = self.get_departure_data(line_code, station_code)
+            time_info = self.get_departure_data(line_code, station_code, station_name)
             if time_info:
-                return "%s: %s" % (station_name, time_info)
+                return "%s %s" % (station_name, time_info)
             else:
                 raise WhensMyTransportException('no_arrival_data', line_name)
         else:
@@ -844,42 +852,63 @@ class WhensMyTube(WhensMyTransport):
                              """, line_code)
         rows = self.geodata.fetchall()
         if rows:
-            best_match = get_best_fuzzy_match(origin, rows, 'Name')
+            best_match = get_best_fuzzy_match(origin, rows, 'Name', get_tube_station_name_similarity)
             if best_match:
                 logging.debug("Match found! Found: %s", best_match['Name'])
                 return (best_match['Name'], best_match['Code'])
 
         logging.debug("No match found for %s, sorry", origin)
-        return ''
+        return (None, None)
         
-    def get_departure_data(self, station_code, line_code):
+    def get_departure_data(self, line_code, station_code, station_name):
         """
         Take a station ID and a line ID, and get departure data for that station
         """
-        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (station_code, line_code)
+        # Check to see if a station is closed 
+        status_url = "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly"
+        status_data = self.browser.fetch_xml(status_url)
+        for s in status_data.getElementsByTagName('StationStatus'):
+            station_node = s.getElementsByTagName('Station')[0]
+            status_node = s.getElementsByTagName('Status')[0]
+            if station_node.getAttribute('Name') == station_name and status_node.getAttribute('Description') == 'Closed':
+                raise WhensMyTransportException('tube_station_closed', station_name, s.getAttribute('StatusDetails').strip().lower())
+        
+        
+        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station_code)
+        print tfl_url
         tube_data = self.browser.fetch_xml(tfl_url)
         
         trains = []
         
         # Go through each platform on this station, and check the first train on each
+        #
+        # FIXME This does not handle multiple platforms in same direction very well. Also need to check Terminuses,
+        # and the Circle Line, and the Northern
+        #
         for platform in tube_data.getElementsByTagName('P'):
-            available_trains = platform.getElementsByTagName('T')
             
+            # Make sure this matches the right line, and isn't out of service 
+            available_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and t.getAttribute('DestCode') not in ('546')]
+            # Unknown trains parked in sidings aren't much use to use
+            available_trains = [t for t in available_trains if not (t.getAttribute('Destination') == 'Unknown' and t.getAttribute('Location').find('Sidings') > -1)]
+
             # List first train's destination on each of these
             if available_trains:
                 for train in available_trains[:1]:
                     destination = train.getAttribute('Destination')
-                    departure_time = train.getAttribute('DepartTime')
-                    # Reformat time
-                    departure_time = time.strftime("%H%M", time.strptime(departure_time, "%H:%M:%S"))
+                    departure_time = train.getAttribute('TimeTo')
+                    if departure_time == '-' or departure_time.startswith('0'):
+                        departure_time = 'due'
+                    else:
+                        departure_time = departure_time.split(":")[0] + 'min'
+                        
                     trains.append('to %s %s' % (destination, departure_time))
                     
             # Else say there are non shown in this particular direction
-            # FIXME: Won't work for White City (or Stratford?)
             else:
                 direction = platform.getAttribute('N').split(' ')[0]
-                trains.append('None shown %s' % direction)
-        
+                trains.append('None shown from platform %s' % platform.getAttribute('Num'))
+
         if trains:
             return "; ".join(trains)
         else:
