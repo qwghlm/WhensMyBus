@@ -45,8 +45,13 @@ class WhensMyTransportTestCase(unittest.TestCase):
     """
     Parent Test case for all When's My * bots
     """
-    # setUp is left to the individual test suite
-
+    def setUp(self):
+        """
+        Setup test
+        """
+        # setUp is left to the individual test suite
+        self.bot = None
+        
     def tearDown(self):
         """
         Tear down test

@@ -846,7 +846,6 @@ class WhensMyTube(WhensMyTransport):
         # First off, try to get a match against bus stop names in database
         # Users may not give exact details, so we try to match fuzzily
         logging.debug("Attempting to get a match on placename %s", origin)
-        relevant_stations = {}
         self.geodata.execute("""
                              SELECT * FROM locations WHERE Line=? OR Line='X'
                              """, line_code)
@@ -867,11 +866,11 @@ class WhensMyTube(WhensMyTransport):
         # Check to see if a station is closed 
         status_url = "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly"
         status_data = self.browser.fetch_xml(status_url)
-        for s in status_data.getElementsByTagName('StationStatus'):
-            station_node = s.getElementsByTagName('Station')[0]
-            status_node = s.getElementsByTagName('Status')[0]
+        for station_status in status_data.getElementsByTagName('StationStatus'):
+            station_node = station_status.getElementsByTagName('Station')[0]
+            status_node = station_status.getElementsByTagName('Status')[0]
             if station_node.getAttribute('Name') == station_name and status_node.getAttribute('Description') == 'Closed':
-                raise WhensMyTransportException('tube_station_closed', station_name, s.getAttribute('StatusDetails').strip().lower())
+                raise WhensMyTransportException('tube_station_closed', station_name, station_status.getAttribute('StatusDetails').strip().lower())
         
         
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station_code)
@@ -890,6 +889,7 @@ class WhensMyTube(WhensMyTransport):
             # Make sure this matches the right line, and isn't out of service 
             available_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and t.getAttribute('DestCode') not in ('546')]
             # Unknown trains parked in sidings aren't much use to use
+            # FIXME Turn this into a filter
             available_trains = [t for t in available_trains if not (t.getAttribute('Destination') == 'Unknown' and t.getAttribute('Location').find('Sidings') > -1)]
 
             # List first train's destination on each of these
@@ -906,7 +906,6 @@ class WhensMyTube(WhensMyTransport):
                     
             # Else say there are non shown in this particular direction
             else:
-                direction = platform.getAttribute('N').split(' ')[0]
                 trains.append('None shown from platform %s' % platform.getAttribute('Num'))
 
         if trains:

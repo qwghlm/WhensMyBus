@@ -11,7 +11,7 @@ from xml.dom.minidom import parse
 from pprint import pprint
 
 # Local files
-from geotools import convertWGS84toOSGB36, LatLongToOSGrid, gridrefNumToLet
+from geotools import convertWGS84toOSGB36, LatLongToOSGrid
 
 def import_bus_csv_to_db():
     """
@@ -116,7 +116,6 @@ def import_tube_xml_to_db():
         (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
         (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
         (easting, northing) = LatLongToOSGrid(lat, lon)
-        gridref = gridrefNumToLet(easting, northing)
         stations[name.lower()] = { 'Name' : name, 'Location_Easting' : easting, 'Location_Northing' : northing, 'Code' : '', 'Lines' : '' }
 
     tube_data = open('./sourcedata/tube-references.csv')
@@ -141,12 +140,15 @@ def import_tube_xml_to_db():
             elif station['Name'] in ('Goldhawk Road', 'Latimer Road', "Shepherd's Bush Market", "Wood Lane"):
                 line_code = 'H'
             
-            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['Name'], 'XXX', line_code, str(station['Location_Easting']), str(station['Location_Northing'])))
+            field_data = (station['Name'], 'XXX', line_code, str(station['Location_Easting']), str(station['Location_Northing']))
+            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join(field_data)
             
         else:
             for line in station['Lines']:
                 if line != 'O': 
-                    sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['Name'], station['Code'], line, str(station['Location_Easting']), str(station['Location_Northing'])))
+                    field_data = (station['Name'], station['Code'], line, str(station['Location_Easting']), str(station['Location_Northing']))
+                    sql += "insert into locations values "
+                    sql += "(\"%s\");\r\n" % '", "'.join(field_data)
 
     sql += "CREATE INDEX code_index ON locations (code);\r\n"
 
@@ -159,4 +161,3 @@ def import_tube_xml_to_db():
 if __name__ == "__main__":
     #import_bus_csv_to_db()
     import_tube_xml_to_db()
-    pass
