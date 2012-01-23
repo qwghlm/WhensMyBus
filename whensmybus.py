@@ -154,8 +154,15 @@ class WhensMyTransport:
         self.update_setting("last_follower_check", time.time())
 
         # Get IDs of our friends (people we already follow), and our followers
-        followers_ids = self.api.followers_ids()[0]
-        friends_ids = self.api.friends_ids()[0]
+        followers_ids = self.api.followers_ids()
+        friends_ids = self.api.friends_ids()
+        
+        # Annoyingly, different versions of Tweepy implement the above; older versions return followers_ids() as a tuple and the list of 
+        # followers IDs is the first element of that tuple. Newer versions return just the followers' IDs (which is much more sensible)
+        if isinstance(followers_ids, tuple):
+            followers_ids = followers_ids[0]
+            friends_ids = friends_ids[0]
+        
         # Some users are protected and have been requested but not accepted - we need not continually ping them
         protected_users_to_ignore = self.get_setting("protected_users_to_ignore") or []
         
