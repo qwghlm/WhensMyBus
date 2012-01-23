@@ -58,8 +58,8 @@ class WhensMyTransport:
             config.read(HOME_DIR + '/whensmytransport.cfg')
             config.get(self.instance_name, 'debug_level')            
         except (ConfigParser.Error, IOError):
-            print """Fatal error: can't find a valid config file with options for %s.
-                     Please make sure there is a %s file in this directory""" % (self.instance_name, config_file)
+            print """Fatal error: can't find a valid config file with options for %s.""" % self.instance_name
+            print """Please make sure there is a %s file in this directory""" % config_file
             sys.exit(1)
 
         # Set up some logging
