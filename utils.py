@@ -138,6 +138,12 @@ def capwords(phrase):
     """
     return ' '.join([s.capitalize() for s in phrase.split(' ')])
 
+def cleanup_stop_name(stop_name):
+    # Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram
+    for unwanted in ('<>', '#', '[DLR]', '>T<'):
+        stop_name = stop_name.replace(unwanted, '')
+    return capwords(stop_name.strip())
+
 if __name__ == "__main__":
     #make_oauth_key()
     pass
