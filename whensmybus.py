@@ -62,6 +62,8 @@ class WhensMyTransport:
             print """Please make sure there is a %s file in this directory""" % config_file
             sys.exit(1)
 
+        self.admin_name = config.get(self.instance_name, 'admin_name')
+
         # Set up some logging
         if len(logging.getLogger('').handlers) == 0:
             logging.basicConfig(level=logging.DEBUG, filename=os.devnull)
@@ -227,6 +229,17 @@ class WhensMyTransport:
                 replies = self.process_tweet(tweet)
             except WhensMyTransportException as exc:
                 replies = (self.process_exception(exc),)
+            # Handle any other Exception by DMing the admin with an alert
+            except Exception as exc:     
+                exception_name = exc.__class__.__name__
+                if isinstance(tweet, tweepy.models.DirectMessage):
+                    tweet_time = tweet.created_at.strftime('%d-%m-%y %H:%M:%S')
+                    error_message = "Hey! A DM from @%s at %s GMT caused me to crash with a %s" % (tweet.sender.screen_name, tweet_time, exception_name)
+                else:            
+                    twitter_permalink = "https://twitter.com/#!/%s/status/%s" % (tweet.user.screen_name, tweet.id)
+                    error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
+                self.send_reply_back(error_message, self.admin_name, is_direct_message=True)
+                replies = ('Sorry! An unknown error occurred processing your Tweet. My creator has been informed',)
                 
             # If the reply is blank, probably didn't contain a bus number, so check to see if there was a thank-you
             if not replies:
