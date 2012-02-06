@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #pylint: disable=C0103
 """
 A set of unit tests for When's My Bus?
@@ -60,10 +61,11 @@ class WhensMyBusTestCase(unittest.TestCase):
                                    )
         # Troublesome destinations 
         self.test_nonstandard_data = (('%s Stratford to Walthamstow', ('257',),      'The Grove'),
-                                        ('%s from Hoxton',                     ('243',),      'Hoxton Station  / Geffrye Museum'),  
-                                        ('%s from Bow Common Lane',            ('323',),      'Bow Common Lane'),
-                                        ('%s from EC1M 4PN',                   ('55',),       'St John Street'),
-                                        ('%s Mile End',                   ('d6', 'd7'),  'Mile End \w+'),
+                                      ('%s from Hoxton',                     ('243',),      'Hoxton Station  / Geffrye Museum'),  
+                                      ('%s from Bow Common Lane',            ('323',),      'Bow Common Lane'),
+                                      ('%s from EC1M 4PN',                   ('55',),       'St John Street'),
+                                      ('%s Mile End',                   ('d6', 'd7'),  'Mile End \w+'),
+                                      #(u"%s N 51°32' 0'' / W 0°4' 0''",  ('242',),       '^Sorry!'),
                                    )
 
     def tearDown(self):
