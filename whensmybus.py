@@ -913,14 +913,20 @@ class WhensMyTube(WhensMyTransport):
             # Make sure this matches the right line 
             available_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and filter_tube_trains(t)]
             platform_name = platform.getAttribute('N')
-            direction = re.search("(North|East|South|West)bound", platform_name, re.I) or re.search("(Inner|Outer) Rail", platform_name, re.I)
-
-            # FIXME Inner/Outer Rail very confusing
+            direction = re.search("(North|East|South|West)bound", platform_name, re.I)
+            rail = re.search("(Inner|Outer) Rail", platform_name, re.I)
             
+            # Deal with some Circle/Central Line platforms called "Inner" and "Outer" Rail
             if direction:
                 direction = capwords(direction.group(0))
+            elif rail:
+                self.geodata.execute("SELECT %s FROM locations WHERE Line=? AND Code=?" % rail.group(1), (line_code, station_code))
+                bearing = self.geodata.fetchone()[0]
+                direction = bearing + 'bound'
+                                     
+            if direction:
                 if direction not in trains_by_direction_and_destination:
-                    trains_by_direction_and_destination[direction] = {}
+                    trains_by_direction_and_destination[direction] = []
             else:
                 # Some odd cases. Chesham and Chalfont & Latimer have their own system
                 if station_code == "CHM":
@@ -946,16 +952,15 @@ class WhensMyTube(WhensMyTransport):
                 else:
                     departure_time = int(departure_time.split(":")[0])
                     
-                if departure_time < trains_by_direction_and_destination[direction].get(destination, 1000):
-                    trains_by_direction_and_destination[direction][destination] = departure_time
+                trains_by_direction_and_destination[direction].append((destination, departure_time))
 
         message = []
         for (direction, destinations) in trains_by_direction_and_destination.items():
             trains_in_this_direction = []
-            for (destination, departure_time) in sorted(destinations.items(), lambda a, b : cmp(a[1], b[1])):
+            for (destination, departure_time) in sorted(destinations, lambda a, b : cmp(a[1], b[1])):
                 departure_time_string = departure_time and ("%smin" % departure_time) or "due"                
                 trains_in_this_direction.append("%s %s" % (destination, departure_time_string))
-            message.append(', '.join(trains_in_this_direction))
+            message.append(', '.join(trains_in_this_direction[:3]))
             
         return "; ".join(message)
         
