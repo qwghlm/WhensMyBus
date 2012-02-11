@@ -2,15 +2,25 @@
 #pylint: disable=W0142,R0201
 """
 
-When's My Bus?
+When's My Transport?
 
-A Twitter bot that takes requests for a bus time and replies the real-time data from TfL on Twitter
+A Twitter bot that takes requests for a bus or Tube, and replies the real-time data from TfL on Twitter
 
-(c) 2011 Chris Applegate (chris AT qwghlm DOT co DOT uk)
+(c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
 TODO
- - Tube, Train, Tram, DLR & Boat equivalents
+
+WhensMyTube:
+
+ - Destination handling
+ - Direction handling
+
+General:
+
+ - Train, Tram, DLR & Boat equivalents
+ - Handle *bound directions
+ 
 """
 # Standard libraries of Python 2.6
 import ConfigParser
@@ -30,12 +40,11 @@ import tweepy
 # From other modules in this package
 from geotools import convertWGS84toOSGrid, YahooGeocoder, heading_to_direction
 from exception_handling import WhensMyTransportException
-from utils import WMBBrowser, load_database, capwords
-from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity
+from utils import WMBBrowser, load_database, capwords, cleanup_stop_name, cleanup_station_name, is_direct_message, filter_tube_trains
+from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity, get_tube_station_name_similarity
 
 # Some constants we use
 VERSION_NUMBER = 0.50
-TFL_API_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
 HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class WhensMyTransport:
@@ -48,8 +57,9 @@ class WhensMyTransport:
         """
         # Instance name is something like 'whensmybus', 'whensmytube' 
         self.instance_name = instance_name
+        
+        # Try opening the file first just to see if it exists, exception caught below
         try:
-            # Try opening the file first just to see if it exists, exception caught below
             config_file = 'whensmytransport.cfg'
             open(HOME_DIR + '/' + config_file)
             config = ConfigParser.SafeConfigParser({ 'test_mode' : False,
@@ -68,12 +78,11 @@ class WhensMyTransport:
         if len(logging.getLogger('').handlers) == 0:
             logging.basicConfig(level=logging.DEBUG, filename=os.devnull)
 
-            # Set up some basic logging to stdout that shows info or debug level depending on user config
+            # Logging to stdout shows info or debug level depending on user config file. Setting silent to True will override either
             if silent:
                 console_output = open(os.devnull, 'w')
             else:
                 console_output = sys.stdout
-            
             console = logging.StreamHandler(console_output)
             console.setLevel(logging.__dict__[config.get(self.instance_name, 'debug_level')])
             console.setFormatter(logging.Formatter('%(message)s'))
@@ -177,17 +186,10 @@ class WhensMyTransport:
                 person = self.api.create_friendship(twitter_id)
                 logging.info("Following user %s", person.screen_name )
             except tweepy.error.TweepError:
-                # Protected users throw an error if we try to repeatedly follow them, so keep a track of them
-                # so we don't repeatedly waste API calls trying to follow them again and again
                 protected_users_to_ignore.append(twitter_id)
                 logging.info("Error following user %s, most likely the account is protected", twitter_id)
                 continue
 
-        # If there are any protected users we are trying to follow, we log them here for debugging purposes
-        if protected_users_to_ignore:
-            protected_users_info = self.api.lookup_users(user_ids = protected_users_to_ignore)
-            protected_users_names = ', '.join([user.screen_name for user in protected_users_info])
-            logging.debug("Following users are 'blocked' from following: %s", protected_users_names)
         self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
         self.report_twitter_limit_status()
     
@@ -228,27 +230,20 @@ class WhensMyTransport:
             try:
                 replies = self.process_tweet(tweet)
             except WhensMyTransportException as exc:
-                replies = (self.process_exception(exc),)
+                replies = (self.process_wmt_exception(exc),)
             # Handle any other Exception by DMing the admin with an alert
-            except Exception as exc:     
-                exception_name = exc.__class__.__name__
-                if isinstance(tweet, tweepy.models.DirectMessage):
-                    tweet_time = tweet.created_at.strftime('%d-%m-%y %H:%M:%S')
-                    error_message = "Hey! A DM from @%s at %s GMT caused me to crash with a %s" % (tweet.sender.screen_name, tweet_time, exception_name)
-                else:            
-                    twitter_permalink = "https://twitter.com/#!/%s/status/%s" % (tweet.user.screen_name, tweet.id)
-                    error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
-                self.send_reply_back(error_message, self.admin_name, is_direct_message=True)
-                replies = ('Sorry! An unknown error occurred processing your Tweet. My creator has been informed',)
+            except Exception as exc:
+                self.alert_admin_about_exception(tweet, exc.__class__.__name__)
+                replies = (self.process_wmt_exception(WhensMyBusException('unknown_error')),)
                 
-            # If the reply is blank, probably didn't contain a bus number, so check to see if there was a thank-you
+            # If the reply is blank, probably didn't contain a bus number or Tube line, so check to see if there was a thank-you
             if not replies:
                 replies = self.check_politeness(tweet)
                 
             # Send a reply back, if we have one
             for reply in replies:
                 # DMs and @ replies have different structures and different handlers
-                if isinstance(tweet, tweepy.models.DirectMessage):            
+                if is_direct_message(tweet):            
                     self.send_reply_back(reply, tweet.sender.screen_name, is_direct_message=True)
                     self.update_setting('last_answered_direct_message', tweet.id)
                 else:
@@ -265,8 +260,8 @@ class WhensMyTransport:
         """
         message = tweet.text
 
-        # Bit of logging plus always return True for DMs
-        if isinstance(tweet, tweepy.models.DirectMessage):
+        # Bit of logging, plus we always return True for DMs
+        if is_direct_message(tweet):
             logging.info("Have a DM from %s: %s", tweet.sender.screen_name, message)
             return True
         else:
@@ -285,17 +280,33 @@ class WhensMyTransport:
 
         return True
 
-    def validate_geolocation(self, position):
+    def get_tweet_geolocation(self, tweet, user_request):
         """
-        Ensure any geolocation on a Tweet is valid
+        Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a tuple; longitude first then latitude
         """
-        gridref = convertWGS84toOSGrid(position)[-1]
-        # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
-        if not gridref:
-            raise WhensMyTransportException('not_in_uk')
-        # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough just to make life difficult for me
-        elif gridref[:2] not in ('TQ', 'TL', 'SU'):
-            raise WhensMyTransportException('not_in_london')           
+        if hasattr(tweet, 'coordinates') and tweet.coordinates:
+            logging.debug("Detect geolocation on Tweet")
+            # Twitter gives latitude then longitude, so need to reverse this
+            position = tweet.coordinates['coordinates'][::-1]
+            gridref = convertWGS84toOSGrid(position)[-1]
+            # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
+            if not gridref:
+                raise WhensMyTransportException('not_in_uk')
+            # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough just to make life difficult for me
+            elif gridref[:2] not in ('TQ', 'TL', 'SU'):
+                raise WhensMyTransportException('not_in_london')
+            else:
+                return position
+
+        # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
+        elif hasattr(tweet, 'place') and tweet.place:
+            raise WhensMyTransportException('placeinfo_only', user_request)
+        # If there's no geoinformation at all then raise the appropriate exception
+        else:
+            if hasattr(tweet, 'coordinates'):
+                raise WhensMyTransportException('no_geotag', user_request)
+            else:
+                raise WhensMyTransportException('dms_not_taggable', user_request)
 
     def check_politeness(self, tweet):
         """
@@ -316,6 +327,9 @@ class WhensMyTransport:
         """
         # Take care of over-long messages. 137 allows us breathing room for a letter D and spaces for
         # a direct message, so split this kind of reply into two
+        #
+        # FIXME May have to split over three or more?
+        #
         if len(username) + len(reply) > 137:
             messages = reply.split("; ", 2)
             messages[0] = "%s..." % messages[0]
@@ -343,21 +357,108 @@ class WhensMyTransport:
 
     def process_tweet(self, tweet):
         """
-        Placeholder function. This must be overridden by a child class to do anything useful
+        Process a single Tweet object and return a list of replies, one per route or line
+        e.g.:
+            '@whensmybus 341 from Clerkenwell' produces
+            '341 Clerkenwell Road to Waterloo 1241; Rosebery Avenue to Angel Road 1247'
+        
+        Each reply might be more than 140 characters
         """
-        #pylint: disable=W0613
-        return ()
+        # Get route number, from and to from the message
+        message = tweet.text
+        (requested_routes, origin, destination) = self.parse_message(message)
+        
+        if requested_routes == None:
+            return []
+        
+        # If no origin specified, let's see if we have co-ordinates on the Tweet
+        if origin == None:
+            position = self.get_tweet_geolocation(tweet, ' '.join(requested_routes))
+        else:
+            position = None
 
-    def process_exception(self, exc):
+        replies = []
+        
+        for requested_route in requested_routes:
+            # Exceptions produced for an individual request are particular to a route/stop combination - e.g. the bus
+            # given does not stop at the stop given, so we just provide an error message for that circumstance, treat as
+            # a non-fatal error, and process the next one. The one case where there is a fatal error (TfL's servers are
+            # down), we raise this exception to be caught higher up by check_tweets()
+            try:
+                replies.append(self.process_individual_request(requested_route, origin, destination, position))
+            except WhensMyTransportException as exc:
+                if exc.msgid == 'tfl_server_down':
+                    raise
+                else:
+                    replies.append(self.process_wmt_exception(exc))
+                
+        return replies
+
+    def process_wmt_exception(self, exc):
         """
-        Turns an exception into a message for the user
+        Turns a WhensMyTransportException into a message for the user
         """
         logging.debug("Exception encountered: %s" , exc.value)
         return "Sorry! %s" % exc.value
 
+    def alert_admin_about_exception(self, tweet, exception_name):
+        """
+        Alert the administrator about a non-WhensMyTransportException encountered when processing a Tweet
+        """
+        if is_direct_message(tweet):
+            tweet_time = tweet.created_at.strftime('%d-%m-%y %H:%M:%S')
+            error_message = "Hey! A DM from @%s at %s GMT caused me to crash with a %s" % (tweet.sender.screen_name, tweet_time, exception_name)
+        else:            
+            twitter_permalink = "https://twitter.com/#!/%s/status/%s" % (tweet.user.screen_name, tweet.id)
+            error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
+        self.send_reply_back(error_message, self.admin_name, is_direct_message=True)
+
+    def tokenize_message(self, message, request_token_regex=None):
+        """
+        Split a message into tokens
+        Message is of format: "@username requested_lines_or_routes [from origin] [to destination]"
+        Tuple returns is of format: (requested_lines_or_routes, origin, destination)
+        If we cannot find any of these three elements, None is used as default
+        """
+        message = self.sanitize_message(message)
+        tokens = re.split('\s+', message)
+
+        # Sometime people forget to put a 'from' in their message. So we try and put one in for them
+        # Go through and find the index of the first token that does not match what a request token should be
+        if "from" not in tokens and request_token_regex:
+            non_request_token_indexes = [i for i in range(0, len(tokens)) if not re.match('^%s$' % request_token_regex, tokens[i], re.I)]
+            if non_request_token_indexes:
+                first_non_request_token_index = non_request_token_indexes[0]
+                if first_non_request_token_index > 0 and tokens[first_non_request_token_index] != "to":
+                    tokens.insert(first_non_request_token_index, "from")
+
+        # Work out what boundaries "from" and "to" exist at
+        if "from" in tokens:
+            from_index = tokens.index("from")
+        else:
+            from_index = len(tokens)
+
+        if "to" in tokens:
+            to_index = tokens.index("to")
+        elif "towards" in tokens:
+            to_index = tokens.index("towards")        
+        else:
+            to_index = len(tokens)
+
+        if from_index < to_index:
+            request = ' '.join(tokens[:from_index]) or None
+            origin = ' '.join(tokens[from_index+1:to_index]) or None
+            destination = ' '.join(tokens[to_index+1:]) or None
+        else:
+            request = ' '.join(tokens[:to_index]) or None
+            origin = ' '.join(tokens[from_index+1:]) or None
+            destination = ' '.join(tokens[to_index+1:from_index]) or None
+            
+        return (request, origin, destination)
+
     def sanitize_message(self, message):
-        """ 
-        Some standard things to sanitise a message - remove hashtags, @username, whitespace etc.
+        """
+        Takes a message and scrubs out any @username or #hashtags
         """
         # Remove hashtags and @username
         message = re.sub(r"\s#\w+\b", '', message)
@@ -365,12 +466,27 @@ class WhensMyTransport:
             message = message[len('@%s ' % self.username):].lstrip()
         else:
             message = message.strip()
-
+            
         # Exception if the Tweet contains nothing useful
         if not message:
             raise WhensMyTransportException('blank_tweet')
-        return message
 
+        return message
+        
+    def parse_message(self, message):
+        """
+        Placeholder function. This must be overridden by a child class to do anything useful
+        """
+        #pylint: disable=W0613
+        return (None, None, None)
+
+    def process_individual_request(self, route_number, origin, destination, position):
+        """
+        Placeholder function. This must be overridden by a child class to do anything useful
+        """
+        #pylint: disable=W0613
+        return ""
+    
     def report_twitter_limit_status(self):
         """
         Helper function to log what our Twitter API hit count & limit is
@@ -385,6 +501,23 @@ class WhensMyTransport:
 #
 #
 
+
+class BusStop():
+    #pylint: disable=C0103,R0903
+    """
+    Class representing a bus stop
+    """
+    def __init__(self, Stop_Name='', Bus_Stop_Code='', Heading=0, Sequence=1, Distance=0.0, **kwargs):
+        self.name = Stop_Name
+        self.number = Bus_Stop_Code
+        self.heading = Heading
+        self.sequence = Sequence
+        self.distance_away = Distance
+
+    def __cmp__(self, other):
+        return cmp(self.distance_away, other.distance_away)
+
+
 class WhensMyBus(WhensMyTransport):
     """
     Main class devoted to checking for bus-related Tweets and replying to them. Instantiate with no variables
@@ -396,96 +529,19 @@ class WhensMyBus(WhensMyTransport):
         """
         WhensMyTransport.__init__(self, 'whensmybus', testing, silent)
 
-    def process_tweet(self, tweet):
-        """
-        Process a single Tweet object and return a list of replies, one per bus route
-        e.g. '341 Clerkenwell Road to Waterloo 1241; Rosebery Avenue to Angel Road 1247'
-        Each reply might be more than 140 characters
-        """
-        # Get route number, from and to from the message
-        message = tweet.text
-        (route_numbers, origin, destination) = self.parse_message(message)
-        
-        if route_numbers == None:
-            return ''
-        
-        # If no origin specified, let's see if we have co-ordinates on the Tweet
-        position = None
-        if origin == None:
-            if hasattr(tweet, 'coordinates') and tweet.coordinates:
-                logging.debug("Detect geolocation on Tweet, locating stops")
-                # Twitter gives latitude then longitude, so need to reverse this
-                position = tweet.coordinates['coordinates'][::-1]
-                self.validate_geolocation(position)
-            # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
-            elif hasattr(tweet, 'place') and tweet.place:
-                raise WhensMyTransportException('placeinfo_only', ' '.join(route_numbers))
-            # If there's no geoinformation at all then raise the appropriate exception
-            else:
-                if hasattr(tweet, 'coordinates'):
-                    raise WhensMyTransportException('no_geotag', ' '.join(route_numbers))
-                else:
-                    raise WhensMyTransportException('dms_not_taggable', ' '.join(route_numbers))
-                    
-        replies = []
-        
-        for route_number in route_numbers:
-            # Exceptions produced for an individual request are particular to a route/stop combination - e.g. the bus
-            # given does not stop at the stop given, so we just provide an error message for that circumstance, treat as
-            # a non-fatal error, and process the next one. The one case where there is a fatal error (TfL's servers are
-            # down), we raise this exception to be caught higher up by check_tweets()
-            try:
-                replies.append(self.process_individual_request(route_number, origin, destination, position))
-            except WhensMyTransportException as exc:
-                if exc.msgid == 'tfl_server_down':
-                    raise
-                else:
-                    replies.append(self.process_exception(exc))
-                
-        return replies
-        
     def parse_message(self, message):
         """
-        Parse a Tweet, but do not attempt to attain semantic meaning behind data
-        Message is of format: "@whensmybus route_numbers [from origin] [to destination]"
-        and may or may not have geodata on it
-        Tuple returns is of format: (route_numbers, origin, destination)
-        If we cannot find any of these three elements, None is used as default
+        Parse a Tweet - tokenize it, and then pull out any bus numbers in it
         """
-        # Split the message into tokens
-        message = self.sanitize_message(message)
-        tokens = re.split('\s', message)
-        
-        # Count along from the start and match as many tokens that look like a route number in a row as possible
         route_regex = "[A-Z]{0,2}[0-9]{1,3}"
-        route_count = 0
-        while route_count < len(tokens) and re.match(route_regex, tokens[route_count], re.I):
-            route_count += 1
-        route_numbers = [re.match(route_regex, t, re.I).group(0).upper() for t in tokens[:route_count]]
+        (route_string, origin, destination) = self.tokenize_message(message, route_regex)
+        # Count along from the start and match as many tokens that look like a route number
+        route_token_matches = [re.match(route_regex, r, re.I) for r in route_string.split(' ')]
+        route_numbers = [r.group(0).upper() for r in route_token_matches if r]
         if not route_numbers:
             logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
             return (None, None, None)
 
-        # Work out what boundaries "from" and "to" exist at
-        if "from" in tokens:
-            from_index = tokens.index("from")
-        else:
-            from_index = route_count - 1
-
-        if "to" in tokens:
-            to_index = tokens.index("to")
-        elif "towards" in tokens:
-            to_index = tokens.index("towards")        
-        else:
-            to_index = len(tokens)
-    
-        if from_index < to_index:
-            origin = ' '.join(tokens[from_index+1:to_index]) or None
-            destination = ' '.join(tokens[to_index+1:]) or None
-        else:
-            origin = ' '.join(tokens[from_index+1:]) or None
-            destination = ' '.join(tokens[to_index+1:from_index]) or None
-            
         return (route_numbers, origin, destination)
 
     def process_individual_request(self, route_number, origin, destination, position=None):
@@ -507,24 +563,23 @@ class WhensMyBus(WhensMyTransport):
 
         # See if we can narrow down the runs offered by destination
         if relevant_stops and destination:
-            # Get possible destinations
             try:
                 possible_destinations = self.get_stops_by_stop_name(route_number, destination)
                 if possible_destinations:
                     # Filter by possible destinations. For each Run, see if there is a stop matching the destination on the same 
                     # run; if that stop has a sequence number greater than this stop then it's a valid route, so include this run 
                     relevant_stops = dict([(run, stop) for (run, stop) in relevant_stops.items() 
-                                            if possible_destinations.get(run, {}).get('Sequence', -1) > stop['Sequence']])
+                                            if run in possible_destinations and possible_destinations[run].sequence > stop.sequence])
                                             
             # We may not be able to find a destination, in which case - don't worry about this bit, and stick to unfiltered
             except WhensMyTransportException:
                 pass
 
-        # If the above has found stops on this route
+        # If the above has found stops on this route, get data for each
         if relevant_stops:
-            time_info = self.get_departure_data(relevant_stops, route_number)
-            if time_info:
-                reply = "%s %s" % (route_number, "; ".join(time_info))
+            departure_data = self.get_departure_data(relevant_stops, route_number)
+            if departure_data:
+                reply = "%s %s" % (route_number, "; ".join(departure_data))
                 return reply
             else: 
                 raise WhensMyTransportException('no_arrival_data', route_number)
@@ -540,8 +595,7 @@ class WhensMyBus(WhensMyTransport):
         
         Returns a dictionary:
             Keys are numbers of the Run (usually 1 or 2, sometimes 3 or 4).
-            Values are dictionaries, with keys:
-                'Stop_Name', 'Bus_Stop_Code', 'Heading', 'Distance', 'Sequence'
+            Values are BusStop objects
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
         logging.debug("Position in WGS84 determined as: %s %s", position[0], position[1])
@@ -560,7 +614,6 @@ class WhensMyBus(WhensMyTransport):
             # and find the first row
             query = """
                     SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
-                          Run,
                           Sequence,
                           Heading,
                           Bus_Stop_Code,
@@ -573,19 +626,17 @@ class WhensMyBus(WhensMyTransport):
     
             # Note we fetch the Bus_Stop_Code not the Stop_Code_LBSL value out of this row - this is the ID used in TfL's system
             self.geodata.execute(query)
-            row = self.geodata.fetchone()
+            stop_data = self.geodata.fetchone()
             # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
-            if row:
-                stop = dict([(key, row[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])
-                stop['Distance'] = round(math.sqrt(row['dist_squared']))
-                relevant_stops[run] = stop
+            if stop_data:
+                relevant_stops[run] = BusStop(Distance=math.sqrt(stop_data['dist_squared']), **stop_data)
         
-        logging.debug("Have found stop numbers: %s", ', '.join([s['Bus_Stop_Code'] for s in relevant_stops.values()]))
+        logging.debug("Have found stop numbers: %s", ', '.join([stop.number for stop in relevant_stops.values()]))
         return relevant_stops
             
     def get_stops_by_stop_number(self, route_number, stop_number):
         """
-        Return a single dictionary representing a stop that has an ID of stop_number
+        Return a single dictionary representing a bus stop that has an ID of stop_number
         """
         # Pull the stop ID out of the routes database and see if it exists
         self.geodata.execute("SELECT * FROM routes WHERE Bus_Stop_Code=?", (stop_number, ))
@@ -595,12 +646,10 @@ class WhensMyBus(WhensMyTransport):
 
         # Try and get a match on it
         logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
-        self.geodata.execute("SELECT * FROM routes WHERE Bus_Stop_Code=? AND Route=?", (stop_number, route_number))
-        route = self.geodata.fetchone()
-        if route:
-            stop = dict([(key, route[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])
-            stop['Distance'] = 0
-            return { route['Run'] : stop }
+        self.geodata.execute("SELECT Run, Sequence, Heading, Bus_Stop_Code, Stop_Name FROM routes WHERE Bus_Stop_Code=? AND Route=?", (stop_number, route_number))
+        stop_data = self.geodata.fetchone()
+        if stop_data:
+            return { stop_data['Run'] : BusStop(**stop_data) }
         else:
             return {}
             
@@ -627,17 +676,15 @@ class WhensMyBus(WhensMyTransport):
         
         for run in range(1, max_runs+1):
             self.geodata.execute("""
-                                 SELECT * FROM routes WHERE Route=? AND Run=?
+                                 SELECT Stop_Name, Bus_Stop_Code, Heading, Sequence, Run FROM routes WHERE Route=? AND Run=?
                                  """, (route_number, run))
             rows = self.geodata.fetchall()
             # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
             if rows:
                 best_match = get_best_fuzzy_match(origin, rows, 'Stop_Name', get_bus_stop_name_similarity)
                 if best_match:
-                    stop = dict([(key, best_match[key]) for key in ('Stop_Name', 'Bus_Stop_Code', 'Heading', 'Sequence')])                
-                    stop['Distance'] = 0
                     logging.info("Found stop name %s for Run %s via fuzzy matching", best_match['Stop_Name'], best_match['Run'])
-                    relevant_stops[run] = stop
+                    relevant_stops[run] = BusStop(**best_match)
 
         # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name
         for run in (1, 2):
@@ -651,13 +698,11 @@ class WhensMyBus(WhensMyTransport):
                     continue
 
                 # For each of the places found, get the nearest stop that serves this run
-                possible_stops = [self.get_stops_by_geolocation(route_number, p).get(run, None) for p in points]
-                possible_stops = [p for p in possible_stops if p]
-                possible_stops.sort(cmp=lambda a, b: cmp(a['Distance'], b['Distance']))
-
+                possible_stops = [self.get_stops_by_geolocation(route_number, point).get(run, None) for point in points]
+                possible_stops = [stop for stop in possible_stops if stop]
                 if possible_stops:
-                    relevant_stops[run] = possible_stops[0]
-                    logging.debug("Have found stop named: %s", relevant_stops[run]['Stop_Name'])
+                    relevant_stops[run] = sorted(possible_stops)[0]
+                    logging.debug("Have found stop named: %s", relevant_stops[run].name)
                 else:
                     logging.debug("Found a location, but could not find a nearby stop for %s", origin)
             
@@ -665,7 +710,7 @@ class WhensMyBus(WhensMyTransport):
             
     def get_departure_data(self, relevant_stops, route_number):
         """
-        Fetch the JSON data from the TfL website, for a list of relevant_stops (each a dictionary object)
+        Fetch the JSON data from the TfL website, for a list of relevant_stops (each a BusStop object)
         and a particular route_number, and returns the time(s) of buses on that route serving
         that stop(s)
         """
@@ -674,16 +719,8 @@ class WhensMyBus(WhensMyTransport):
         # Values in tuple correspond to what was added in relevant_stops.append() above
         for stop in relevant_stops.values():
 
-            stop_name = stop['Stop_Name']
-            stop_number = stop['Bus_Stop_Code']
-            heading = stop['Heading']
-        
-            # Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram
-            for unwanted in ('<>', '#', '[DLR]', '>T<'):
-                stop_name = stop_name.replace(unwanted, '')
-            stop_name = capwords(stop_name.strip())
-        
-            tfl_url = TFL_API_URL % stop_number
+            stop_name = cleanup_stop_name(stop.name)
+            tfl_url = "http://countdown.tfl.gov.uk/stopBoard/%s" % stop.number
             bus_data = self.browser.fetch_json(tfl_url)
             arrivals = bus_data.get('arrivals', [])
             
@@ -707,7 +744,7 @@ class WhensMyBus(WhensMyTransport):
                     
                 time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
             else:
-                time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(heading)))
+                time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(stop.heading)))
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
         if len(time_info) > 2:
@@ -716,6 +753,7 @@ class WhensMyBus(WhensMyTransport):
 
         return time_info
 
+
 class WhensMyTube(WhensMyTransport):
     """
     Main class devoted to checking for Tube-related Tweets and replying to them. Instantiate with no variables
@@ -723,59 +761,211 @@ class WhensMyTube(WhensMyTransport):
     """
     def __init__(self, testing=None, silent=False):
         WhensMyTransport.__init__(self, 'whensmytube', testing, silent)
-
-    def process_tweet(self, tweet):
-        """
-        Process a single Tweet object and return a reply string
-        """
-        # Get route number, from and to from the message
-        message = tweet.text
-        self.parse_message(message)
-        return ''
         
     def parse_message(self, message):
         """
-        Parse a Tweet, but do not attempt to attain semantic meaning behind data
+        Parse a Tweet - tokenize it, and get the line(s) specified by the user
         """
-        # Strip tokens out of 
-        message = self.sanitize_message(message)
-        tokens = re.split(r"\b(from|to)\b", message, maxsplit=2, flags=re.I)
-
-        parsed_line = re.sub(' +Line', '', tokens[0].strip(), flags=re.I)
-        origin = len(tokens) > 2 and tokens[2].strip().upper() or None
-        destination = len(tokens) > 4 and tokens[4].strip().upper() or None
-    
-        line = parsed_line.upper()
-    
+        (line_name, origin, destination) = self.tokenize_message(message)
+        # FIXME
+        if line_name.lower().startswith('thank'):
+            return (None, None, None)
+        return ((line_name,), origin, destination) 
+        
+    def process_individual_request(self, line_name, origin, destination, position):
+        """
+        Take an individual line, with either origin or position, and work out which station the user is
+        referring to, and then get times for it
+        """
+        line_name = line_name and capwords(line_name).replace(" Line", "")
+        origin = origin and capwords(origin).replace(" Station", "")
+        destination = destination and capwords(destination).replace(" Station", "")
+        
+        # Match with the line name that we know of
         line_names = (
-            'BAKERLOO',
-            'CENTRAL',
-            'DISTRICT',
-            'HAMMERSMITH & CIRCLE',
-            'JUBILEE',
-            'METROPOLITAN',
-            'NORTHERN',
-            'PICCADILLY',
-            'VICTORIA',
-            'WATERLOO & CITY',
+            'Bakerloo',
+            'Central',
+            'District',
+            'Hammersmith & Circle',
+            'Jubilee',
+            'Metropolitan',
+            'Northern',
+            'Piccadilly',
+            'Victoria',
+            'Waterloo & City',
         )
-        if line == 'CIRCLE':
-            line = 'HAMMERSMITH & CIRCLE'
-        if line not in line_names:
-            line = get_best_fuzzy_match(line, line_names)
-            if line is None:
-                raise WhensMyTransportException('nonexistent_line', parsed_line)
-        line_code = line[0]
-    
-        #print (line_code, origin, destination)
+        # Turn the above into a lookup to handle abbreviated three-letter versions (e.g. "Met") plus one-word versions
+        # (e.g. "Hammersmith")
+        line_names = dict([(name, name) for name in line_names] + [(name[:3], name) for name in line_names] + [(name.split(' ')[0], name) for name in line_names])
+        line_names['Circle'] = 'Hammersmith & Circle'
+        line_names['Hammersmith & City'] = 'Hammersmith & Circle'
 
+        if line_name not in line_names:
+            line = get_best_fuzzy_match(line_name, line_names.values())
+            if line is None:
+                raise WhensMyTransportException('nonexistent_line', line_name)
+        else:
+            line = line_names[line_name]
+            
+        line_code = line[0]
+        
+        # Dig out relevant station for this line from the geotag, if provided
+        if position:
+            (station_name, station_code) = self.get_station_by_geolocation(line_code, position)
+        # Else there will be an origin (either a number or a placename), so try parsing it properly
+        else:
+            (station_name, station_code) = self.get_station_by_station_name(line_code, origin)
+        
+        # Shorten stations such as Hammersmith/Edgware Road which are disambiguated by brackets, get rid of them
+        if station_name and station_name.find('(') > -1 and station_name != "Kensington (Olympia)":
+            station_name = station_name[:station_name.find('(') - 1]
+        
+        # Dummy code - what do we do with destination data (?)
+        if destination:
+            pass
+            
+        # If we have a station code, go get the data for it
+        if station_code:
+            # XXX is the code for a station that does not have data given to it
+            if station_code == "XXX":
+                raise WhensMyTransportException('tube_station_no_data', station_name)
+
+            time_info = self.get_departure_data(line_code, station_code, station_name)
+            if time_info:
+                return "%s %s" % (station_name, time_info)
+            else:
+                raise WhensMyTransportException('no_arrival_data', line_name)
+        else:
+            raise WhensMyTransportException('tube_station_name_not_found', origin, line_name)
+        
+    def get_station_by_geolocation(self, line_code, position):
+        """
+        Take a line and a tuple specifying latitude & longitude, and works out closest station        
+        """
+        #pylint: disable=W0613
+        # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
+        logging.debug("Position in WGS84 determined as: %s %s", position[0], position[1])
+        easting, northing, gridref = convertWGS84toOSGrid(position)
+        logging.debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
+
+        # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
+        # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
+        # and find the first row
+        query = """
+                SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
+                      Name,
+                      Code,
+                      Line
+                FROM locations
+                WHERE Line='%s'
+                ORDER BY dist_squared
+                LIMIT 1
+                """ % (easting, easting, northing, northing, line_code)
+        self.geodata.execute(query)
+        row = self.geodata.fetchone()
+        if row:
+            logging.debug("Have found %s station (%s)", row['Name'], row['Code'])
+            return (row['Name'], row['Code'])
+        else:
+            return ""
+
+    def get_station_by_station_name(self, line_code, origin):
+        """
+        Take a line and a string specifying origin, and work out matching for that name      
+        """
+
+        # First off, try to get a match against bus stop names in database
+        # Users may not give exact details, so we try to match fuzzily
+        logging.debug("Attempting to get a match on placename %s", origin)
+        self.geodata.execute("""
+                             SELECT * FROM locations WHERE Line=? OR Line='X'
+                             """, line_code)
+        rows = self.geodata.fetchall()
+        if rows:
+            best_match = get_best_fuzzy_match(origin, rows, 'Name', get_tube_station_name_similarity)
+            if best_match:
+                logging.debug("Match found! Found: %s", best_match['Name'])
+                return (best_match['Name'], best_match['Code'])
+
+        logging.debug("No match found for %s, sorry", origin)
+        return (None, None)
+        
+    def get_departure_data(self, line_code, station_code, station_name):
+        """
+        Take a station ID and a line ID, and get departure data for that station
+        """
+        # Check to see if a station is closed 
+        status_url = "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly"
+        status_data = self.browser.fetch_xml(status_url)
+        for station_status in status_data.getElementsByTagName('StationStatus'):
+            station_node = station_status.getElementsByTagName('Station')[0]
+            status_node = station_status.getElementsByTagName('Status')[0]
+            if station_node.getAttribute('Name') == station_name and status_node.getAttribute('Description') == 'Closed':
+                raise WhensMyTransportException('tube_station_closed', station_name, station_status.getAttribute('StatusDetails').strip().lower())
+        
+        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station_code)
+        tube_data = self.browser.fetch_xml(tfl_url)
+        line_name = tube_data.getElementsByTagName('LineName')[0].firstChild.data
+
+        trains_by_direction_and_destination = {}
+        
+        for platform in tube_data.getElementsByTagName('P'):
+            
+            # Make sure this matches the right line 
+            available_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and filter_tube_trains(t)]
+            platform_name = platform.getAttribute('N')
+            direction = re.search("(North|East|South|West)bound", platform_name, re.I) or re.search("(Inner|Outer) Rail", platform_name, re.I)
+
+            # FIXME Inner/Outer Rail very confusing
+            
+            if direction:
+                direction = capwords(direction.group(0))
+                if direction not in trains_by_direction_and_destination:
+                    trains_by_direction_and_destination[direction] = {}
+            else:
+                # Some odd cases. Chesham and Chalfont & Latimer have their own system
+                if station_code == "CHM":
+                    direction = "Southbound"
+                elif station_code == "CLF" and platform.getAttribute('Num') == 3:
+                    direction = "Northbound"
+                else:
+                    # FIXME: The following stations will have "issues": North Acton, Edgware Road, Loughton, White City
+                    continue
+
+            for train in available_trains:
+                destination = train.getAttribute('Destination')
+                departure_time = train.getAttribute('TimeTo')
+                destination = cleanup_station_name(destination)
+                
+                # FIXME If the destination matches this station's name, ignore
+                
+                if destination == "Unknown" or destination.endswith("Train") or destination.endswith("Line"):
+                    destination = direction + " Train"
+
+                if departure_time == '-' or departure_time.startswith('0'):
+                    departure_time = 0
+                else:
+                    departure_time = int(departure_time.split(":")[0])
+                    
+                if departure_time < trains_by_direction_and_destination[direction].get(destination, 1000):
+                    trains_by_direction_and_destination[direction][destination] = departure_time
+
+        message = []
+        for (direction, destinations) in trains_by_direction_and_destination.items():
+            trains_in_this_direction = []
+            for (destination, departure_time) in sorted(destinations.items(), lambda a,b : cmp(a[1],b[1])):
+                departure_time_string = departure_time and ("%smin" % departure_time) or "due"                
+                trains_in_this_direction.append("%s %s" % (destination, departure_time_string))
+            message.append(', '.join(trains_in_this_direction))
+            
+        return "; ".join(message)
+        
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
     WMB.check_followers()
     
-    
     #WMT = WhensMyTube(testing=True)
-    #WMT.parse_message("Norvern Line")
-    #WMT.parse_message("Picadildo Line from Acton Town")
-    #WMT.parse_message("Picadilly Line from Acton Town to Heathrow")
+    #WMT.check_tweets()
+    #WMT.check_followers()
+    pass
