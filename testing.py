@@ -211,7 +211,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                                    ('425 25 205', 'Bow Road Station', '55489',  -0.02472, 51.52722, 'Mile End station', '76239', 'Bow Road Station'),
                                    )
         # Troublesome destinations & data
-        self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'The Grove'),
+        self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'Stratford Bus Station'),
                                       ('%s from Hoxton',                   ('243',),      'Hoxton Station / Geffrye Museum'),  
                                       ('%s from Bow Common Lane',          ('323',),      'Bow Common Lane'),
                                       ('%s from EC1M 4PN',                 ('55',),       'St John Street'),
