@@ -452,7 +452,7 @@ def run_tests():
     """
     parser = argparse.ArgumentParser("Unit testing for When's My Transport?")
     parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
-    parser.add_argument("-c", dest="test_case_name", action="store", default="WhensMyBus") 
+    parser.add_argument("-c", dest="test_case_name", action="store", default="WhensMyTube") 
     
     test_case_name = parser.parse_args().test_case_name
 
