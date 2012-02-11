@@ -24,7 +24,7 @@ class WhensMyTransportException(Exception):
         'bad_stop_id'     : "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
         'no_stops_nearby' : "I could not find any bus stops near you",
         'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
-        'unknown_error'   : "Sorry! An unknown error occurred processing your Tweet. My creator has been informed",
+        'unknown_error'   : "An unknown error occurred processing your Tweet. My creator has been informed",
         
         # WhensMyBus Non-Fatal errors
         'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",     

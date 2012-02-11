@@ -234,7 +234,7 @@ class WhensMyTransport:
             # Handle any other Exception by DMing the admin with an alert
             except Exception as exc:
                 self.alert_admin_about_exception(tweet, exc.__class__.__name__)
-                replies = (self.process_wmt_exception(WhensMyBusException('unknown_error')),)
+                replies = (self.process_wmt_exception(WhensMyTransportException('unknown_error')),)
                 
             # If the reply is blank, probably didn't contain a bus number or Tube line, so check to see if there was a thank-you
             if not replies:
@@ -244,7 +244,7 @@ class WhensMyTransport:
             for reply in replies:
                 # DMs and @ replies have different structures and different handlers
                 if is_direct_message(tweet):            
-                    self.send_reply_back(reply, tweet.sender.screen_name, is_direct_message=True)
+                    self.send_reply_back(reply, tweet.sender.screen_name, send_direct_message=True)
                     self.update_setting('last_answered_direct_message', tweet.id)
                 else:
                     self.send_reply_back(reply, tweet.user.screen_name, in_reply_to_status_id=tweet.id)
@@ -321,7 +321,7 @@ class WhensMyTransport:
 
         return ()
             
-    def send_reply_back(self, reply, username, is_direct_message=False, in_reply_to_status_id=None):
+    def send_reply_back(self, reply, username, send_direct_message=False, in_reply_to_status_id=None):
         """
         Send back a reply to the user; this might be a DM or might be a public reply
         """
@@ -340,7 +340,7 @@ class WhensMyTransport:
         # Send the reply/replies we have generated to the user
         for message in messages:
             try:
-                if is_direct_message:
+                if send_direct_message:
                     logging.info("Sending direct message to %s: '%s'", username, message)
                     if not self.testing:
                         self.api.send_direct_message(user=username, text=message)
@@ -411,7 +411,7 @@ class WhensMyTransport:
         else:            
             twitter_permalink = "https://twitter.com/#!/%s/status/%s" % (tweet.user.screen_name, tweet.id)
             error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
-        self.send_reply_back(error_message, self.admin_name, is_direct_message=True)
+        self.send_reply_back(error_message, self.admin_name, send_direct_message=True)
 
     def tokenize_message(self, message, request_token_regex=None):
         """
@@ -762,6 +762,25 @@ class WhensMyTube(WhensMyTransport):
     def __init__(self, testing=None, silent=False):
         WhensMyTransport.__init__(self, 'whensmytube', testing, silent)
         
+        # Build internal lookup table of possible line name -> "official" line name
+        line_names = (
+            'Bakerloo',
+            'Central',
+            'District',
+            'Hammersmith & Circle',
+            'Jubilee',
+            'Metropolitan',
+            'Northern',
+            'Piccadilly',
+            'Victoria',
+            'Waterloo & City',
+        )
+        # Handle abbreviated three-letter versions (e.g. "Met") plus one-word versions
+        line_tuples = [(name, name) for name in line_names] + [(name[:3], name) for name in line_names] + [(name.split(' ')[0], name) for name in line_names]
+        self.line_lookup = dict(line_tuples)
+        self.line_lookup['Circle'] = 'Hammersmith & Circle'
+        self.line_lookup['Hammersmith & City'] = 'Hammersmith & Circle'
+        
     def parse_message(self, message):
         """
         Parse a Tweet - tokenize it, and get the line(s) specified by the user
@@ -781,32 +800,12 @@ class WhensMyTube(WhensMyTransport):
         origin = origin and capwords(origin).replace(" Station", "")
         destination = destination and capwords(destination).replace(" Station", "")
         
-        # Match with the line name that we know of
-        line_names = (
-            'Bakerloo',
-            'Central',
-            'District',
-            'Hammersmith & Circle',
-            'Jubilee',
-            'Metropolitan',
-            'Northern',
-            'Piccadilly',
-            'Victoria',
-            'Waterloo & City',
-        )
-        # Turn the above into a lookup to handle abbreviated three-letter versions (e.g. "Met") plus one-word versions
-        # (e.g. "Hammersmith")
-        line_names = dict([(name, name) for name in line_names] + [(name[:3], name) for name in line_names] + [(name.split(' ')[0], name) for name in line_names])
-        line_names['Circle'] = 'Hammersmith & Circle'
-        line_names['Hammersmith & City'] = 'Hammersmith & Circle'
-
-        if line_name not in line_names:
-            line = get_best_fuzzy_match(line_name, line_names.values())
+        if line_name not in self.line_lookup:
+            line = get_best_fuzzy_match(line_name, self.line_lookup.values())
             if line is None:
                 raise WhensMyTransportException('nonexistent_line', line_name)
         else:
-            line = line_names[line_name]
-            
+            line = self.line_lookup[line_name]
         line_code = line[0]
         
         # Dig out relevant station for this line from the geotag, if provided
@@ -953,7 +952,7 @@ class WhensMyTube(WhensMyTransport):
         message = []
         for (direction, destinations) in trains_by_direction_and_destination.items():
             trains_in_this_direction = []
-            for (destination, departure_time) in sorted(destinations.items(), lambda a,b : cmp(a[1],b[1])):
+            for (destination, departure_time) in sorted(destinations.items(), lambda a, b : cmp(a[1], b[1])):
                 departure_time_string = departure_time and ("%smin" % departure_time) or "due"                
                 trains_in_this_direction.append("%s %s" % (destination, departure_time_string))
             message.append(', '.join(trains_in_this_direction))
@@ -968,4 +967,3 @@ if __name__ == "__main__":
     #WMT = WhensMyTube(testing=True)
     #WMT.check_tweets()
     #WMT.check_followers()
-    pass
