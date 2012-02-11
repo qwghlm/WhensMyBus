@@ -5,6 +5,7 @@ Utilities for WhensMyTransport
 import json
 import logging
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -29,6 +30,14 @@ def load_database(dbfilename):
     dbs = sqlite3.connect(HOME_DIR + '/db/' + dbfilename)
     dbs.row_factory = sqlite3.Row
     return (dbs, dbs.cursor())
+
+# Twitter stuff
+
+def is_direct_message(tweet):
+    """
+    Returns True if a Tweet object is that of Tweepy's Direct Message, False if any other kind
+    """
+    return isinstance(tweet, tweepy.models.DirectMessage)
 
 # JSON stuff
 
@@ -131,19 +140,59 @@ def make_oauth_key(instance_name='whensmybus'):
     print "key : %s" % auth.access_token.key
     print "secret : %s" % auth.access_token.secret
 
-# String util
+# String utils
+
 def capwords(phrase):
     """
     Capitalize each word in a string. A word is defined as anything with a space separating it from the next word.   
     """
-    return ' '.join([s.capitalize() for s in phrase.split(' ')])
+    not_to_be_capitalized = ('via',)
+    capitalized = ' '.join([s in not_to_be_capitalized and s or s.capitalize() for s in phrase.split(' ')])
+    return capitalized
+        
+def cleanup_name_from_undesirables(name, undesirables):
+    """
+    Clean out every word in the iterable undesirables from the name supplied, and capitalise
+    """
+    name = name.upper()
+    for undesirable in undesirables:
+        name = name.replace(undesirable.upper(), '')
+    name = re.sub(r' +', ' ', name)
+    return capwords(name.strip())
 
 def cleanup_stop_name(stop_name):
-    # Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram
-    for unwanted in ('<>', '#', '[DLR]', '>T<'):
-        stop_name = stop_name.replace(unwanted, '')
-    return capwords(stop_name.strip())
-
+    """
+    Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from a string, and capitalise all words
+    """
+    return cleanup_name_from_undesirables(stop_name, ('<>', '#', '[DLR]', '>T<'))
+    
+def cleanup_station_name(station_name):
+    """
+    Get rid of TfL's odd designations
+    """
+    return cleanup_name_from_undesirables(station_name, ('sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', '(plat. 1)', ' loop '))
+    
+def filter_tube_trains(tube_xml_node):
+    """
+    Filter function for TfL's tube train XML tags, to get rid of misleading or bogus trains
+    """
+    destination = tube_xml_node.getAttribute('Destination')
+    destination_code = tube_xml_node.getAttribute('DestCode')
+    location = tube_xml_node.getAttribute('Location')
+    
+    # 546 and 749 appear to be codes for Out of Service
+    if destination_code in ('546', '749'):
+        return False
+    # Trains in Sidings are not much use to us
+    if destination_code == '0' and location.find('Sidings') > -1:
+        return False
+    if destination in ('Special', 'Out Of Service'):
+        return False
+    if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC'):
+        return False
+        
+    return True
+    
 if __name__ == "__main__":
     #make_oauth_key()
     pass
