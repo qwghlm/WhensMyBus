@@ -26,6 +26,10 @@ class BaseGeocoder():
         """
         Fetch a URL to fetch geodata
         """
+        for (key, value) in self.params.items():
+            if isinstance(value, unicode):
+                self.params[key] = value.encode('utf-8')
+            
         query_url = self.url % urllib.urlencode(self.params)
         return query_url
         
