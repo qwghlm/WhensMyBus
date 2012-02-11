@@ -23,6 +23,7 @@ class FakeTweet:
     """
     Fake Tweet object to simulate tweepy's Tweet object being passed to various functions
     """
+    #pylint: disable=R0903
     def __init__(self, text, coordinates=(), place=None, username='testuser'):
         self.user = lambda:1
         self.user.screen_name = username
@@ -36,6 +37,7 @@ class FakeDirectMessage:
     """
     Fake DirectMessage object to simulate tweepy's DirectMessage object being passed to various functions
     """
+    #pylint: disable=R0903
     def __init__(self, text, username='testuser'):
         self.user = lambda:1
         self.user.screen_name = username
@@ -193,6 +195,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
     """
     Main Test Case for When's My Bus
     """
+    #pylint: disable=R0904
     def setUp(self):
         """
         Setup test
@@ -208,10 +211,10 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                                    )
         # Troublesome destinations 
         self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'The Grove'),
-                                        ('%s from Hoxton',                     ('243',),      'Hoxton Station  / Geffrye Museum'),  
-                                        ('%s from Bow Common Lane',            ('323',),      'Bow Common Lane'),
-                                        ('%s from EC1M 4PN',                   ('55',),       'St John Street'),
-                                        ('%s from Mile End',                   ('d6', 'd7'),  'Mile End \w+'),
+                                      ('%s from Hoxton',                   ('243',),      'Hoxton Station  / Geffrye Museum'),  
+                                      ('%s from Bow Common Lane',          ('323',),      'Bow Common Lane'),
+                                      ('%s from EC1M 4PN',                 ('55',),       'St John Street'),
+                                      ('%s from Mile End',                 ('d6', 'd7'),  'Mile End \w+'),
                                    )
 
     # Generic but bus-specific success results
@@ -296,33 +299,28 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         Generic test for standard-issue messages
         """
+        #pylint: disable=W0612
         for (route, origin_name, origin_id, lon, lat, destination_name, destination_id, expected_origin) in self.test_standard_data:
-        
-            # Nine different types of message: 3 types of origin (geotag, ID, name) and 3 types of destination
-            # (none, ID, name)
-        
-            test_messages = (
-                "%s"               % (route),
-                "%s from %s"       % (route, origin_id),
-                "%s from %s"       % (route, origin_name),
-                "%s to %s"         % (route, destination_id),
-                "%s from %s to %s" % (route, origin_id, destination_id),
-                "%s from %s to %s" % (route, origin_name, destination_id),
-                "%s to %s"         % (route, destination_name),
-                "%s from %s to %s" % (route, origin_id, destination_name),
-                "%s from %s to %s" % (route, origin_name, destination_name),
-            )
 
-            for message in test_messages:
-                message = self.at_reply + message
-                if message.find('from') == -1:
-                    tweet = FakeTweet(message, (lon, lat))
-                else:
-                    tweet = FakeTweet(message)
+            # C-string format helper
+            test_variables = dict([(name, eval(name)) for name in ('route', 'origin_name', 'origin_id', 'destination_name', 'destination_id')])
 
-                results = self.bot.process_tweet(tweet)
-                for result in results:
-                    self._test_correct_successes(result, route, expected_origin, (message.find(' to ') == -1 and message.find(origin_id) == -1))
+            # 5 types of origin (geotag, ID, name, ID without 'from', name without 'from') and 3 types of destination (none, ID, name)
+            from_fragments = ("", " from %(origin_name)s",    " from %(origin_id)s", " %(origin_name)s", " %(origin_id)s")
+            to_fragments =   ("", " to %(destination_name)s", " to %(destination_id)s")
+
+            for from_fragment in from_fragments:
+                for to_fragment in to_fragments:
+                    message = (self.at_reply + route + from_fragment + to_fragment) % test_variables
+                    print message
+                    if not from_fragment:
+                        tweet = FakeTweet(message, (lon, lat))
+                    else:
+                        tweet = FakeTweet(message)
+    
+                    results = self.bot.process_tweet(tweet)
+                    for result in results:
+                        self._test_correct_successes(result, route, expected_origin, (from_fragment.find('origin_id') == -1) and not to_fragment)
 
     def test_multiple_routes(self):
         """
@@ -369,7 +367,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                                    ('Piccadilly', "Acton Town"),
                                    ('Jubilee', "Swiss Cottage"),
                                    ('Northern', "Camden Town"),
-                                   ('Central', "North Acton"),
+                                   ('Central', "White City"),
                                    ('District', "Edgware Road"),
                                    ('Hammersmith & City', "Wood Lane"),
                                   )
@@ -446,7 +444,7 @@ def run_tests():
     """
     parser = argparse.ArgumentParser("Unit testing for When's My Transport?")
     parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
-    parser.add_argument("-c", dest="test_case_name", action="store", default="WhensMyTube") 
+    parser.add_argument("-c", dest="test_case_name", action="store", default="WhensMyBus") 
     
     test_case_name = parser.parse_args().test_case_name
 
