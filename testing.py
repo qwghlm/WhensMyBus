@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #pylint: disable=C0103
 """
 A set of unit tests for When's My Bus?
@@ -209,15 +210,13 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                                    ('15', 'Limehouse Station', '53452', -0.0397, 51.5124, 'Poplar', '73923', 'Limehouse Station'),
                                    ('425 25 205', 'Bow Road Station', '55489',  -0.02472, 51.52722, 'Mile End station', '76239', 'Bow Road Station'),
                                    )
-        # Troublesome destinations 
+        # Troublesome destinations & data
         self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'The Grove'),
-                                      ('%s from Hoxton',                   ('243',),      'Hoxton Station  / Geffrye Museum'),  
+                                      ('%s from Hoxton',                   ('243',),      'Hoxton Station / Geffrye Museum'),  
                                       ('%s from Bow Common Lane',          ('323',),      'Bow Common Lane'),
                                       ('%s from EC1M 4PN',                 ('55',),       'St John Street'),
                                       ('%s from Mile End',                 ('d6', 'd7'),  'Mile End \w+'),
-                                   )
-
-    # Generic but bus-specific success results
+                                     )
 
     def _test_correct_successes(self, result, routes_specified, expected_origin, destination_not_specified=True):
         """
@@ -238,6 +237,8 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             self.assertRegexpMatches(result, ';')
         else:
             self.assertNotRegexpMatches(result, ';')
+            
+        print result
 
     #
     # Bus-specific tests
@@ -294,6 +295,14 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         message = '15 from eucg;$78' 
         tweet = FakeTweet(self.at_reply + message) 
         self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;$78')
+        
+    def test_unicode_nonsense(self):
+        """
+        Test to confirm we can handle odd Unicode garbage
+        """
+        message = u"242 N 51°32' 0'' / W 0°4' 0''"
+        tweet = FakeTweet(self.at_reply + message) 
+        self._test_correct_exception_produced(tweet, 'unknown_error', '242')
                 
     def test_standard_messages(self):
         """
@@ -312,7 +321,6 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
                     message = (self.at_reply + route + from_fragment + to_fragment) % test_variables
-                    print message
                     if not from_fragment:
                         tweet = FakeTweet(message, (lon, lat))
                     else:
@@ -399,7 +407,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
     def test_missing_station_data(self):
         """
-        Test to confirm certan stations which have no data are correctly reported
+        Test to confirm certain stations which have no data are correctly reported
         """
         message = 'Metropolitan Line from Preston Road'
         tweet = FakeTweet(self.at_reply + message) 

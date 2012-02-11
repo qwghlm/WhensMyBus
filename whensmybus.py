@@ -234,7 +234,7 @@ class WhensMyTransport:
             # Handle any other Exception by DMing the admin with an alert
             except Exception as exc:
                 self.alert_admin_about_exception(tweet, exc.__class__.__name__)
-                replies = ('Sorry! An unknown error occurred processing your Tweet. My creator has been informed',)
+                replies = (self.process_wmt_exception(WhensMyBusException('unknown_error')),)
                 
             # If the reply is blank, probably didn't contain a bus number or Tube line, so check to see if there was a thank-you
             if not replies:
