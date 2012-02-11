@@ -72,6 +72,8 @@ class WhensMyTransport:
             print """Please make sure there is a %s file in this directory""" % config_file
             sys.exit(1)
 
+        self.admin_name = config.get(self.instance_name, 'admin_name')
+
         # Set up some logging
         if len(logging.getLogger('').handlers) == 0:
             logging.basicConfig(level=logging.DEBUG, filename=os.devnull)
@@ -163,10 +165,16 @@ class WhensMyTransport:
         self.update_setting("last_follower_check", time.time())
 
         # Get IDs of our friends (people we already follow), and our followers
-        followers_ids = self.api.followers_ids()[0]
-        friends_ids = self.api.friends_ids()[0]
-        # Some users are protected and have been follow-requested but not accepted - protected users throw an error if
-        # we try to repeatedly follow them, so keep a track of them so we don't repeatedly waste API calls
+        followers_ids = self.api.followers_ids()
+        friends_ids = self.api.friends_ids()
+        
+        # Annoyingly, different versions of Tweepy implement the above; older versions return followers_ids() as a tuple and the list of 
+        # followers IDs is the first element of that tuple. Newer versions return just the followers' IDs (which is much more sensible)
+        if isinstance(followers_ids, tuple):
+            followers_ids = followers_ids[0]
+            friends_ids = friends_ids[0]
+        
+        # Some users are protected and have been requested but not accepted - we need not continually ping them
         protected_users_to_ignore = self.get_setting("protected_users_to_ignore") or []
         
         # Work out the difference between the two, and also ignore protected users we have already requested
@@ -222,7 +230,11 @@ class WhensMyTransport:
             try:
                 replies = self.process_tweet(tweet)
             except WhensMyTransportException as exc:
-                replies = (self.process_exception(exc),)
+                replies = (self.process_wmt_exception(exc),)
+            # Handle any other Exception by DMing the admin with an alert
+            except Exception as exc:
+                self.alert_admin_about_exception(tweet, exc.__class__.__name__)
+                replies = ('Sorry! An unknown error occurred processing your Tweet. My creator has been informed',)
                 
             # If the reply is blank, probably didn't contain a bus number or Tube line, so check to see if there was a thank-you
             if not replies:
@@ -378,16 +390,28 @@ class WhensMyTransport:
                 if exc.msgid == 'tfl_server_down':
                     raise
                 else:
-                    replies.append(self.process_exception(exc))
+                    replies.append(self.process_wmt_exception(exc))
                 
         return replies
 
-    def process_exception(self, exc):
+    def process_wmt_exception(self, exc):
         """
-        Turns an exception into a message for the user
+        Turns a WhensMyTransportException into a message for the user
         """
         logging.debug("Exception encountered: %s" , exc.value)
         return "Sorry! %s" % exc.value
+
+    def alert_admin_about_exception(self, tweet, exception_name):
+        """
+        Alert the administrator about a non-WhensMyTransportException encountered when processing a Tweet
+        """
+        if is_direct_message(tweet):
+            tweet_time = tweet.created_at.strftime('%d-%m-%y %H:%M:%S')
+            error_message = "Hey! A DM from @%s at %s GMT caused me to crash with a %s" % (tweet.sender.screen_name, tweet_time, exception_name)
+        else:            
+            twitter_permalink = "https://twitter.com/#!/%s/status/%s" % (tweet.user.screen_name, tweet.id)
+            error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
+        self.send_reply_back(error_message, self.admin_name, is_direct_message=True)
 
     def tokenize_message(self, message, request_token_regex=None):
         """
@@ -778,7 +802,6 @@ class WhensMyTube(WhensMyTransport):
 
         if line_name not in line_names:
             line = get_best_fuzzy_match(line_name, line_names.values())
-
             if line is None:
                 raise WhensMyTransportException('nonexistent_line', line_name)
         else:
