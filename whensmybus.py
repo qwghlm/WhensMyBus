@@ -13,13 +13,11 @@ TODO
 
 WhensMyTube:
 
- - Better handling of multiple platforms
  - Destination handling
  - Direction handling
 
 General:
 
- - Handle the absence of 'From' in Tweets
  - Train, Tram, DLR & Boat equivalents
  - Handle *bound directions
  
@@ -42,7 +40,7 @@ import tweepy
 # From other modules in this package
 from geotools import convertWGS84toOSGrid, YahooGeocoder, heading_to_direction
 from exception_handling import WhensMyTransportException
-from utils import WMBBrowser, load_database, capwords, cleanup_stop_name
+from utils import WMBBrowser, load_database, capwords, cleanup_stop_name, cleanup_station_name, is_direct_message, filter_tube_trains
 from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity, get_tube_station_name_similarity
 
 # Some constants we use
@@ -59,8 +57,9 @@ class WhensMyTransport:
         """
         # Instance name is something like 'whensmybus', 'whensmytube' 
         self.instance_name = instance_name
+        
+        # Try opening the file first just to see if it exists, exception caught below
         try:
-            # Try opening the file first just to see if it exists, exception caught below
             config_file = 'whensmytransport.cfg'
             open(HOME_DIR + '/' + config_file)
             config = ConfigParser.SafeConfigParser({ 'test_mode' : False,
@@ -77,12 +76,11 @@ class WhensMyTransport:
         if len(logging.getLogger('').handlers) == 0:
             logging.basicConfig(level=logging.DEBUG, filename=os.devnull)
 
-            # Set up some basic logging to stdout that shows info or debug level depending on user config
+            # Logging to stdout shows info or debug level depending on user config file. Setting silent to True will override either
             if silent:
                 console_output = open(os.devnull, 'w')
             else:
                 console_output = sys.stdout
-            
             console = logging.StreamHandler(console_output)
             console.setLevel(logging.__dict__[config.get(self.instance_name, 'debug_level')])
             console.setFormatter(logging.Formatter('%(message)s'))
@@ -167,7 +165,8 @@ class WhensMyTransport:
         # Get IDs of our friends (people we already follow), and our followers
         followers_ids = self.api.followers_ids()[0]
         friends_ids = self.api.friends_ids()[0]
-        # Some users are protected and have been requested but not accepted - we need not continually ping them
+        # Some users are protected and have been follow-requested but not accepted - protected users throw an error if
+        # we try to repeatedly follow them, so keep a track of them so we don't repeatedly waste API calls
         protected_users_to_ignore = self.get_setting("protected_users_to_ignore") or []
         
         # Work out the difference between the two, and also ignore protected users we have already requested
@@ -179,17 +178,10 @@ class WhensMyTransport:
                 person = self.api.create_friendship(twitter_id)
                 logging.info("Following user %s", person.screen_name )
             except tweepy.error.TweepError:
-                # Protected users throw an error if we try to repeatedly follow them, so keep a track of them
-                # so we don't repeatedly waste API calls trying to follow them again and again
                 protected_users_to_ignore.append(twitter_id)
                 logging.info("Error following user %s, most likely the account is protected", twitter_id)
                 continue
 
-        # If there are any protected users we are trying to follow, we log them here for debugging purposes
-        if protected_users_to_ignore:
-            protected_users_info = self.api.lookup_users(user_ids = protected_users_to_ignore)
-            protected_users_names = ', '.join([user.screen_name for user in protected_users_info])
-            logging.debug("Following users are 'blocked' from following: %s", protected_users_names)
         self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
         self.report_twitter_limit_status()
     
@@ -232,14 +224,14 @@ class WhensMyTransport:
             except WhensMyTransportException as exc:
                 replies = (self.process_exception(exc),)
                 
-            # If the reply is blank, probably didn't contain a bus number, so check to see if there was a thank-you
+            # If the reply is blank, probably didn't contain a bus number or Tube line, so check to see if there was a thank-you
             if not replies:
                 replies = self.check_politeness(tweet)
                 
             # Send a reply back, if we have one
             for reply in replies:
                 # DMs and @ replies have different structures and different handlers
-                if isinstance(tweet, tweepy.models.DirectMessage):            
+                if is_direct_message(tweet):            
                     self.send_reply_back(reply, tweet.sender.screen_name, is_direct_message=True)
                     self.update_setting('last_answered_direct_message', tweet.id)
                 else:
@@ -256,8 +248,8 @@ class WhensMyTransport:
         """
         message = tweet.text
 
-        # Bit of logging plus always return True for DMs
-        if isinstance(tweet, tweepy.models.DirectMessage):
+        # Bit of logging, plus we always return True for DMs
+        if is_direct_message(tweet):
             logging.info("Have a DM from %s: %s", tweet.sender.screen_name, message)
             return True
         else:
@@ -323,6 +315,9 @@ class WhensMyTransport:
         """
         # Take care of over-long messages. 137 allows us breathing room for a letter D and spaces for
         # a direct message, so split this kind of reply into two
+        #
+        # FIXME May have to split over three or more?
+        #
         if len(username) + len(reply) > 137:
             messages = reply.split("; ", 2)
             messages[0] = "%s..." % messages[0]
@@ -387,7 +382,6 @@ class WhensMyTransport:
                 
         return replies
 
-
     def process_exception(self, exc):
         """
         Turns an exception into a message for the user
@@ -395,27 +389,25 @@ class WhensMyTransport:
         logging.debug("Exception encountered: %s" , exc.value)
         return "Sorry! %s" % exc.value
 
-    def tokenize_message(self, message):
+    def tokenize_message(self, message, request_token_regex=None):
         """
         Split a message into tokens
-        Message is of format: "@username specified_lines_or_routes [from origin] [to destination]"
-        and may or may not have geodata on it
-        Tuple returns is of format: (specified_lines_or_routes, origin, destination)
+        Message is of format: "@username requested_lines_or_routes [from origin] [to destination]"
+        Tuple returns is of format: (requested_lines_or_routes, origin, destination)
         If we cannot find any of these three elements, None is used as default
         """
-        # Remove hashtags and @username
-        message = re.sub(r"\s#\w+\b", '', message)
-        if message.lower().startswith('@%s' % self.username.lower()):
-            message = message[len('@%s ' % self.username):].lstrip()
-        else:
-            message = message.strip()
-
-        # Exception if the Tweet contains nothing useful
-        if not message:
-            raise WhensMyTransportException('blank_tweet')
-
+        message = self.sanitize_message(message)
         tokens = re.split('\s+', message)
-    
+
+        # Sometime people forget to put a 'from' in their message. So we try and put one in for them
+        # Go through and find the index of the first token that does not match what a request token should be
+        if "from" not in tokens and request_token_regex:
+            non_request_token_indexes = [i for i in range(0, len(tokens)) if not re.match('^%s$' % request_token_regex, tokens[i], re.I)]
+            if non_request_token_indexes:
+                first_non_request_token_index = non_request_token_indexes[0]
+                if first_non_request_token_index > 0 and tokens[first_non_request_token_index] != "to":
+                    tokens.insert(first_non_request_token_index, "from")
+
         # Work out what boundaries "from" and "to" exist at
         if "from" in tokens:
             from_index = tokens.index("from")
@@ -440,6 +432,23 @@ class WhensMyTransport:
             
         return (request, origin, destination)
 
+    def sanitize_message(self, message):
+        """
+        Takes a message and scrubs out any @username or #hashtags
+        """
+        # Remove hashtags and @username
+        message = re.sub(r"\s#\w+\b", '', message)
+        if message.lower().startswith('@%s' % self.username.lower()):
+            message = message[len('@%s ' % self.username):].lstrip()
+        else:
+            message = message.strip()
+            
+        # Exception if the Tweet contains nothing useful
+        if not message:
+            raise WhensMyTransportException('blank_tweet')
+
+        return message
+        
     def parse_message(self, message):
         """
         Placeholder function. This must be overridden by a child class to do anything useful
@@ -500,9 +509,9 @@ class WhensMyBus(WhensMyTransport):
         """
         Parse a Tweet - tokenize it, and then pull out any bus numbers in it
         """
-        (route_string, origin, destination) = self.tokenize_message(message)
-        # Count along from the start and match as many tokens that look like a route number
         route_regex = "[A-Z]{0,2}[0-9]{1,3}"
+        (route_string, origin, destination) = self.tokenize_message(message, route_regex)
+        # Count along from the start and match as many tokens that look like a route number
         route_token_matches = [re.match(route_regex, r, re.I) for r in route_string.split(' ')]
         route_numbers = [r.group(0).upper() for r in route_token_matches if r]
         if not route_numbers:
@@ -530,7 +539,6 @@ class WhensMyBus(WhensMyTransport):
 
         # See if we can narrow down the runs offered by destination
         if relevant_stops and destination:
-            # Get possible destinations
             try:
                 possible_destinations = self.get_stops_by_stop_name(route_number, destination)
                 if possible_destinations:
@@ -543,11 +551,11 @@ class WhensMyBus(WhensMyTransport):
             except WhensMyTransportException:
                 pass
 
-        # If the above has found stops on this route
+        # If the above has found stops on this route, get data for each
         if relevant_stops:
-            time_info = self.get_departure_data(relevant_stops, route_number)
-            if time_info:
-                reply = "%s %s" % (route_number, "; ".join(time_info))
+            departure_data = self.get_departure_data(relevant_stops, route_number)
+            if departure_data:
+                reply = "%s %s" % (route_number, "; ".join(departure_data))
                 return reply
             else: 
                 raise WhensMyTransportException('no_arrival_data', route_number)
@@ -872,53 +880,69 @@ class WhensMyTube(WhensMyTransport):
             if station_node.getAttribute('Name') == station_name and status_node.getAttribute('Description') == 'Closed':
                 raise WhensMyTransportException('tube_station_closed', station_name, station_status.getAttribute('StatusDetails').strip().lower())
         
-        
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station_code)
-        print tfl_url
         tube_data = self.browser.fetch_xml(tfl_url)
+        line_name = tube_data.getElementsByTagName('LineName')[0].firstChild.data
+
+        trains_by_direction_and_destination = {}
         
-        trains = []
-        
-        # Go through each platform on this station, and check the first train on each
-        #
-        # FIXME This does not handle multiple platforms in same direction very well. Also need to check Terminuses,
-        # and the Circle Line, and the Northern
-        #
         for platform in tube_data.getElementsByTagName('P'):
             
-            # Make sure this matches the right line, and isn't out of service 
-            available_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and t.getAttribute('DestCode') not in ('546')]
-            # Unknown trains parked in sidings aren't much use to use
-            # FIXME Turn this into a filter
-            available_trains = [t for t in available_trains if not (t.getAttribute('Destination') == 'Unknown' and t.getAttribute('Location').find('Sidings') > -1)]
+            # Make sure this matches the right line 
+            available_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and filter_tube_trains(t)]
+            platform_name = platform.getAttribute('N')
+            direction = re.search("(North|East|South|West)bound", platform_name, re.I) or re.search("(Inner|Outer) Rail", platform_name, re.I)
 
-            # List first train's destination on each of these
-            if available_trains:
-                for train in available_trains[:1]:
-                    destination = train.getAttribute('Destination')
-                    departure_time = train.getAttribute('TimeTo')
-                    if departure_time == '-' or departure_time.startswith('0'):
-                        departure_time = 'due'
-                    else:
-                        departure_time = departure_time.split(":")[0] + 'min'
-                        
-                    trains.append('to %s %s' % (destination, departure_time))
-                    
-            # Else say there are non shown in this particular direction
-            else:
-                trains.append('None shown from platform %s' % platform.getAttribute('Num'))
-
-        if trains:
-            return "; ".join(trains)
-        else:
-            return ""
-                    
+            # FIXME Inner/Outer Rail very confusing
             
+            if direction:
+                direction = capwords(direction.group(0))
+                if direction not in trains_by_direction_and_destination:
+                    trains_by_direction_and_destination[direction] = {}
+            else:
+                # Some odd cases. Chesham and Chalfont & Latimer have their own system
+                if station_code == "CHM":
+                    direction = "Southbound"
+                elif station_code == "CLF" and platform.getAttribute('Num') == 3:
+                    direction = "Northbound"
+                else:
+                    # FIXME: The following stations will have "issues": North Acton, Edgware Road, Loughton, White City
+                    continue
+
+            for train in available_trains:
+                destination = train.getAttribute('Destination')
+                departure_time = train.getAttribute('TimeTo')
+                destination = cleanup_station_name(destination)
+                
+                # FIXME If the destination matches this station's name, ignore
+                
+                if destination == "Unknown" or destination.endswith("Train") or destination.endswith("Line"):
+                    destination = direction + " Train"
+
+                if departure_time == '-' or departure_time.startswith('0'):
+                    departure_time = 0
+                else:
+                    departure_time = int(departure_time.split(":")[0])
+                    
+                if departure_time < trains_by_direction_and_destination[direction].get(destination, 1000):
+                    trains_by_direction_and_destination[direction][destination] = departure_time
+
+        message = []
+        for (direction, destinations) in trains_by_direction_and_destination.items():
+            trains_in_this_direction = []
+            for (destination, departure_time) in sorted(destinations.items(), lambda a,b : cmp(a[1],b[1])):
+                departure_time_string = departure_time and ("%smin" % departure_time) or "due"                
+                trains_in_this_direction.append("%s %s" % (destination, departure_time_string))
+            message.append(', '.join(trains_in_this_direction))
+            
+        return "; ".join(message)
+        
 if __name__ == "__main__":
-    #WMB = WhensMyBus()
-    #WMB.check_tweets()
-    #WMB.check_followers()
+    WMB = WhensMyBus()
+    WMB.check_tweets()
+    WMB.check_followers()
     
-    WMT = WhensMyTube(testing=True)
-    WMT.check_tweets()
-    WMT.check_followers()
+    #WMT = WhensMyTube(testing=True)
+    #WMT.check_tweets()
+    #WMT.check_followers()
+    pass
