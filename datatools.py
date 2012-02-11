@@ -4,14 +4,16 @@ Data importing tools for WhensMyTransport - import TfL's data into an easier for
 """
 # Standard Python libraries
 import csv
-import tempfile
+import re
 import subprocess
+import tempfile
 
 from xml.dom.minidom import parse
 from pprint import pprint
 
 # Local files
 from geotools import convertWGS84toOSGB36, LatLongToOSGrid
+from utils import WMBBrowser, load_database, capwords
 
 def import_bus_csv_to_db():
     """
@@ -158,6 +160,64 @@ def import_tube_xml_to_db():
     print subprocess.check_output(["sqlite3", "./db/whensmytube.geodata.db"], stdin=open(tempf.name))
 
 
+def scrape_tfl_destination_codes():
+    """
+    An experimental script that takes current Tube data from TfL, scrapes it to find every possible existing
+    platform, destination code and destination name, and puts it into a database to help with us producing
+    better output for users
+    """
+    line_codes = ('B','C','D','H','J','M','N','P','V','W')
+    
+    (db, cursor) = load_database("whensmytube.geodata.db")
+    destination_summary = {}
+    browser = WMBBrowser()
+    
+    platform_names = {}
+    platform_directions = {}
+    
+    for line_code in line_codes:
+        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
+        try:
+            train_data = browser.fetch_xml(tfl_url)
+        except Exception:
+            print "Couldn't get data for %s" % line_code
+            continue
+    
+        for train in train_data.getElementsByTagName('T'):
+            destination = train.getAttribute('DE')
+            destination_code = train.getAttribute('D')
+            
+            if destination_summary.get(destination_code, destination) != destination and destination_code != '0':
+                print "Error with mismatching destinations: %s (existing) and %s (new) with code %s" % (destination_summary[destination_code], destination, destination_code)
+            
+            cursor.execute("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
+            db.commit()
+            
+            destination_summary[destination_code] = destination
+    
+        for platform in train_data.getElementsByTagName('P'):
+            platform_name = platform.getAttribute('N')
+            
+            direction = re.search("(North|East|South|West)bound", platform_name, re.I)
+    
+            if direction is None:
+                rail = re.search("(Inner|Outer) Rail", platform_name, re.I)
+                if rail:
+                    platform_name = rail.group(0) + ' ' + platform.getAttribute('Code')
+            
+            if direction is None:
+                platform_names[platform_name] = platform_names.get(platform_name, []) + [platform.parentNode.getAttribute('N')]
+            else:
+                direction = capwords(direction.group(0))
+                platform_directions[direction] = platform_directions.get(direction, 0) + 1 
+    
+    pprint(platform_names) 
+    pprint(platform_directions)
+    
+    # TODO Cross-reference this with the existing station database to find anomalous entries
+
 if __name__ == "__main__":
     #import_bus_csv_to_db()
-    import_tube_xml_to_db()
+    #import_tube_xml_to_db()
+    scrape_tfl_destination_codes()
+    pass
