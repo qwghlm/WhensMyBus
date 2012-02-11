@@ -7,8 +7,9 @@ whensmy*.settings.db
 *.log
 *.log.*
 
+*.csv
+
 scratchpad.py
 html/*
 fuzzy_matching_testing.py
 
-*.ssv
