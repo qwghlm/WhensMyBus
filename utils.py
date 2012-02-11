@@ -5,12 +5,14 @@ Utilities for WhensMyTransport
 import json
 import logging
 import os
+import re
 import sqlite3
 import sys
 import time
 import urllib2
 import tweepy
 import ConfigParser
+import xml.dom.minidom
 
 from pprint import pprint
 
@@ -29,6 +31,14 @@ def load_database(dbfilename):
     dbs.row_factory = sqlite3.Row
     return (dbs, dbs.cursor())
 
+# Twitter stuff
+
+def is_direct_message(tweet):
+    """
+    Returns True if a Tweet object is that of Tweepy's Direct Message, False if any other kind
+    """
+    return isinstance(tweet, tweepy.models.DirectMessage)
+
 # JSON stuff
 
 class WMBBrowser:
@@ -45,22 +55,21 @@ class WMBBrowser:
         logging.debug("Starting up browser")
         
         self.cache = {}
-    
-
-    def fetch_json(self, url, exception_code='tfl_server_down'):
+        
+    def fetch_url(self, url, exception_code):
         """
-        Fetches a JSON URL and returns Python object representation of it
+        Fetches a URL and returns the raw data as a string
         """
         if url in self.cache and (time.time() - self.cache[url]['time']) < 30:
             logging.debug("Using cached URL %s", url)
-            json_data = self.cache[url]['data']
+            url_data = self.cache[url]['data']
             
         else:
             logging.debug("Fetching URL %s", url)
             try:
                 response = self.opener.open(url)
-                json_data = response.read()
-                self.cache[url] = { 'data' : json_data, 'time' : time.time() }
+                url_data = response.read()
+                self.cache[url] = { 'data' : url_data, 'time' : time.time() }
             # Handle browsing error
             except urllib2.HTTPError, exc:
                 logging.error("HTTP Error %s reading %s, aborting", exc.code, url)
@@ -68,6 +77,14 @@ class WMBBrowser:
             except Exception, exc:
                 logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, url)
                 raise WhensMyTransportException(exception_code)
+                
+        return url_data
+
+    def fetch_json(self, url, exception_code='tfl_server_down'):
+        """
+        Fetches a JSON URL and returns Python object representation of it
+        """
+        json_data = self.fetch_url(url, exception_code)
     
         # Try to parse this as JSON
         if json_data:
@@ -77,6 +94,21 @@ class WMBBrowser:
             # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
             except ValueError, exc:
                 logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
+                raise WhensMyTransportException(exception_code)  
+
+    def fetch_xml(self, url, exception_code='tfl_server_down'):
+        """
+        Fetches an XML URL and returns Python object representation of the DOM
+        """
+        xml_data = self.fetch_url(url, exception_code)
+    
+        # Try to parse this as XML
+        if xml_data:
+            try:
+                dom = xml.dom.minidom.parseString(xml_data)
+                return dom
+            except Exception, exc:
+                logging.error("%s encountered when parsing %s - likely not XML!", exc, url)
                 raise WhensMyTransportException(exception_code)  
 
 # OAuth stuff
@@ -108,13 +140,59 @@ def make_oauth_key(instance_name='whensmybus'):
     print "key : %s" % auth.access_token.key
     print "secret : %s" % auth.access_token.secret
 
-# String util
+# String utils
+
 def capwords(phrase):
     """
     Capitalize each word in a string. A word is defined as anything with a space separating it from the next word.   
     """
-    return ' '.join([s.capitalize() for s in phrase.split(' ')])
+    not_to_be_capitalized = ('via',)
+    capitalized = ' '.join([s in not_to_be_capitalized and s or s.capitalize() for s in phrase.split(' ')])
+    return capitalized
+        
+def cleanup_name_from_undesirables(name, undesirables):
+    """
+    Clean out every word in the iterable undesirables from the name supplied, and capitalise
+    """
+    name = name.upper()
+    for undesirable in undesirables:
+        name = name.replace(undesirable.upper(), '')
+    name = re.sub(r' +', ' ', name)
+    return capwords(name.strip())
 
+def cleanup_stop_name(stop_name):
+    """
+    Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from a string, and capitalise all words
+    """
+    return cleanup_name_from_undesirables(stop_name, ('<>', '#', '[DLR]', '>T<'))
+    
+def cleanup_station_name(station_name):
+    """
+    Get rid of TfL's odd designations
+    """
+    return cleanup_name_from_undesirables(station_name, ('sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', '(plat. 1)', ' loop '))
+    
+def filter_tube_trains(tube_xml_node):
+    """
+    Filter function for TfL's tube train XML tags, to get rid of misleading or bogus trains
+    """
+    destination = tube_xml_node.getAttribute('Destination')
+    destination_code = tube_xml_node.getAttribute('DestCode')
+    location = tube_xml_node.getAttribute('Location')
+    
+    # 546 and 749 appear to be codes for Out of Service
+    if destination_code in ('546', '749'):
+        return False
+    # Trains in Sidings are not much use to us
+    if destination_code == '0' and location.find('Sidings') > -1:
+        return False
+    if destination in ('Special', 'Out Of Service'):
+        return False
+    if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC'):
+        return False
+        
+    return True
+    
 if __name__ == "__main__":
     #make_oauth_key()
     pass

@@ -23,7 +23,8 @@ class WhensMyTransportException(Exception):
         'not_in_london'   : "You do not appear to be located in the London Buses area", 
         'bad_stop_id'     : "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
         'no_stops_nearby' : "I could not find any bus stops near you",
-        'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(", 
+        'tfl_server_down' : "I can't access TfL's servers right now - they appear to be down :(",
+        'unknown_error'   : "Sorry! An unknown error occurred processing your Tweet. My creator has been informed",
         
         # WhensMyBus Non-Fatal errors
         'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",     
@@ -32,7 +33,10 @@ class WhensMyTransportException(Exception):
         'stop_id_not_found'  : "The %s route doesn't call at the stop with ID %s",
                 
         # Tube stuff
-        'nonexistent_line' : "I couldn't recognise that line (%s) as a London Underground line",
+        'nonexistent_line' : "I couldn't recognise that line (%s) as a Tube line",
+        'tube_station_no_data' : "TfL don't provide live departure data for %s station :(",
+        'tube_station_name_not_found' : "I couldn't recognise that station (%s) as being on the %s line",
+        'tube_station_closed' : "%s station is closed %s",
     }
     
     def __init__(self, msgid, *string_params):

@@ -4,13 +4,16 @@ Data importing tools for WhensMyTransport - import TfL's data into an easier for
 """
 # Standard Python libraries
 import csv
-import tempfile
+import re
 import subprocess
+import tempfile
 
 from xml.dom.minidom import parse
+from pprint import pprint
 
 # Local files
-from geotools import convertWGS84toOSGB36, LatLongToOSGrid, gridrefNumToLet
+from geotools import convertWGS84toOSGB36, LatLongToOSGrid
+from utils import WMBBrowser, load_database, capwords
 
 def import_bus_csv_to_db():
     """
@@ -81,18 +84,18 @@ def import_tube_xml_to_db():
     Utility script that produces the script for converting TfL's Tube data KML into a sqlite database
         
     Pulls together data from two files:
+
+    1. The data for Tube station locations, originally from TfL but augmented with new data (Heathrow Terminal 5) 
+    corrected for station names (e.g. Shepherd's Bush Market), and saved as tube-locations.kml
     
-    1. The data for Tube station codes & line details, from:
+    2. The data for Tube station codes & line details, from:
     https://raw.github.com/blech/gae-fakesubwayapis-data/d365a8b56d7b5abfec378816e3d91fb901f0cc59/data/tfl/stops.txt
     corrected for station names, and saved as tube-references.csv
-    
-    2. The data for Tube station locations, originally from TfL but augmented with new data (Heathrow Terminal 5) 
-    corrected for station names (e.g. Shepherd's Bush Market), and saved as tube-locations.kml
     
     """
     tablename = 'locations'
     
-    fieldnames = ('name', 'code', 'line', 'easting INT', 'northing INT')
+    fieldnames = ('Name', 'Code', 'Line', 'Location_Easting INT', 'Location_Northing INT')
     
     sql = ""
     sql += "drop table if exists %s;\r\n" % tablename
@@ -100,6 +103,7 @@ def import_tube_xml_to_db():
 
     stations = {}
     
+    # Parse our XML file of locations
     dom = parse(open('./sourcedata/tube-locations.kml'))
     station_geodata = dom.getElementsByTagName('Placemark')    
     for station in station_geodata:
@@ -114,8 +118,7 @@ def import_tube_xml_to_db():
         (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
         (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
         (easting, northing) = LatLongToOSGrid(lat, lon)
-        gridref = gridrefNumToLet(easting, northing)
-        stations[name.lower()] = { 'name' : name, 'easting' : easting, 'northing' : northing, 'code' : '', 'lines' : '' }
+        stations[name.lower()] = { 'Name' : name, 'Location_Easting' : easting, 'Location_Northing' : northing, 'Code' : '', 'Lines' : '' }
 
     tube_data = open('./sourcedata/tube-references.csv')
     reader = csv.reader(tube_data)
@@ -125,20 +128,29 @@ def import_tube_xml_to_db():
         name = line[1]
         lines = line[-1].split(";")
         if name.lower() in stations:
-            stations[name.lower()]['code'] = code
-            stations[name.lower()]['lines'] = lines            
+            stations[name.lower()]['Code'] = code
+            stations[name.lower()]['Lines'] = lines            
         else:
             print "Cannot find %s in geodata!" % name
         
     for station in stations.values():
-        if not station['code']:
-            print "Could not find a code for %s!" % station['name']
-            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['name'], '', '', str(station['easting']), str(station['northing'])))
+        if not station['Code']:
+            # Some stations do not have a code, so use code XXX for time being
+            print "Could not find a code for %s!" % station['Name']
+            if station['Name'] in ('Chesham', 'Preston Road'):
+                line_code = 'M'
+            elif station['Name'] in ('Goldhawk Road', 'Latimer Road', "Shepherd's Bush Market", "Wood Lane"):
+                line_code = 'H'
+            
+            field_data = (station['Name'], 'XXX', line_code, str(station['Location_Easting']), str(station['Location_Northing']))
+            sql += "insert into locations values (\"%s\");\r\n" % '", "'.join(field_data)
             
         else:
-            for line in station['lines']:
+            for line in station['Lines']:
                 if line != 'O': 
-                    sql += "insert into locations values (\"%s\");\r\n" % '", "'.join((station['name'], station['code'], line, str(station['easting']), str(station['northing'])))
+                    field_data = (station['Name'], station['Code'], line, str(station['Location_Easting']), str(station['Location_Northing']))
+                    sql += "insert into locations values "
+                    sql += "(\"%s\");\r\n" % '", "'.join(field_data)
 
     sql += "CREATE INDEX code_index ON locations (code);\r\n"
 
@@ -148,7 +160,64 @@ def import_tube_xml_to_db():
     print subprocess.check_output(["sqlite3", "./db/whensmytube.geodata.db"], stdin=open(tempf.name))
 
 
+def scrape_tfl_destination_codes():
+    """
+    An experimental script that takes current Tube data from TfL, scrapes it to find every possible existing
+    platform, destination code and destination name, and puts it into a database to help with us producing
+    better output for users
+    """
+    line_codes = ('B','C','D','H','J','M','N','P','V','W')
+    
+    (db, cursor) = load_database("whensmytube.geodata.db")
+    destination_summary = {}
+    browser = WMBBrowser()
+    
+    platform_names = {}
+    platform_directions = {}
+    
+    for line_code in line_codes:
+        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
+        try:
+            train_data = browser.fetch_xml(tfl_url)
+        except Exception:
+            print "Couldn't get data for %s" % line_code
+            continue
+    
+        for train in train_data.getElementsByTagName('T'):
+            destination = train.getAttribute('DE')
+            destination_code = train.getAttribute('D')
+            
+            if destination_summary.get(destination_code, destination) != destination and destination_code != '0':
+                print "Error with mismatching destinations: %s (existing) and %s (new) with code %s" % (destination_summary[destination_code], destination, destination_code)
+            
+            cursor.execute("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
+            db.commit()
+            
+            destination_summary[destination_code] = destination
+    
+        for platform in train_data.getElementsByTagName('P'):
+            platform_name = platform.getAttribute('N')
+            
+            direction = re.search("(North|East|South|West)bound", platform_name, re.I)
+    
+            if direction is None:
+                rail = re.search("(Inner|Outer) Rail", platform_name, re.I)
+                if rail:
+                    platform_name = rail.group(0) + ' ' + platform.getAttribute('Code')
+            
+            if direction is None:
+                platform_names[platform_name] = platform_names.get(platform_name, []) + [platform.parentNode.getAttribute('N')]
+            else:
+                direction = capwords(direction.group(0))
+                platform_directions[direction] = platform_directions.get(direction, 0) + 1 
+    
+    pprint(platform_names) 
+    pprint(platform_directions)
+    
+    # TODO Cross-reference this with the existing station database to find anomalous entries
+
 if __name__ == "__main__":
     #import_bus_csv_to_db()
     #import_tube_xml_to_db()
+    scrape_tfl_destination_codes()
     pass
