@@ -46,7 +46,7 @@ def import_bus_csv_to_db():
     outputfile.flush()
     outputfile.close()
 
-    tablename = inputpath.split('.')[0]
+    tablename = 'routes'
 
     integer_values = ('Location_Easting',
                     'Location_Northing',
@@ -61,7 +61,7 @@ def import_bus_csv_to_db():
     sql += "drop table if exists %s;\r\n" % tablename
     sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
     sql += '.separator ";"\r\n'
-    sql += ".import %s %s\r\n" % ('./sourcedata/' + outputpath, tablename)
+    sql += ".import %s %s\r\n" % (outputpath, tablename)
     sql += "delete from %s WHERE Virtual_Bus_Stop;\r\n" % tablename
     sql += "\r\n"
     
@@ -69,10 +69,13 @@ def import_bus_csv_to_db():
     sql += "CREATE INDEX route_run_index ON routes (Route, Run);\r\n"
     sql += "CREATE INDEX route_stop_index ON routes (Route, Bus_Stop_Code);\r\n"
     
+    # Send SQL via a temporary file to the sqlite3 process
     tempf = tempfile.NamedTemporaryFile('w')
     tempf.write(sql)
     tempf.flush()
     print subprocess.check_output(["sqlite3", "./db/whensmybus.geodata.db"], stdin=open(tempf.name))
+    
+    # Drop SSV file now we don't need it
     os.unlink(outputpath)
 
 def import_tube_xml_to_db():
