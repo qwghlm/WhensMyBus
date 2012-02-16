@@ -193,6 +193,21 @@ def filter_tube_trains(tube_xml_node):
         
     return True
     
+# List utils 
+def unique_values(seq, idfun=lambda a:a):
+    """
+    Return unique values of sequence seq, according to ID function idfun. From http://www.peterbe.com/plog/uniqifiers-benchmark
+    """
+    seen = {} 
+    result = [] 
+    for item in seq: 
+        marker = idfun(item)
+        if marker in seen:
+            continue 
+        seen[marker] = 1 
+        result.append(item) 
+    return result
+
 if __name__ == "__main__":
     #make_oauth_key()
     pass

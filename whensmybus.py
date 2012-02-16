@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #pylint: disable=W0142,R0201
 """
 
@@ -40,7 +41,7 @@ import tweepy
 # From other modules in this package
 from geotools import convertWGS84toOSGrid, YahooGeocoder, heading_to_direction
 from exception_handling import WhensMyTransportException
-from utils import WMBBrowser, load_database, capwords, cleanup_stop_name, cleanup_station_name, is_direct_message, filter_tube_trains
+from utils import WMBBrowser, load_database, capwords, cleanup_stop_name, cleanup_station_name, is_direct_message, filter_tube_trains, unique_values
 from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity, get_tube_station_name_similarity
 
 # Some constants we use
@@ -316,7 +317,7 @@ class WhensMyTransport:
         if message.find('thanks') > -1 or message.find('thank you') > -1:
             return ("No problem :)",)
         # The worst Easter Egg in the world
-        if message.find('venga bus') > -1 or message.find('vengabus') > -1:
+        if self.instance_name == 'whensmybus' and (message.find('venga bus') > -1 or message.find('vengabus') > -1):
             return ("The Vengabus is coming, and everybody's jumping http://bit.ly/9uGZ9C",)
 
         return ()
@@ -326,14 +327,12 @@ class WhensMyTransport:
         Send back a reply to the user; this might be a DM or might be a public reply
         """
         # Take care of over-long messages. 137 allows us breathing room for a letter D and spaces for
-        # a direct message, so split this kind of reply into two
+        # a direct message & three dots at the end, so split this kind of reply
         #
-        # FIXME May have to split over three or more?
-        #
+        # NB This trusts that there are no more than 125 or so characters in each sub-message
         if len(username) + len(reply) > 137:
-            messages = reply.split("; ", 2)
-            messages[0] = "%s..." % messages[0]
-            messages[1] = "...%s" % messages[1]
+            messages = reply.split("; ")
+            messages = [u"%s…" % messages[0]] + [u"…%s…" % message for message in messages[1:-1]] + [u"…%s" % messages[-1]]
         else:
             messages = (reply,)
 
@@ -503,7 +502,7 @@ class WhensMyTransport:
 
 
 class BusStop():
-    #pylint: disable=C0103,R0903
+    #pylint: disable=C0103,R0903,W0613
     """
     Class representing a bus stop
     """
@@ -753,6 +752,41 @@ class WhensMyBus(WhensMyTransport):
 
         return time_info
 
+class TubeStation():
+    #pylint: disable=C0103,R0903,W0613
+    """
+    Class representing a Tube station
+    """
+    def __init__(self, Name='', Code='', **kwargs):
+        self.name = Name
+        self.code = Code
+        
+class TubeTrain():
+    """
+    Class representing a Tube train
+    """
+    def __init__(self, destination, direction, departure_time, set_number, line_code, destination_code):
+        self.destination = destination
+        self.direction = direction
+        self.departure_time = departure_time
+        self.set_number = set_number
+        self.line_code = line_code
+        self.destination_code = destination_code
+
+    def __cmp__(self, other):
+        return cmp(self.departure_time, other.departure_time)
+        
+    def __eq__(self, other):
+        return self.set_number == other.set_number
+        
+    def __str__(self, other):
+        departure_time = self.departure_time and ("%smin" % self.departure_time) or "due"
+        if self.destination == "Unknown":
+            destination = "%s Train" % self.direction
+        else:
+            destination = self.destination
+        return "%s %s" % (destination, departure_time)
+
 
 class WhensMyTube(WhensMyTransport):
     """
@@ -786,9 +820,13 @@ class WhensMyTube(WhensMyTransport):
         Parse a Tweet - tokenize it, and get the line(s) specified by the user
         """
         (line_name, origin, destination) = self.tokenize_message(message)
-        # FIXME
         if line_name.lower().startswith('thank'):
             return (None, None, None)
+
+        line_name = line_name and capwords(line_name).replace(" Line", "")
+        origin = origin and capwords(origin).replace(" Station", "")
+        destination = destination and capwords(destination).replace(" Station", "")
+
         return ((line_name,), origin, destination) 
         
     def process_individual_request(self, line_name, origin, destination, position):
@@ -796,10 +834,6 @@ class WhensMyTube(WhensMyTransport):
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it
         """
-        line_name = line_name and capwords(line_name).replace(" Line", "")
-        origin = origin and capwords(origin).replace(" Station", "")
-        destination = destination and capwords(destination).replace(" Station", "")
-        
         if line_name not in self.line_lookup:
             line = get_best_fuzzy_match(line_name, self.line_lookup.values())
             if line is None:
@@ -810,28 +844,24 @@ class WhensMyTube(WhensMyTransport):
         
         # Dig out relevant station for this line from the geotag, if provided
         if position:
-            (station_name, station_code) = self.get_station_by_geolocation(line_code, position)
+            station = self.get_station_by_geolocation(line_code, position)
         # Else there will be an origin (either a number or a placename), so try parsing it properly
         else:
-            (station_name, station_code) = self.get_station_by_station_name(line_code, origin)
-        
-        # Shorten stations such as Hammersmith/Edgware Road which are disambiguated by brackets, get rid of them
-        if station_name and station_name.find('(') > -1 and station_name != "Kensington (Olympia)":
-            station_name = station_name[:station_name.find('(') - 1]
+            station = self.get_station_by_station_name(line_code, origin)
         
         # Dummy code - what do we do with destination data (?)
         if destination:
             pass
             
         # If we have a station code, go get the data for it
-        if station_code:
+        if station:
             # XXX is the code for a station that does not have data given to it
-            if station_code == "XXX":
-                raise WhensMyTransportException('tube_station_no_data', station_name)
+            if station.code == "XXX":
+                raise WhensMyTransportException('tube_station_no_data', station.name)
 
-            time_info = self.get_departure_data(line_code, station_code, station_name)
+            time_info = self.get_departure_data(line_code, station)
             if time_info:
-                return "%s %s" % (station_name, time_info)
+                return "%s %s" % (station.name, time_info)
             else:
                 raise WhensMyTransportException('no_arrival_data', line_name)
         else:
@@ -854,7 +884,6 @@ class WhensMyTube(WhensMyTransport):
                 SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
                       Name,
                       Code,
-                      Line
                 FROM locations
                 WHERE Line='%s'
                 ORDER BY dist_squared
@@ -864,54 +893,42 @@ class WhensMyTube(WhensMyTransport):
         row = self.geodata.fetchone()
         if row:
             logging.debug("Have found %s station (%s)", row['Name'], row['Code'])
-            return (row['Name'], row['Code'])
+            return TubeStation(**row)
         else:
-            return ""
+            return None
 
     def get_station_by_station_name(self, line_code, origin):
         """
         Take a line and a string specifying origin, and work out matching for that name      
         """
-
         # First off, try to get a match against bus stop names in database
         # Users may not give exact details, so we try to match fuzzily
         logging.debug("Attempting to get a match on placename %s", origin)
         self.geodata.execute("""
-                             SELECT * FROM locations WHERE Line=? OR Line='X'
+                             SELECT Name, Code FROM locations WHERE Line=? OR Line='X'
                              """, line_code)
         rows = self.geodata.fetchall()
         if rows:
             best_match = get_best_fuzzy_match(origin, rows, 'Name', get_tube_station_name_similarity)
             if best_match:
                 logging.debug("Match found! Found: %s", best_match['Name'])
-                return (best_match['Name'], best_match['Code'])
+                return TubeStation(**best_match)
 
         logging.debug("No match found for %s, sorry", origin)
-        return (None, None)
+        return None
         
-    def get_departure_data(self, line_code, station_code, station_name):
+    def get_departure_data(self, line_code, station):
         """
         Take a station ID and a line ID, and get departure data for that station
         """
-        # Check to see if a station is closed 
-        status_url = "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly"
-        status_data = self.browser.fetch_xml(status_url)
-        for station_status in status_data.getElementsByTagName('StationStatus'):
-            station_node = station_status.getElementsByTagName('Station')[0]
-            status_node = station_status.getElementsByTagName('Status')[0]
-            if station_node.getAttribute('Name') == station_name and status_node.getAttribute('Description') == 'Closed':
-                raise WhensMyTransportException('tube_station_closed', station_name, station_status.getAttribute('StatusDetails').strip().lower())
-        
-        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station_code)
+        self.check_station_is_open(station)
+        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station.code)
         tube_data = self.browser.fetch_xml(tfl_url)
-        line_name = tube_data.getElementsByTagName('LineName')[0].firstChild.data
 
-        trains_by_direction_and_destination = {}
-        
+        trains = []
+        # Go through each platform and get data about every train arriving
         for platform in tube_data.getElementsByTagName('P'):
             
-            # Make sure this matches the right line 
-            available_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and filter_tube_trains(t)]
             platform_name = platform.getAttribute('N')
             direction = re.search("(North|East|South|West)bound", platform_name, re.I)
             rail = re.search("(Inner|Outer) Rail", platform_name, re.I)
@@ -920,50 +937,72 @@ class WhensMyTube(WhensMyTransport):
             if direction:
                 direction = capwords(direction.group(0))
             elif rail:
-                self.geodata.execute("SELECT %s FROM locations WHERE Line=? AND Code=?" % rail.group(1), (line_code, station_code))
+                self.geodata.execute("SELECT %s FROM locations WHERE Line=? AND Code=?" % rail.group(1), (line_code, station.code))
                 bearing = self.geodata.fetchone()[0]
                 direction = bearing + 'bound'
-                                     
-            if direction:
-                if direction not in trains_by_direction_and_destination:
-                    trains_by_direction_and_destination[direction] = []
             else:
                 # Some odd cases. Chesham and Chalfont & Latimer have their own system
-                if station_code == "CHM":
+                if station.code == "CHM":
                     direction = "Southbound"
-                elif station_code == "CLF" and platform.getAttribute('Num') == 3:
+                elif station.code == "CLF" and platform.getAttribute('Num') == '3':
                     direction = "Northbound"
                 else:
-                    # FIXME: The following stations will have "issues": North Acton, Edgware Road, Loughton, White City
-                    continue
+                    # The following stations will have "issues" with bidrectional platforms: North Acton, Edgware Road, Loughton, White City
+                    direction = "Unknown"
 
-            for train in available_trains:
-                destination = train.getAttribute('Destination')
-                departure_time = train.getAttribute('TimeTo')
-                destination = cleanup_station_name(destination)
-                
-                # FIXME If the destination matches this station's name, ignore
-                
+            platform_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and filter_tube_trains(t)]
+            for train in platform_trains:
+                destination = cleanup_station_name(train.getAttribute('Destination'))
                 if destination == "Unknown" or destination.endswith("Train") or destination.endswith("Line"):
-                    destination = direction + " Train"
+                    destination = "Unknown"
+                # Exclude trains terminating at this station
+                elif self.get_station_by_station_name(line_code, destination):
+                    if self.get_station_by_station_name(line_code, destination).name == station.name:
+                        continue
 
+                departure_time = train.getAttribute('TimeTo')
                 if departure_time == '-' or departure_time.startswith('0'):
                     departure_time = 0
                 else:
                     departure_time = int(departure_time.split(":")[0])
-                    
-                trains_by_direction_and_destination[direction].append((destination, departure_time))
+                
+                # SetNo identifies a unique train. Sometimes this is duplicated across platforms
+                set_number = train.getAttribute('SetNo')
+                destination_code = train.getAttribute('DestCode')
+                trains.append(TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code))
 
+        # For platforms that are bidirectional, need to assign direction on a train-by-train basis, so create a reverse mapping of destination code to direction 
+        destination_to_direction = dict([(t.destination_code, t.direction) for t in trains if t.direction != "Unknown" and t.destination != "Unknown"])
+        for train in trains:
+            if train.direction == "Unknown" and train.destination_code in destination_to_direction:
+                train.direction = destination_to_direction[train.destination_code]                
+
+        # Once we have all trains, organise by direction
+        trains_by_direction = {}
+        for train in trains:
+            if train.direction != "Unknown":
+                trains_by_direction[train.direction] = trains_by_direction.get(train.direction, []).append(train)
+
+        # For each direction, display the first three unique trains, sorted in reverse time order
         message = []
-        for (direction, destinations) in trains_by_direction_and_destination.items():
-            trains_in_this_direction = []
-            for (destination, departure_time) in sorted(destinations, lambda a, b : cmp(a[1], b[1])):
-                departure_time_string = departure_time and ("%smin" % departure_time) or "due"                
-                trains_in_this_direction.append("%s %s" % (destination, departure_time_string))
+        for trains in trains_by_direction.values():
+            trains_in_this_direction = [str(train) for train in unique_values(sorted(trains)[::-1], lambda t : t.set_number)]
             message.append(', '.join(trains_in_this_direction[:3]))
-            
         return "; ".join(message)
-        
+
+    def check_station_is_open(self, station):
+        """
+        Check to see if a station is open, return True if so, throw an exception if not
+        """
+        status_url = "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly"
+        status_data = self.browser.fetch_xml(status_url)
+        for station_status in status_data.getElementsByTagName('StationStatus'):
+            station_node = station_status.getElementsByTagName('Station')[0]
+            status_node = station_status.getElementsByTagName('Status')[0]
+            if station_node.getAttribute('Name') == station.name and status_node.getAttribute('Description') == 'Closed':
+                raise WhensMyTransportException('tube_station_closed', station.name, station_status.getAttribute('StatusDetails').strip().lower())
+        return True
+
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
