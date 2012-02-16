@@ -21,6 +21,7 @@ General:
 
  - Train, Tram, DLR & Boat equivalents
  - Handle *bound directions
+ - Split this into separate files for WMT*, WMB and WMT
  
 """
 # Standard libraries of Python 2.6
@@ -581,7 +582,7 @@ class WhensMyBus(WhensMyTransport):
                 reply = "%s %s" % (route_number, "; ".join(departure_data))
                 return reply
             else: 
-                raise WhensMyTransportException('no_arrival_data', route_number)
+                raise WhensMyTransportException('no_bus_arrival_data', route_number)
         else:
             if re.match('^[0-9]{5}$', origin):
                 raise WhensMyTransportException('stop_id_not_found', route_number, origin)
@@ -774,22 +775,41 @@ class TubeTrain():
         self.destination_code = destination_code
 
     def __cmp__(self, other):
+        """
+        Return comparison value to enable sort by departure time
+        """
         return cmp(self.departure_time, other.departure_time)
         
     def __hash__(self):
+        """
+        Return hash value to enable uniqueness
+        """
         return hash('-'.join([self.set_number, self.destination_code, str(self.departure_time)]))
+
+    def __repr__(self):
+        """
+        Return representation value for this Train for debugging
+        """
+        return '(%s)' % ', '.join((self.destination, self.direction, str(self.departure_time), self.set_number, self.line_code, self.destination_code))
         
-    def __str__(self):
+    def get_departure_time(self):
+        """
+        Return this train's departure time in human format
+        """
         departure_time = self.departure_time and ("%smin" % self.departure_time) or "due"
+        return departure_time
+        
+    def get_destination(self):
+        """
+        Return this train's destination in suitably shortened format
+        """
         if self.destination == "Unknown":
             destination = "%s Train" % self.direction
         else:
             destination = self.destination
         destination = abbreviate_station_name(destination)
-        return "%s %s" % (destination, departure_time)
+        return destination
 
-    def __repr__(self):
-        return '(%s)' % ', '.join((self.destination, self.direction, str(self.departure_time), self.set_number, self.line_code, self.destination_code))
 
 class WhensMyTube(WhensMyTransport):
     """
@@ -860,13 +880,13 @@ class WhensMyTube(WhensMyTransport):
         if station:
             # XXX is the code for a station that does not have data given to it
             if station.code == "XXX":
-                raise WhensMyTransportException('tube_station_no_data', station.name)
+                raise WhensMyTransportException('tube_station_not_in_system', station.name)
 
             time_info = self.get_departure_data(line_code, station)
             if time_info:
                 return "%s to %s" % (abbreviate_station_name(station.name), time_info)
             else:
-                raise WhensMyTransportException('no_arrival_data', line_name)
+                raise WhensMyTransportException('no_tube_arrival_data', line_name, station.name)
         else:
             raise WhensMyTransportException('tube_station_name_not_found', origin, line_name)
         
@@ -984,12 +1004,20 @@ class WhensMyTube(WhensMyTransport):
                 trains_by_direction[train.direction] = trains_by_direction.get(train.direction, []) + [train]
 
         # For each direction, display the first three unique trains, sorted in time order
-        # FIXME Avoid repeating same destination again if possible
-        message = []
+        # Dictionaries alone do not preserve order, hence a list of the correct order for destinations as well
+        destinations_correct_order = []
+        train_times = {}
         for trains in trains_by_direction.values():
-            trains_in_this_direction = [str(train) for train in unique_values(sorted(trains))]
-            message.append(', '.join(trains_in_this_direction[:3]))
-        return "; ".join(message)
+            for train in unique_values(sorted(trains))[:3]:
+                destination = train.get_destination()
+                if destination in destinations_correct_order:
+                    train_times[destination].append(train.get_departure_time())
+                else:
+                    train_times[destination] = [train.get_departure_time()]
+                    destinations_correct_order.append(destination)
+
+        # This returns an empty string if no trains are due, btw
+        return '; '.join([destination + ' ' + ', '.join(train_times[destination]) for destination in destinations_correct_order])
 
     def check_station_is_open(self, station):
         """
