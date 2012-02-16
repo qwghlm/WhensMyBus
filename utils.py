@@ -173,7 +173,7 @@ def cleanup_station_name(station_name):
     if station_name in ("Unknown", "Circle and Hammersmith & City") or station_name.endswith("Train") or station_name.endswith("Line"):
         station_name = "Unknown"
     else:
-        station_name = cleanup_name_from_undesirables(station_name, ('sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', '(plat. 1)', ' loop'))
+        station_name = cleanup_name_from_undesirables(station_name, (r'\(rev to .*\)', 'sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', r'\(plat. 1\)', ' loop'))
     return station_name
 
 def abbreviate_station_name(station_name):
@@ -182,6 +182,7 @@ def abbreviate_station_name(station_name):
                       'Street' : 'St',
                       'Cross' : 'X',
                       'Broadway' : 'Bdwy',
+                      'Park' : 'Pk',
                       'Square' : 'Sq',
                       'Terminals' : 'T',
                       'Terminal' : 'T',
