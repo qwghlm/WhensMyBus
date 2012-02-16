@@ -10,7 +10,7 @@ import sys
 if sys.version_info < (2, 7):
     print "Sorry. While WhensMyBus can be run under Python 2.6, this unit testing script requires the more extensive unittest libraries in Python 2.7."
     print "Please upgrade!"
-    sys.exit(1)    
+    sys.exit(1)
 
 from whensmybus import WhensMyBus, WhensMyTube
 from exception_handling import WhensMyTransportException
@@ -359,6 +359,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
     """
     Main Test Case for When's My Tube
     """
+    # FIXME Fully flesh out these tests
     def setUp(self):
         """
         Setup test
@@ -376,8 +377,8 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                                    ('Jubilee', "Swiss Cottage"),
                                    ('Northern', "Camden Town"),
                                    ('Central', "White City"),
-                                   ('District', "Edgware Road"),
-                                   ('Hammersmith & City', "Wood Lane"),
+                                   ('Circle', "Edgware Road"),
+                                   #('Hammersmith & City', "Wood Lane"),
                                   )
         self.test_nonstandard_data = ()
 
