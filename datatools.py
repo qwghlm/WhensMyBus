@@ -14,7 +14,7 @@ from pprint import pprint
 
 # Local files
 from geotools import convertWGS84toOSGB36, LatLongToOSGrid
-from utils import WMBBrowser, load_database, capwords
+from utils import WMBBrowser, load_database
 
 def import_bus_csv_to_db():
     """
@@ -163,7 +163,9 @@ def import_tube_xml_to_db():
         else:
             for line in station['Lines']:
                 if line != 'O': 
-                    field_data = (station['Name'], station['Code'], line, str(station['Location_Easting']), str(station['Location_Northing']), station['Inner'], station['Outer'])
+                    field_data = (station['Name'], station['Code'], line,
+                    		   	  str(station['Location_Easting']), str(station['Location_Northing']),
+                    	          station['Inner'], station['Outer'])
                     rows.append(field_data)
 
     for field_data in rows:
@@ -185,9 +187,9 @@ def scrape_tfl_destination_codes():
     
     It also generates a blank CSV template for those stations with Inner/Outer Rail designations
     """
-    line_codes = ('B','C','D','H','J','M','N','P','V','W')
+    line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
     
-    (db, cursor) = load_database("whensmytube.geodata.db")
+    (database, cursor) = load_database("whensmytube.geodata.db")
     destination_summary = {}
     browser = WMBBrowser()
     
@@ -213,7 +215,7 @@ def scrape_tfl_destination_codes():
                 print "Error with mismatching destinations: %s (existing) and %s (new) with code %s" % (destination_summary[destination_code], destination, destination_code)
             
             cursor.execute("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
-            db.commit()
+            database.commit()
             
             destination_summary[destination_code] = destination
     
@@ -245,6 +247,6 @@ def scrape_tfl_destination_codes():
 
 if __name__ == "__main__":
     #import_bus_csv_to_db()
-    import_tube_xml_to_db()
+    #import_tube_xml_to_db()
     #scrape_tfl_destination_codes()
     pass
