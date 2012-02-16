@@ -146,7 +146,7 @@ def capwords(phrase):
     """
     Capitalize each word in a string. A word is defined as anything with a space separating it from the next word.   
     """
-    not_to_be_capitalized = ('via',)
+    not_to_be_capitalized = ('via', 'CX')
     capitalized = ' '.join([s in not_to_be_capitalized and s or s.capitalize() for s in phrase.split(' ')])
     return capitalized
         
@@ -154,24 +154,43 @@ def cleanup_name_from_undesirables(name, undesirables):
     """
     Clean out every word in the iterable undesirables from the name supplied, and capitalise
     """
-    name = name.upper()
     for undesirable in undesirables:
-        name = name.replace(undesirable.upper(), '')
-    name = re.sub(r' +', ' ', name)
-    return capwords(name.strip())
+        name = re.sub(undesirable, '', name, flags=re.I)
+    name = re.sub(r' +', ' ', name.strip())
+    return capwords(name)
 
 def cleanup_stop_name(stop_name):
     """
     Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from a string, and capitalise all words
     """
-    return cleanup_name_from_undesirables(stop_name, ('<>', '#', '[DLR]', '>T<'))
+    return cleanup_name_from_undesirables(stop_name, ('<>', '#', r'\[DLR\]', '>T<'))
     
 def cleanup_station_name(station_name):
     """
-    Get rid of TfL's odd designations
+    Get rid of TfL's odd designations to make it compatible with our list of stations in the database
     """
-    return cleanup_name_from_undesirables(station_name, ('sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', '(plat. 1)', ' loop '))
-    
+    # FIXME Cross-check this with existing results from the data scrape
+    if station_name in ("Unknown", "Circle and Hammersmith & City") or station_name.endswith("Train") or station_name.endswith("Line"):
+        station_name = "Unknown"
+    else:
+        station_name = cleanup_name_from_undesirables(station_name, ('sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', '(plat. 1)', ' loop'))
+    return station_name
+
+def abbreviate_station_name(station_name):
+    punctuation = (r'\.', ', ')
+    abbreviations = { 'Road' : 'Rd',
+                      'Street' : 'St',
+                      'Cross' : 'X',
+                      'Broadway' : 'Bdwy',
+                      'Square' : 'Sq',
+                      'Terminals' : 'T',
+                      'Terminal' : 'T',
+                      'Pancras' : 'P',
+    }
+    station_name = cleanup_name_from_undesirables(station_name, punctuation)
+    station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
+    return station_name
+
 def filter_tube_trains(tube_xml_node):
     """
     Filter function for TfL's tube train XML tags, to get rid of misleading or bogus trains
@@ -193,21 +212,21 @@ def filter_tube_trains(tube_xml_node):
         
     return True
     
-# List utils 
-def unique_values(seq, idfun=lambda a:a):
+# List utils
+
+def unique_values(seq):
     """
     Return unique values of sequence seq, according to ID function idfun. From http://www.peterbe.com/plog/uniqifiers-benchmark
     """
     seen = {} 
     result = [] 
     for item in seq: 
-        marker = idfun(item)
-        if marker in seen:
+        if item in seen:
             continue 
-        seen[marker] = 1 
+        seen[item] = 1 
         result.append(item) 
     return result
 
 if __name__ == "__main__":
-    #make_oauth_key()
+    make_oauth_key()
     pass

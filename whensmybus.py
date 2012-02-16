@@ -41,7 +41,7 @@ import tweepy
 # From other modules in this package
 from geotools import convertWGS84toOSGrid, YahooGeocoder, heading_to_direction
 from exception_handling import WhensMyTransportException
-from utils import WMBBrowser, load_database, capwords, cleanup_stop_name, cleanup_station_name, is_direct_message, filter_tube_trains, unique_values
+from utils import WMBBrowser, load_database, capwords, cleanup_stop_name, cleanup_station_name, is_direct_message, filter_tube_trains, unique_values, abbreviate_station_name
 from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity, get_tube_station_name_similarity
 
 # Some constants we use
@@ -776,17 +776,20 @@ class TubeTrain():
     def __cmp__(self, other):
         return cmp(self.departure_time, other.departure_time)
         
-    def __eq__(self, other):
-        return self.set_number == other.set_number
+    def __hash__(self):
+        return hash('-'.join([self.set_number, self.destination_code, str(self.departure_time)]))
         
-    def __str__(self, other):
+    def __str__(self):
         departure_time = self.departure_time and ("%smin" % self.departure_time) or "due"
         if self.destination == "Unknown":
             destination = "%s Train" % self.direction
         else:
             destination = self.destination
+        destination = abbreviate_station_name(destination)
         return "%s %s" % (destination, departure_time)
 
+    def __repr__(self):
+        return '(%s)' % ', '.join((self.destination, self.direction, str(self.departure_time), self.set_number, self.line_code, self.destination_code))
 
 class WhensMyTube(WhensMyTransport):
     """
@@ -861,7 +864,7 @@ class WhensMyTube(WhensMyTransport):
 
             time_info = self.get_departure_data(line_code, station)
             if time_info:
-                return "%s %s" % (station.name, time_info)
+                return "%s to %s" % (abbreviate_station_name(station.name), time_info)
             else:
                 raise WhensMyTransportException('no_arrival_data', line_name)
         else:
@@ -953,10 +956,7 @@ class WhensMyTube(WhensMyTransport):
             platform_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and filter_tube_trains(t)]
             for train in platform_trains:
                 destination = cleanup_station_name(train.getAttribute('Destination'))
-                if destination == "Unknown" or destination.endswith("Train") or destination.endswith("Line"):
-                    destination = "Unknown"
-                # Exclude trains terminating at this station
-                elif self.get_station_by_station_name(line_code, destination):
+                if self.get_station_by_station_name(line_code, destination):
                     if self.get_station_by_station_name(line_code, destination).name == station.name:
                         continue
 
@@ -981,12 +981,13 @@ class WhensMyTube(WhensMyTransport):
         trains_by_direction = {}
         for train in trains:
             if train.direction != "Unknown":
-                trains_by_direction[train.direction] = trains_by_direction.get(train.direction, []).append(train)
+                trains_by_direction[train.direction] = trains_by_direction.get(train.direction, []) + [train]
 
-        # For each direction, display the first three unique trains, sorted in reverse time order
+        # For each direction, display the first three unique trains, sorted in time order
+        # FIXME Avoid repeating same destination again if possible
         message = []
         for trains in trains_by_direction.values():
-            trains_in_this_direction = [str(train) for train in unique_values(sorted(trains)[::-1], lambda t : t.set_number)]
+            trains_in_this_direction = [str(train) for train in unique_values(sorted(trains))]
             message.append(', '.join(trains_in_this_direction[:3]))
         return "; ".join(message)
 
