@@ -28,15 +28,16 @@ class WhensMyTransportException(Exception):
         
         # WhensMyBus Non-Fatal errors
         'nonexistent_bus' : "I couldn't recognise the number you gave me (%s) as a London bus",     
-        'no_arrival_data' : "There's no data from TfL for the %s - most likely no bus is due",
         'stop_name_not_found' : "I couldn't find any bus stops on the %s route by that name (%s)",
         'stop_id_not_found'  : "The %s route doesn't call at the stop with ID %s",
+        'no_bus_arrival_data' : "There aren't any %s buses currently shown for your stop",
                 
-        # Tube stuff
+        # Tube errors
         'nonexistent_line' : "I couldn't recognise that line (%s) as a Tube line",
-        'tube_station_no_data' : "TfL don't provide live departure data for %s station :(",
+        'tube_station_not_in_system' : "TfL don't provide live departure data for %s station :(",
         'tube_station_name_not_found' : "I couldn't recognise that station (%s) as being on the %s line",
-        'tube_station_closed' : "%s station is closed %s",
+        'tube_station_closed' : "%s station is currently closed %s",
+        'no_tube_arrival_data' : "There aren't any %s Line trains currently shown for %s station",
     }
     
     def __init__(self, msgid, *string_params):

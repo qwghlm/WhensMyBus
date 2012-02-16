@@ -378,7 +378,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                                    ('Northern', "Camden Town"),
                                    ('Central', "White City"),
                                    ('Circle', "Edgware Road"),
-                                   #('Hammersmith & City', "Wood Lane"),
+                                   ('Waterloo & City', "Bank"),
                                   )
         self.test_nonstandard_data = ()
 
@@ -412,7 +412,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         message = 'Metropolitan Line from Preston Road'
         tweet = FakeTweet(self.at_reply + message) 
-        self._test_correct_exception_produced(tweet, 'tube_station_no_data', 'Preston Road')
+        self._test_correct_exception_produced(tweet, 'tube_station_not_in_system', 'Preston Road')
 
     def test_station_line_mismatch(self):
         """
