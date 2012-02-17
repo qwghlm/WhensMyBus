@@ -74,7 +74,7 @@ class WhensMyTransport:
             sys.exit(1)
 
         self.admin_name = config.get(self.instance_name, 'admin_name')
-
+        
         debug_level = config.get(self.instance_name, 'debug_level')
         self.setup_logging(silent_mode, debug_level)
         
@@ -115,7 +115,7 @@ class WhensMyTransport:
         Set up some logging for this instance
         """
         if len(logging.getLogger('').handlers) == 0:
-            logging.basicConfig(level=self.log_debug, filename=os.devnull)
+            logging.basicConfig(level=logging.DEBUG, filename=os.devnull)
 
             # Logging to stdout shows info or debug level depending on user config file. Setting silent to True will override either
             if silent_mode:
@@ -129,7 +129,7 @@ class WhensMyTransport:
             # Set up some proper logging to file that catches debugs
             logfile = os.path.abspath('%s/logs/%s.log' % (HOME_DIR, self.instance_name))
             rotator = logging.handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
-            rotator.setLevel(self.log_debug)
+            rotator.setLevel(logging.DEBUG)
             rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
             logging.getLogger('').addHandler(console)
             logging.getLogger('').addHandler(rotator)
