@@ -167,15 +167,15 @@ def import_tube_xml_to_db():
             for line in station['Lines']:
                 if line != 'O': 
                     field_data = (station['Name'], station['Code'], line,
-                                     str(station['Location_Easting']), str(station['Location_Northing']),
+                                  str(station['Location_Easting']), str(station['Location_Northing']),
                                   station['Inner'], station['Outer'])
                     rows.append(field_data)
-
 
         abbreviated_name = abbreviate_station_name(station_name)
         name_lengths.append((abbreviated_name, len(abbreviated_name)))
             
     print "Long names:"
+    for long_name in sorted(name_lengths, lambda a, b: -cmp(a[1], b[1]))[:20]:
         print long_name
     print "Average value: %3f" % (sum([length for (name, length) in name_lengths]) / float(len(name_lengths)))
 
@@ -188,7 +188,6 @@ def import_tube_xml_to_db():
     tempf.write(sql)
     tempf.flush()
     print subprocess.check_output(["sqlite3", "./db/whensmytube.geodata.db"], stdin=open(tempf.name))
-
 
 def scrape_tfl_destination_codes(write_file=False):
     """
