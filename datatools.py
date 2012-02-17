@@ -17,6 +17,7 @@ from pprint import pprint
 # Local files
 from geotools import convertWGS84toOSGB36, LatLongToOSGrid
 from utils import WMBBrowser, load_database
+from whensmytube import abbreviate_station_name
 
 def import_bus_csv_to_db():
     """
@@ -152,7 +153,7 @@ def import_tube_xml_to_db():
             print "Cannot find %s from circle_platform_data in geodata!" % name
         
     rows = []
-       
+    name_lengths = []
     for station in stations.values():
         station_name = station['Name']
         # Shorten stations such as Hammersmith/Edgware Road which are disambiguated by brackets, get rid of them
@@ -169,6 +170,15 @@ def import_tube_xml_to_db():
                                      str(station['Location_Easting']), str(station['Location_Northing']),
                                   station['Inner'], station['Outer'])
                     rows.append(field_data)
+
+
+        abbreviated_name = abbreviate_station_name(station_name)
+        name_lengths.append((abbreviated_name, len(abbreviated_name)))
+            
+    print "Long names:"
+    for long_name in sorted(name_lengths, lambda a,b: -cmp(a[1], b[1]))[:20]:
+        print long_name
+    print "Average value: %3f" % (sum([length for (name, length) in name_lengths]) / float(len(name_lengths)))
 
     for field_data in rows:
         sql += "insert into locations values "
@@ -262,12 +272,8 @@ def scrape_tfl_destination_codes(write_file=False):
 
     outputfile.close()
 
-def test_abbreviation_method():
-    # Test the abbreviation method
-    pass
-
 if __name__ == "__main__":
     #import_bus_csv_to_db()
-    #import_tube_xml_to_db()
-    scrape_tfl_destination_codes()
+    import_tube_xml_to_db()
+    #scrape_tfl_destination_codes()
     pass

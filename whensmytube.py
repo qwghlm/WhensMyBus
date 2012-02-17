@@ -12,7 +12,7 @@ Released under the MIT License
 
 Things to do:
  - Review & update all documentation
- - Review all logging
+ - Review all logging and make sure consistent with WhensMyBus
 
 """
 # Standard libraries of Python 2.6
@@ -317,7 +317,6 @@ def cleanup_station_name(station_name):
     """
     Get rid of TfL's odd designations to make it compatible with our list of stations in the database
     """
-    # TODO Cross-check this with existing results from the data scrape
     if station_name in ("Unknown", "Circle and Hammersmith & City") or station_name.endswith("Train") or station_name.endswith("Line"):
         station_name = "Unknown"
     else:
@@ -329,19 +328,40 @@ def abbreviate_station_name(station_name):
     """
     Take an official station name and abbreviate it to make it fit on Twitter better
     """
-    punctuation = (r'\.', ', ')
-    abbreviations = { 'Road' : 'Rd',
-                      'Street' : 'St',
-                      'Cross' : 'X',
-                      'Broadway' : 'Bdwy',
-                      'Park' : 'Pk',
-                      'Square' : 'Sq',
-                      'Terminals' : 'T',
-                      'Terminal' : 'T',
-                      'Pancras' : 'P',
+    translations = {
+        "High Street Kensington" : "High St Ken",
+        "King's Cross St. Pancras" : "Kings X St P",
+        "Kensington (Olympia)" : "Olympia",
     }
-    station_name = cleanup_name_from_undesirables(station_name, punctuation)
+    punctuation_to_remove = (r'\.', ', ', r'\(', r'\)', "'",)
+    abbreviations = {
+        'Bridge' : 'Br',
+        'Broadway' : 'Bdwy',
+        'Central' : 'Ctrl',
+        'Court' : 'Ct',
+        'Cross' : 'X',
+        'Crescent' : 'Cresc',
+        'East' : 'E',
+        'Gardens' : 'Gdns',
+        'Green' : 'Grn',
+        'Heathway' : 'Hthwy',
+        'Junction' : 'Jct',
+        'Market' : 'Mkt',
+        'North' : 'N',
+        'Park' : 'Pk',
+        'Road' : 'Rd',
+        'South' : 'S',
+        'Square' : 'Sq',
+        'Street' : 'St',
+        'Terminal' : 'T',
+        'Terminals' : 'T',
+        'West' : 'W',
+    }   
+    station_name = translations.get(station_name, station_name)
+    station_name = cleanup_name_from_undesirables(station_name, punctuation_to_remove)
     station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
+    if station_name.find('&') > -1:
+        station_name = station_name[:station_name.find('&')+2]
     return station_name
 
 def filter_tube_trains(tube_xml_node):
@@ -365,6 +385,6 @@ def filter_tube_trains(tube_xml_node):
     return True
     
 if __name__ == "__main__":
-    WMT = WhensMyTube(testing=True)
+    WMT = WhensMyTube(testing=True) # FIXME :)
     WMT.check_tweets()
     WMT.check_followers()
