@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#pylint: disable=W0703,W0107
 """
 Data importing tools for WhensMyTransport - import TfL's data into an easier format for us to use
 """
@@ -6,6 +7,7 @@ Data importing tools for WhensMyTransport - import TfL's data into an easier for
 import csv
 import os
 import re
+import sys
 import subprocess
 import tempfile
 
@@ -164,8 +166,8 @@ def import_tube_xml_to_db():
             for line in station['Lines']:
                 if line != 'O': 
                     field_data = (station['Name'], station['Code'], line,
-                    		   	  str(station['Location_Easting']), str(station['Location_Northing']),
-                    	          station['Inner'], station['Outer'])
+                                     str(station['Location_Easting']), str(station['Location_Northing']),
+                                  station['Inner'], station['Outer'])
                     rows.append(field_data)
 
     for field_data in rows:
@@ -179,7 +181,7 @@ def import_tube_xml_to_db():
     print subprocess.check_output(["sqlite3", "./db/whensmytube.geodata.db"], stdin=open(tempf.name))
 
 
-def scrape_tfl_destination_codes():
+def scrape_tfl_destination_codes(write_file=False):
     """
     An experimental script that takes current Tube data from TfL, scrapes it to find every possible existing
     platform, destination code and destination name, and puts it into a database to help with us producing
@@ -193,12 +195,9 @@ def scrape_tfl_destination_codes():
     destination_summary = {}
     browser = WMBBrowser()
     
-    outputfile = open('./sourcedata/circle_platform_data.csv', 'w')
-    writer = csv.writer(outputfile)
-    writer.writerow(['Station Code', 'Inner Rail', 'Outer Rail'])
-    
     station_platforms = {}
     
+    print "Platforms without a Inner/Outer Rail specification:"
     for line_code in line_codes:
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
         try:
@@ -212,7 +211,8 @@ def scrape_tfl_destination_codes():
             destination_code = train.getAttribute('D')
             
             if destination_summary.get(destination_code, destination) != destination and destination_code != '0':
-                print "Error with mismatching destinations: %s (existing) and %s (new) with code %s" % (destination_summary[destination_code], destination, destination_code)
+                print "Error - mismatching destinations: %s (existing) and %s (new) with code %s" \
+                      % (destination_summary[destination_code], destination, destination_code)
             
             cursor.execute("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
             database.commit()
@@ -220,7 +220,7 @@ def scrape_tfl_destination_codes():
             destination_summary[destination_code] = destination
     
         for station in train_data.getElementsByTagName('S'):
-            station_name = station.getAttribute('Code') + ',' + station.getAttribute('N')
+            station_name = station.getAttribute('Code') + ',' + station.getAttribute('N')[:-1]
             
             for platform in station.getElementsByTagName('P'):
                 platform_name = platform.getAttribute('N')
@@ -236,9 +236,17 @@ def scrape_tfl_destination_codes():
                 if direction is None and rail is None:
                     print "%s %s" % (station_name, platform_name)
         
+    print ""
+    if write_file:
+        outputfile = open('./sourcedata/circle_platform_data.csv', 'w')
+    else:
+        outputfile = sys.stdout
+        
+    writer = csv.writer(outputfile)
+    writer.writerow(['Station Code', 'Station Name', 'Line Code', 'Inner Rail', 'Outer Rail'])
     for name in sorted(station_platforms.keys()):
         for code in sorted(station_platforms[name]):
-            writer.writerow(name.split(',') + ['', ''])
+            writer.writerow(name.split(',') + [code, '', ''])
             
     outputfile.flush()
     outputfile.close()
@@ -248,5 +256,5 @@ def scrape_tfl_destination_codes():
 if __name__ == "__main__":
     #import_bus_csv_to_db()
     #import_tube_xml_to_db()
-    #scrape_tfl_destination_codes()
+    scrape_tfl_destination_codes()
     pass
