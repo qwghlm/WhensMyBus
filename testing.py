@@ -427,7 +427,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                 "%s line from %s to %s" % (line, origin_name, destination_name),
             ) # TODO Make this nicer like the bus ones
 
-            for message in test_messages[:1]:
+            for message in test_messages:
                 message = self.at_reply + message
                 if message.find('from') == -1:
                     tweet = FakeTweet(message, (lon, lat))
