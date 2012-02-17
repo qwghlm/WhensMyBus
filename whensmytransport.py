@@ -21,8 +21,7 @@ General:
 
  - Train, Tram, DLR & Boat equivalents
  - Handle *bound directions
- - Version checking
- - Handle non-standard
+ - Fix Lat/lon confusion
  
 """
 # Standard libraries of Python 2.6
