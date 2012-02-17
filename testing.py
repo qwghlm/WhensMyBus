@@ -443,9 +443,9 @@ def run_tests():
     """
     Run a suite of tests for When's My Transport
     """
-    parser = argparse.ArgumentParser("Unit testing for When's My Transport?")
-    parser.add_argument("--dologin", dest="dologin", action="store_true", default=False) 
-    parser.add_argument("-c", dest="test_case_name", action="store", default="WhensMyTube") 
+    parser = argparse.ArgumentParser(description="Unit testing for When's My Transport?")
+    parser.add_argument("test_case_name", action="store", default="", help="Name of the class to test (e.g. WhensMyBus, WhensMyTube)") 
+    parser.add_argument("--dologin", dest="dologin", action="store_true", default=False, help="Force check of databases and logins") 
     
     test_case_name = parser.parse_args().test_case_name
 
@@ -461,17 +461,14 @@ def run_tests():
         stop_errors = ('bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',)
         failures = format_errors + geotag_errors + bus_errors + stop_errors
         successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
-
     elif test_case_name == "WhensMyTube":
         tube_errors = ('bad_line_name',)
         station_errors = ('missing_station_data', 'station_line_mismatch')
-        failures = tube_errors + station_errors + format_errors + geotag_errors
+        failures = format_errors + geotag_errors + tube_errors + station_errors
         successes = ('standard_messages',)
     else:
         print "Error - %s is not a valid Test Case Name" % test_case_name
         sys.exit(1)    
-
-    # FIXME Test to see if WMB is correctly configured...
 
     if parser.parse_args().dologin:
         test_names = init + failures + successes
