@@ -13,7 +13,7 @@ Released under the MIT License
 Things to do:
  - Create a Bus object?
  - Review & update all documentation
- - Review all logging
+ - Review all logging and make sure consistent with WhensMyTube
 
 """
 # Standard libraries of Python 2.6
