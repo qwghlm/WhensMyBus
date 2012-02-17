@@ -105,23 +105,29 @@ class WhensMyTube(WhensMyTransport):
             'Victoria',
             'Waterloo & City',
         )
-        # Handle abbreviated three-letter versions (e.g. "Met") plus one-word versions
-        line_tuples = [(name, name) for name in line_names] + [(name[:3], name) for name in line_names] + [(name.split(' ')[0], name) for name in line_names]
+        line_tuples = [(name, name) for name in line_names] + [('Circle', 'Hammersmith & Circle'), ('Hammersmith & City', 'Hammersmith & Circle')]
+        # Handle abbreviated three-letter versions and sort out ampersands
+        line_tuples += [(name[:3], name) for name in line_names]
+        line_tuples += [(name.replace("&", "and"), name) for name in line_names]
+        line_tuples += [('W&C', 'Waterloo & City'), ('H&C', 'Hammersmith & Circle',)]
         self.line_lookup = dict(line_tuples)
-        self.line_lookup['Circle'] = 'Hammersmith & Circle'
-        self.line_lookup['Hammersmith & City'] = 'Hammersmith & Circle'
+
+        # Regex used by tokenize_message
+        tube_line_words = unique_values([word for line_name in line_names for word in line_name.split(' ')]) + ["Line", "and"]
+        self.tube_line_regex = "(%s)" % "|".join(tube_line_words)
+
         
     def parse_message(self, message):
         """
         Parse a Tweet - tokenize it, and get the line(s) specified by the user
         """
-        (line_name, origin, destination) = self.tokenize_message(message)
+        (line_name, origin, destination) = self.tokenize_message(message, self.tube_line_regex)
         if line_name.lower().startswith('thank'):
             return (None, None, None)
 
-        line_name = line_name and capwords(line_name).replace(" Line", "")
-        origin = origin and capwords(origin).replace(" Station", "")
-        destination = destination and capwords(destination).replace(" Station", "")
+        line_name = line_name and re.sub(" Line", "", line_name, flags=re.I)
+        origin = origin and re.sub(" Station", "", origin, flags=re.I)
+        destination = destination and re.sub(" Station", "", destination, flags=re.I)
 
         return ((line_name,), origin, destination) 
         
