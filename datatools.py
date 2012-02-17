@@ -220,7 +220,9 @@ def scrape_tfl_destination_codes(write_file=False):
             destination_summary[destination_code] = destination
     
         for station in train_data.getElementsByTagName('S'):
-            station_name = station.getAttribute('Code') + ',' + station.getAttribute('N')[:-1]
+            station_code = station.getAttribute('Code')[:3]
+            station_name = station.getAttribute('N')[:-1]
+            station_name = station_name.replace(" Circle", "")
             
             for platform in station.getElementsByTagName('P'):
                 platform_name = platform.getAttribute('N')
@@ -228,10 +230,10 @@ def scrape_tfl_destination_codes(write_file=False):
                 if direction is None:
                     rail = re.search("(Inner|Outer) Rail", platform_name, re.I)
                     if rail:
-                        if station_name not in station_platforms:
-                            station_platforms[station_name] = []
-                        if line_code not in station_platforms[station_name]:
-                            station_platforms[station_name].append(line_code)
+                        if (station_name, station_code) not in station_platforms:
+                            station_platforms[(station_name, station_code)] = []
+                        if line_code not in station_platforms[(station_name, station_code)]:
+                            station_platforms[(station_name, station_code)].append(line_code)
                 
                 if direction is None and rail is None:
                     print "%s %s" % (station_name, platform_name)
@@ -244,14 +246,25 @@ def scrape_tfl_destination_codes(write_file=False):
         
     writer = csv.writer(outputfile)
     writer.writerow(['Station Code', 'Station Name', 'Line Code', 'Inner Rail', 'Outer Rail'])
-    for name in sorted(station_platforms.keys()):
-        for code in sorted(station_platforms[name]):
-            writer.writerow(name.split(',') + [code, '', ''])
+    errors = []
+    for (station_name, station_code) in sorted(station_platforms.keys()):
+        for line_code in sorted(station_platforms[(station_name, station_code)]):
+            writer.writerow([station_code, station_name, line_code, '', ''])
+        cursor.execute("SELECT Name FROM locations WHERE Name=?", (station_name,))
+        if not cursor.fetchone():
+            errors.append("%s is not in the station database" % station_name)
             
     outputfile.flush()
-    outputfile.close()
     
-    # TODO Cross-reference this with the existing station database to find anomalous entries
+    print ""
+    for error in errors:
+        print error
+
+    outputfile.close()
+
+def test_abbreviation_method():
+    # Test the abbreviation method
+    pass
 
 if __name__ == "__main__":
     #import_bus_csv_to_db()
