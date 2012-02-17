@@ -12,7 +12,8 @@ if sys.version_info < (2, 7):
     print "Please upgrade!"
     sys.exit(1)
 
-from whensmybus import WhensMyBus, WhensMyTube
+from whensmybus import WhensMyBus
+from whensmytube import WhensMyTube
 from exception_handling import WhensMyTransportException
 
 import argparse
@@ -436,7 +437,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
                 results = self.bot.process_tweet(tweet)
                 for result in results:
-                    self._test_correct_successes(result, line, origin_name, False)
+                    self._test_correct_successes(result, line, expected_origin, False)
 
 def run_tests(): 
     """
@@ -464,9 +465,13 @@ def run_tests():
     elif test_case_name == "WhensMyTube":
         tube_errors = ('bad_line_name',)
         station_errors = ('missing_station_data', 'station_line_mismatch')
-        
         failures = tube_errors + station_errors + format_errors + geotag_errors
         successes = ('standard_messages',)
+    else:
+        print "Error - %s is not a valid Test Case Name" % test_case_name
+        sys.exit(1)    
+
+    # FIXME Test to see if WMB is correctly configured...
 
     if parser.parse_args().dologin:
         test_names = init + failures + successes
