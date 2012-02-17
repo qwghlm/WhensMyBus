@@ -316,12 +316,12 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             test_variables = dict([(name, eval(name)) for name in ('route', 'origin_name', 'origin_id', 'destination_name', 'destination_id')])
 
             # 5 types of origin (geotag, ID, name, ID without 'from', name without 'from') and 3 types of destination (none, ID, name)
-            from_fragments = ("", " from %(origin_name)s",    " from %(origin_id)s", " %(origin_name)s", " %(origin_id)s")
-            to_fragments =   ("", " to %(destination_name)s", " to %(destination_id)s")
+            from_fragments = [value % test_variables for value in ("", " from %(origin_name)s",    " from %(origin_id)s", " %(origin_name)s", " %(origin_id)s")]
+            to_fragments =   [value % test_variables for value in ("", " to %(destination_name)s", " to %(destination_id)s")]
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
-                    message = (self.at_reply + route + from_fragment + to_fragment) % test_variables
+                    message = (self.at_reply + route + from_fragment + to_fragment)
                     if not from_fragment:
                         tweet = FakeTweet(message, (lon, lat))
                     else:
@@ -421,23 +421,24 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Generic test for standard-issue messages
         """
+        #pylint: disable=W0612
         for (line, origin_name, lat, lon, destination_name, expected_origin) in self.test_standard_data:
         
             # C-string format helper
-            test_variables = dict([(name, eval(name)) for name in ('line', 'origin_name', 'destination_name')])
+            test_variables = dict([(name, eval(name)) for name in ('line', 'origin_name', 'destination_name', 'line')])
 
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
-            from_fragments = ("", " from %(origin_name)s", " %(origin_name)s")
-            to_fragments =   ("", " to %(destination_name)s")
-            line_fragments = (line, "%s Line" % line,)
+            from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
+            to_fragments =   [value % test_variables for value in ("", " to %(destination_name)s")]
+            line_fragments = [value % test_variables for value in ("%(line)s", "%(line)s Line")]
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
                     for line_fragment in line_fragments:
-                        message = (self.at_reply + line_fragment + from_fragment + to_fragment) % test_variables # TODO % these beforehand?
+                        message = (self.at_reply + line_fragment + from_fragment + to_fragment)
                         
                         # FIXME We have to skip any request like "Victoria Victoria" or "Waterloo & City Waterloo" as parser can't tell the difference
-                        if from_fragment and line_fragment.find((from_fragment % test_variables).strip()) > -1:
+                        if from_fragment and line_fragment.find(from_fragment.strip()) > -1:
                             continue
                         
                         if not from_fragment:
