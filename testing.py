@@ -369,16 +369,16 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.geodata_table_names = ('locations', )
         
         self.test_standard_data = (
-                                   #('District', 'Mile End', -0.033, 51.525, 'Upminster', 'Mile End'),
-                                   #('Hammersmith', 'Mile End', -0.033, 51.525, 'Kings Cross', 'Mile End'),
-                                   ('Metropolitan', 'Kings Cross'),
-                                   ('District', "Earl's Court"),
-                                   ('Piccadilly', "Acton Town"),
-                                   ('Jubilee', "Swiss Cottage"),
-                                   ('Northern', "Camden Town"),
-                                   ('Central', "White City"),
-                                   ('Circle', "Edgware Road"),
-                                   ('Waterloo & City', "Bank"),
+                                   ('District', 'Mile End', 51.525, -0.033, "Tower Hill", 'Mile End'),
+                                   ('Hammersmith', 'Mile End', 51.525, -0.033, "Liverpool Street", 'Mile End'),
+                                   ('Metropolitan', 'Kings Cross', 51.5309, -0.1233, "Uxbridge", "King's X St P"),
+                                   ('District', "Earl's Court", 51.4913, -0.1947, "Edgware Road", "Earl's Court"),
+                                   ('Piccadilly', "Acton Town", 51.5028, -0.28, "Arsenal", "Acton Town"),
+                                   ('Jubilee', "Swiss Cottage", 51.5431, -0.1747, "West Ham", "Swiss Cottage"),
+                                   ('Northern', "Camden Town", 51.5394, -0.1427, "Morden", "Camden Town"),
+                                   ('Central', "White City", 51.5121, -0.2246, "Ruislip Gardens", "White City"),
+                                   ('Circle', "Edgware Road", 51.52, -0.167778, "Moorgate", "Edgware Rd"),
+                                   ('Waterloo & City', "Bank", 51.513, -0.088, "Waterloo", "Bank"),
                                   )
         self.test_nonstandard_data = ()
 
@@ -387,16 +387,8 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         Generic test to confirm message is being produced correctly
         """
         self.assertNotEqual(result, result.upper())
-        #self.assertRegexpMatches(result, r"(%s to .* (due|[0-9]{1,2}min)|None shown \w+bound)" % expected_origin)
-        
+        self.assertRegexpMatches(result, r"(%s to .* (due|[0-9]{1,2}min)|There aren't any %s Line trains)" % (expected_origin, routes_specified))        
         print result
-        
-        # We should get two results and hence a semi-colon separating them, if this is not from a specific stop
-        #if destination_not_specified:
-        #    self.assertRegexpMatches(result, ';')
-        #else:
-        #   self.assertNotRegexpMatches(result, ';')
-
 
     def test_bad_line_name(self):
         """
@@ -426,15 +418,14 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Generic test for standard-issue messages
         """
-        for (line, origin_name) in self.test_standard_data:
-        #for (line, origin_name, lon, lat, destination_name, expected_origin) in self.test_standard_data:
+        for (line, origin_name, lat, lon, destination_name, expected_origin) in self.test_standard_data:
         
             test_messages = (
-                #"%s line"               % (line),
+                "%s line"               % (line),
                 "%s line from %s"       % (line, origin_name),
-                #"%s line to %s"         % (line, destination_name),
-                #"%s line from %s to %s" % (line, origin_name, destination_name),
-            )
+                "%s line to %s"         % (line, destination_name),
+                "%s line from %s to %s" % (line, origin_name, destination_name),
+            ) # TODO Make this nicer like the bus ones
 
             for message in test_messages[:1]:
                 message = self.at_reply + message

@@ -906,7 +906,7 @@ class WhensMyTube(WhensMyTransport):
         query = """
                 SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
                       Name,
-                      Code,
+                      Code
                 FROM locations
                 WHERE Line='%s'
                 ORDER BY dist_squared
