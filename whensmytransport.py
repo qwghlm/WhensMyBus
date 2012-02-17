@@ -21,7 +21,8 @@ General:
 
  - Train, Tram, DLR & Boat equivalents
  - Handle *bound directions
- - Split this into separate files for WMT*, WMB and WMT
+ - Version checking
+ - Handle non-standard
  
 """
 # Standard libraries of Python 2.6
@@ -51,7 +52,7 @@ class WhensMyTransport:
     """
     Parent class for all WhensMy* bots, with common functions shared by all
     """
-    def __init__(self, instance_name, testing=None, silent=False):
+    def __init__(self, instance_name, testing=None, silent_mode=False):
         """
         Read config and set up logging, settings database, geocoding and Twitter OAuth       
         """
@@ -74,35 +75,16 @@ class WhensMyTransport:
 
         self.admin_name = config.get(self.instance_name, 'admin_name')
 
-        # Set up some logging
-        if len(logging.getLogger('').handlers) == 0:
-            logging.basicConfig(level=logging.DEBUG, filename=os.devnull)
-
-            # Logging to stdout shows info or debug level depending on user config file. Setting silent to True will override either
-            if silent:
-                console_output = open(os.devnull, 'w')
-            else:
-                console_output = sys.stdout
-            console = logging.StreamHandler(console_output)
-            console.setLevel(logging.__dict__[config.get(self.instance_name, 'debug_level')])
-            console.setFormatter(logging.Formatter('%(message)s'))
-
-            # Set up some proper logging to file that catches debugs
-            logfile = os.path.abspath('%s/logs/%s.log' % (HOME_DIR, self.instance_name))
-            rotator = logging.handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
-            rotator.setLevel(logging.DEBUG)
-            rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
-            logging.getLogger('').addHandler(console)
-            logging.getLogger('').addHandler(rotator)
-            logging.debug("Initializing...")
-
+        debug_level = config.get(self.instance_name, 'debug_level')
+        self.setup_logging(silent_mode, debug_level)
+        
         if testing is not None:
             self.testing = testing
         else:
             self.testing = config.get(self.instance_name, 'test_mode')
         
         if self.testing:
-            logging.info("In TEST MODE - No Tweets will be made!")
+            self.log_info("In TEST MODE - No Tweets will be made!")
 
         # Load up the databases for geodata & settings
         (_notused, self.geodata) = load_database('%s.geodata.db' % self.instance_name)
@@ -119,7 +101,7 @@ class WhensMyTransport:
         
         # OAuth on Twitter
         self.username = config.get(self.instance_name,'username')
-        logging.debug("Authenticating with Twitter")
+        self.log_debug("Authenticating with Twitter")
         consumer_key = config.get(self.instance_name, 'consumer_key')
         consumer_secret = config.get(self.instance_name, 'consumer_secret')
         key = config.get(self.instance_name, 'key')
@@ -127,6 +109,43 @@ class WhensMyTransport:
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(key, secret)        
         self.api = tweepy.API(auth)
+
+    def setup_logging(self, silent_mode, debug_level):
+        """
+        Set up some logging for this instance
+        """
+        if len(logging.getLogger('').handlers) == 0:
+            logging.basicConfig(level=self.log_debug, filename=os.devnull)
+
+            # Logging to stdout shows info or debug level depending on user config file. Setting silent to True will override either
+            if silent_mode:
+                console_output = open(os.devnull, 'w')
+            else:
+                console_output = sys.stdout
+            console = logging.StreamHandler(console_output)
+            console.setLevel(logging.__dict__[debug_level])
+            console.setFormatter(logging.Formatter('%(message)s'))
+
+            # Set up some proper logging to file that catches debugs
+            logfile = os.path.abspath('%s/logs/%s.log' % (HOME_DIR, self.instance_name))
+            rotator = logging.handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
+            rotator.setLevel(self.log_debug)
+            rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
+            logging.getLogger('').addHandler(console)
+            logging.getLogger('').addHandler(rotator)
+            self.log_debug("Initializing...")
+
+    def log_info(self, message, *args):
+        """
+        Wrapper for debugging at the INFO level
+        """
+        logging.info(message, *args)
+    
+    def log_debug(self, message, *args):
+        """
+        Wrapper for debugging at the DEBUG level
+        """
+        logging.debug(message, *args)
 
     def get_setting(self, setting_name):
         """
@@ -161,7 +180,7 @@ class WhensMyTransport:
         last_follower_check = self.get_setting("last_follower_check") or 0
         if time.time() - last_follower_check < 600:
             return
-        logging.info("Checking to see if I have any new followers...")
+        self.log_info("Checking to see if I have any new followers...")
         self.update_setting("last_follower_check", time.time())
 
         # Get IDs of our friends (people we already follow), and our followers
@@ -184,10 +203,10 @@ class WhensMyTransport:
         for twitter_id in twitter_ids_to_follow[::-1]:
             try:
                 person = self.api.create_friendship(twitter_id)
-                logging.info("Following user %s", person.screen_name )
+                self.log_info("Following user %s", person.screen_name )
             except tweepy.error.TweepError:
                 protected_users_to_ignore.append(twitter_id)
-                logging.info("Error following user %s, most likely the account is protected", twitter_id)
+                self.log_info("Error following user %s, most likely the account is protected", twitter_id)
                 continue
 
         self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
@@ -215,9 +234,9 @@ class WhensMyTransport:
         
         # No need to bother if no replies
         if not tweets and not direct_messages:
-            logging.info("No new Tweets, exiting...")
+            self.log_info("No new Tweets, exiting...")
         else:
-            logging.info("%s replies and %s direct messages received!" , len(tweets), len(direct_messages))
+            self.log_info("%s replies and %s direct messages received!" , len(tweets), len(direct_messages))
 
         for tweet in direct_messages + tweets:
 
@@ -262,20 +281,20 @@ class WhensMyTransport:
 
         # Bit of logging, plus we always return True for DMs
         if is_direct_message(tweet):
-            logging.info("Have a DM from %s: %s", tweet.sender.screen_name, message)
+            self.log_info("Have a DM from %s: %s", tweet.sender.screen_name, message)
             return True
         else:
             username = tweet.user.screen_name
-            logging.info("Have an @ reply from %s: %s", username, message)
+            self.log_info("Have an @ reply from %s: %s", username, message)
 
         # Don't start talking to yourself
         if username == self.username:
-            logging.debug("Not talking to myself, that way madness lies")
+            self.log_debug("Not talking to myself, that way madness lies")
             return False
 
         # Ignore mentions that are not direct replies
         if not message.lower().startswith('@%s' % self.username.lower()):
-            logging.debug("Not a proper @ reply, skipping")
+            self.log_debug("Not a proper @ reply, skipping")
             return False
 
         return True
@@ -285,7 +304,7 @@ class WhensMyTransport:
         Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a tuple; longitude first then latitude
         """
         if hasattr(tweet, 'coordinates') and tweet.coordinates:
-            logging.debug("Detect geolocation on Tweet")
+            self.log_debug("Detect geolocation on Tweet")
             # Twitter gives latitude then longitude, so need to reverse this
             position = tweet.coordinates['coordinates'][::-1]
             gridref = convertWGS84toOSGrid(position)[-1]
@@ -339,12 +358,12 @@ class WhensMyTransport:
         for message in messages:
             try:
                 if send_direct_message:
-                    logging.info("Sending direct message to %s: '%s'", username, message)
+                    self.log_info("Sending direct message to %s: '%s'", username, message)
                     if not self.testing:
                         self.api.send_direct_message(user=username, text=message)
                 else:
                     status = "@%s %s" % (username, message)
-                    logging.info("Making status update: '%s'", status)
+                    self.log_info("Making status update: '%s'", status)
                     if not self.testing:
                         self.api.update_status(status=status, in_reply_to_status_id=in_reply_to_status_id)
 
@@ -396,7 +415,7 @@ class WhensMyTransport:
         """
         Turns a WhensMyTransportException into a message for the user
         """
-        logging.debug("Exception encountered: %s" , exc.value)
+        self.log_debug("Exception encountered: %s" , exc.value)
         return "Sorry! %s" % exc.value
 
     def alert_admin_about_exception(self, tweet, exception_name):
@@ -490,5 +509,8 @@ class WhensMyTransport:
         Helper function to log what our Twitter API hit count & limit is
         """
         limit_status = self.api.rate_limit_status()
-        logging.info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
-        logging.debug("Next reset time is %s", (limit_status['reset_time']))
+        self.log_info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
+        self.log_debug("Next reset time is %s", (limit_status['reset_time']))
+
+if __name__ == "__main__":
+    print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytube.py"

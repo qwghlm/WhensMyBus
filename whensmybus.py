@@ -1,20 +1,33 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #pylint: disable=W0142,R0201
+"""
 
+When's My Bus?
+
+A Twitter bot that takes requests for a bus, and replies with the real-time data from TfL on Twitter
+
+(c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
+Released under the MIT License
+
+TODO
+ - Create a Bus object?
+ - Review & update all documentation
+ - Review all logging
+
+"""
 # Standard libraries of Python 2.6
-import logging # FIXME Replace with own Logging?
-import math # FIXME Just a single import?
 import re
-import time # FIXME Just a single import?
+from math import sqrt
+from time import localtime
 from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyTransport
 from geotools import convertWGS84toOSGrid, heading_to_direction
 from exception_handling import WhensMyTransportException
-from utils import cleanup_stop_name # FIXME Goes here?
-from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity # FIXME Last one goes here
+from utils import cleanup_name_from_undesirables
+from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity
 
 class BusStop():
     #pylint: disable=C0103,R0903,W0613
@@ -53,7 +66,7 @@ class WhensMyBus(WhensMyTransport):
         route_token_matches = [re.match(route_regex, r, re.I) for r in route_string.split(' ')]
         route_numbers = [r.group(0).upper() for r in route_token_matches if r]
         if not route_numbers:
-            logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
+            self.log_debug("@ reply didn't contain a valid-looking bus number, skipping")
             return (None, None, None)
 
         return (route_numbers, origin, destination)
@@ -112,9 +125,9 @@ class WhensMyBus(WhensMyTransport):
             Values are BusStop objects
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
-        logging.debug("Position in WGS84 determined as: %s %s", position[0], position[1])
+        self.log_debug("Position in WGS84 determined as: %s %s", position[0], position[1])
         easting, northing, gridref = convertWGS84toOSGrid(position)
-        logging.debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
+        self.log_debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
         
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,))
@@ -143,9 +156,9 @@ class WhensMyBus(WhensMyTransport):
             stop_data = self.geodata.fetchone()
             # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
             if stop_data:
-                relevant_stops[run] = BusStop(Distance=math.sqrt(stop_data['dist_squared']), **stop_data)
+                relevant_stops[run] = BusStop(Distance=sqrt(stop_data['dist_squared']), **stop_data)
         
-        logging.debug("Have found stop numbers: %s", ', '.join([stop.number for stop in relevant_stops.values()]))
+        self.log_debug("Have found stop numbers: %s", ', '.join([stop.number for stop in relevant_stops.values()]))
         return relevant_stops
             
     def get_stops_by_stop_number(self, route_number, stop_number):
@@ -159,7 +172,7 @@ class WhensMyBus(WhensMyTransport):
             raise WhensMyTransportException('bad_stop_id', stop_number)
 
         # Try and get a match on it
-        logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
+        self.log_debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
         self.geodata.execute("SELECT Run, Sequence, Heading, Bus_Stop_Code, Stop_Name FROM routes WHERE Bus_Stop_Code=? AND Route=?", (stop_number, route_number))
         stop_data = self.geodata.fetchone()
         if stop_data:
@@ -181,7 +194,7 @@ class WhensMyBus(WhensMyTransport):
 
         # First off, try to get a match against bus stop names in database
         # Users may not give exact details, so we try to match fuzzily
-        logging.debug("Attempting to get a match on placename %s", origin)
+        self.log_debug("Attempting to get a match on placename %s", origin)
         relevant_stops = {}
                      
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
@@ -197,18 +210,18 @@ class WhensMyBus(WhensMyTransport):
             if rows:
                 best_match = get_best_fuzzy_match(origin, rows, 'Stop_Name', get_bus_stop_name_similarity)
                 if best_match:
-                    logging.info("Found stop name %s for Run %s via fuzzy matching", best_match['Stop_Name'], best_match['Run'])
+                    self.log_info("Found stop name %s for Run %s via fuzzy matching", best_match['Stop_Name'], best_match['Run'])
                     relevant_stops[run] = BusStop(**best_match)
 
         # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name
         for run in (1, 2):
             if run not in relevant_stops and self.geocoder:
-                logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
+                self.log_debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
                 geocode_url = self.geocoder.get_geocode_url(origin)
                 geodata = self.browser.fetch_json(geocode_url)
                 points = self.geocoder.parse_geodata(geodata)
                 if not points:
-                    logging.debug("Could not find any matching location for %s", origin)
+                    self.log_debug("Could not find any matching location for %s", origin)
                     continue
 
                 # For each of the places found, get the nearest stop that serves this run
@@ -216,9 +229,9 @@ class WhensMyBus(WhensMyTransport):
                 possible_stops = [stop for stop in possible_stops if stop]
                 if possible_stops:
                     relevant_stops[run] = sorted(possible_stops)[0]
-                    logging.debug("Have found stop named: %s", relevant_stops[run].name)
+                    self.log_debug("Have found stop named: %s", relevant_stops[run].name)
                 else:
-                    logging.debug("Found a location, but could not find a nearby stop for %s", origin)
+                    self.log_debug("Found a location, but could not find a nearby stop for %s", origin)
             
         return relevant_stops
             
@@ -247,12 +260,10 @@ class WhensMyBus(WhensMyTransport):
                                                         and a['isRealTime'] and not a['isCancelled']]
 
             if relevant_arrivals:
-                # Get the first arrival for now
                 arrival = relevant_arrivals[0]
-                # Every character counts! :)
                 scheduled_time =  arrival['scheduledTime'].replace(':', '')
                 # Short hack to get BST working
-                if time.localtime().tm_isdst:
+                if localtime().tm_isdst:
                     hour = (int(scheduled_time[0:2]) + 1) % 24
                     scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
                     
@@ -262,17 +273,19 @@ class WhensMyBus(WhensMyTransport):
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
         if len(time_info) > 2:
-            logging.debug("Number of runs is %s, removing any non-existent entries" , len(time_info))
+            self.log_debug("Number of runs is %s, removing any non-existent entries" , len(time_info))
             time_info = [t for t in time_info if t.find("None shown") == -1]
 
         return time_info
 
 
+def cleanup_stop_name(stop_name):
+    """
+    Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from a string, and capitalise all words
+    """
+    return cleanup_name_from_undesirables(stop_name, ('<>', '#', r'\[DLR\]', '>T<'))
+
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
     WMB.check_followers()
-    
-    #WMT = WhensMyTube(testing=True)
-    #WMT.check_tweets()
-    #WMT.check_followers()

@@ -1,9 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #pylint: disable=W0142,R0201
+"""
 
+When's My Tube?
+
+A Twitter bot that takes requests for a London Underground train, and replies with the real-time data from TfL on Twitter
+
+(c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
+Released under the MIT License
+
+TODO
+ - Review & update all documentation
+ - Review all logging
+
+"""
 # Standard libraries of Python 2.6
-import logging # FIXME Replace with own Logging?
 import re
 from pprint import pprint # For debugging
 
@@ -11,8 +23,8 @@ from pprint import pprint # For debugging
 from whensmytransport import WhensMyTransport
 from geotools import convertWGS84toOSGrid
 from exception_handling import WhensMyTransportException
-from utils import capwords, unique_values, cleanup_station_name, filter_tube_trains, abbreviate_station_name # FIXME Put these last three here?
-from fuzzy_matching import get_best_fuzzy_match, get_tube_station_name_similarity # FIXME Put last one here?
+from utils import capwords, unique_values, cleanup_name_from_undesirables
+from fuzzy_matching import get_best_fuzzy_match, get_tube_station_name_similarity
 
 class TubeStation():
     #pylint: disable=C0103,R0903,W0613
@@ -43,7 +55,7 @@ class TubeTrain():
         
     def __hash__(self):
         """
-        Return hash value to enable uniqueness
+        Return hash value to enable ability to use as dictionary key
         """
         return hash('-'.join([self.set_number, self.destination_code, str(self.departure_time)]))
 
@@ -157,9 +169,9 @@ class WhensMyTube(WhensMyTransport):
         """
         #pylint: disable=W0613
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
-        logging.debug("Position in WGS84 determined as: %s %s", position[0], position[1])
+        self.log_debug("Position in WGS84 determined as: %s %s", position[0], position[1])
         easting, northing, gridref = convertWGS84toOSGrid(position)
-        logging.debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
+        self.log_debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
 
         # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
         # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
@@ -176,7 +188,7 @@ class WhensMyTube(WhensMyTransport):
         self.geodata.execute(query)
         row = self.geodata.fetchone()
         if row:
-            logging.debug("Have found %s station (%s)", row['Name'], row['Code'])
+            self.log_debug("Have found %s station (%s)", row['Name'], row['Code'])
             return TubeStation(**row)
         else:
             return None
@@ -187,7 +199,7 @@ class WhensMyTube(WhensMyTransport):
         """
         # First off, try to get a match against bus stop names in database
         # Users may not give exact details, so we try to match fuzzily
-        logging.debug("Attempting to get a match on placename %s", origin)
+        self.log_debug("Attempting to get a match on placename %s", origin)
         self.geodata.execute("""
                              SELECT Name, Code FROM locations WHERE Line=? OR Line='X'
                              """, line_code)
@@ -195,10 +207,10 @@ class WhensMyTube(WhensMyTransport):
         if rows:
             best_match = get_best_fuzzy_match(origin, rows, 'Name', get_tube_station_name_similarity)
             if best_match:
-                logging.debug("Match found! Found: %s", best_match['Name'])
+                self.log_debug("Match found! Found: %s", best_match['Name'])
                 return TubeStation(**best_match)
 
-        logging.debug("No match found for %s, sorry", origin)
+        self.log_debug("No match found for %s, sorry", origin)
         return None
         
     def get_departure_data(self, line_code, station):
@@ -292,3 +304,60 @@ class WhensMyTube(WhensMyTransport):
             if station_node.getAttribute('Name') == station.name and status_node.getAttribute('Description') == 'Closed':
                 raise WhensMyTransportException('tube_station_closed', station.name, station_status.getAttribute('StatusDetails').strip().lower())
         return True
+
+        
+def cleanup_station_name(station_name):
+    """
+    Get rid of TfL's odd designations to make it compatible with our list of stations in the database
+    """
+    # TODO Cross-check this with existing results from the data scrape
+    if station_name in ("Unknown", "Circle and Hammersmith & City") or station_name.endswith("Train") or station_name.endswith("Line"):
+        station_name = "Unknown"
+    else:
+        undesirables = (r'\(rev to .*\)', 'sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', r'\(plat. 1\)', ' loop')
+        station_name = cleanup_name_from_undesirables(station_name, undesirables)
+    return station_name
+
+def abbreviate_station_name(station_name):
+    """
+    Take an official station name and abbreviate it to make it fit on Twitter better
+    """
+    punctuation = (r'\.', ', ')
+    abbreviations = { 'Road' : 'Rd',
+                      'Street' : 'St',
+                      'Cross' : 'X',
+                      'Broadway' : 'Bdwy',
+                      'Park' : 'Pk',
+                      'Square' : 'Sq',
+                      'Terminals' : 'T',
+                      'Terminal' : 'T',
+                      'Pancras' : 'P',
+    }
+    station_name = cleanup_name_from_undesirables(station_name, punctuation)
+    station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
+    return station_name
+
+def filter_tube_trains(tube_xml_node):
+    """
+    Filter function for TfL's tube train XML tags, to get rid of misleading or bogus trains
+    """
+    destination = tube_xml_node.getAttribute('Destination')
+    destination_code = tube_xml_node.getAttribute('DestCode')
+    location = tube_xml_node.getAttribute('Location')
+    
+    # 546 and 749 appear to be codes for Out of Service
+    if destination_code in ('546', '749'):
+        return False
+    # Trains in Sidings are not much use to us
+    if destination_code == '0' and location.find('Sidings') > -1:
+        return False
+    if destination in ('Special', 'Out Of Service'):
+        return False
+    if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC'):
+        return False
+    return True
+    
+if __name__ == "__main__":
+    WMT = WhensMyTube(testing=True)
+    WMT.check_tweets()
+    WMT.check_followers()

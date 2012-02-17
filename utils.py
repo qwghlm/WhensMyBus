@@ -159,60 +159,6 @@ def cleanup_name_from_undesirables(name, undesirables):
     name = re.sub(r' +', ' ', name.strip())
     return capwords(name)
 
-def cleanup_stop_name(stop_name):
-    """
-    Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from a string, and capitalise all words
-    """
-    return cleanup_name_from_undesirables(stop_name, ('<>', '#', r'\[DLR\]', '>T<'))
-    
-def cleanup_station_name(station_name):
-    """
-    Get rid of TfL's odd designations to make it compatible with our list of stations in the database
-    """
-    # FIXME Cross-check this with existing results from the data scrape
-    if station_name in ("Unknown", "Circle and Hammersmith & City") or station_name.endswith("Train") or station_name.endswith("Line"):
-        station_name = "Unknown"
-    else:
-        station_name = cleanup_name_from_undesirables(station_name, (r'\(rev to .*\)', 'sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', r'\(plat. 1\)', ' loop'))
-    return station_name
-
-def abbreviate_station_name(station_name):
-    punctuation = (r'\.', ', ')
-    abbreviations = { 'Road' : 'Rd',
-                      'Street' : 'St',
-                      'Cross' : 'X',
-                      'Broadway' : 'Bdwy',
-                      'Park' : 'Pk',
-                      'Square' : 'Sq',
-                      'Terminals' : 'T',
-                      'Terminal' : 'T',
-                      'Pancras' : 'P',
-    }
-    station_name = cleanup_name_from_undesirables(station_name, punctuation)
-    station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
-    return station_name
-
-def filter_tube_trains(tube_xml_node):
-    """
-    Filter function for TfL's tube train XML tags, to get rid of misleading or bogus trains
-    """
-    destination = tube_xml_node.getAttribute('Destination')
-    destination_code = tube_xml_node.getAttribute('DestCode')
-    location = tube_xml_node.getAttribute('Location')
-    
-    # 546 and 749 appear to be codes for Out of Service
-    if destination_code in ('546', '749'):
-        return False
-    # Trains in Sidings are not much use to us
-    if destination_code == '0' and location.find('Sidings') > -1:
-        return False
-    if destination in ('Special', 'Out Of Service'):
-        return False
-    if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC'):
-        return False
-        
-    return True
-    
 # List utils
 
 def unique_values(seq):
