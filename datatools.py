@@ -176,7 +176,6 @@ def import_tube_xml_to_db():
         name_lengths.append((abbreviated_name, len(abbreviated_name)))
             
     print "Long names:"
-    for long_name in sorted(name_lengths, lambda a,b: -cmp(a[1], b[1]))[:20]:
         print long_name
     print "Average value: %3f" % (sum([length for (name, length) in name_lengths]) / float(len(name_lengths)))
 
