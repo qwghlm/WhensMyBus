@@ -4,14 +4,18 @@
 """
 
 When's My Tube?
-
-A Twitter bot that takes requests for a London Underground train, and replies with the real-time data from TfL on Twitter
-
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
+A Twitter bot that takes requests for a London Underground train, and replies with the real-time data from TfL on Twitter
+
+Inherits many methods and data structures from WhensMyTransport, including: loading the databases, config, connecting to Twitter,
+reading @ replies, replying to them, checking new followers, following them back
+
+This module just does work specific to Tube trains: Parsing & interpreting a Tube-specific message, and looking it up against the database of
+Tube stations, checking the TfL TrackerNet API and formatting an appropriate reply to be sent back
+
 Things to do:
- - Review & update all documentation
  - Review all logging and make sure consistent with WhensMyBus
 
 """
@@ -93,6 +97,7 @@ class WhensMyTube(WhensMyTransport):
         WhensMyTransport.__init__(self, 'whensmytube', testing, silent)
         
         # Build internal lookup table of possible line name -> "official" line name
+        # TODO Put this into a database
         line_names = (
             'Bakerloo',
             'Central',
@@ -112,14 +117,14 @@ class WhensMyTube(WhensMyTransport):
         line_tuples += [('W&C', 'Waterloo & City'), ('H&C', 'Hammersmith & Circle',)]
         self.line_lookup = dict(line_tuples)
 
-        # Regex used by tokenize_message
+        # Regex used by tokenize_message to work out what is the bit of a Tweet specifying a line - all the words used in the above
+        # FIXME Hammersmith, Piccadilly, Victoria and Waterloo are all first words of tube station names and may cause confusion
         tube_line_words = unique_values([word for line_name in line_names for word in line_name.split(' ')]) + ["Line", "and"]
         self.tube_line_regex = "(%s)" % "|".join(tube_line_words)
 
-        
     def parse_message(self, message):
         """
-        Parse a Tweet - tokenize it, and get the line(s) specified by the user
+        Parse a Tweet - tokenize it, and get the line, origin and destination specified by the user
         """
         (line_name, origin, destination) = self.tokenize_message(message, self.tube_line_regex)
         if line_name.lower().startswith('thank'):
@@ -223,38 +228,44 @@ class WhensMyTube(WhensMyTransport):
         """
         Take a station ID and a line ID, and get departure data for that station
         """
+        # Check if the station is open and if so (it will throw an exception if not), summon the data
         self.check_station_is_open(station)
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station.code)
         tube_data = self.browser.fetch_xml(tfl_url)
 
+        # Go through each platform and get data about every train arriving, including which direction it's headed
         trains = []
-        # Go through each platform and get data about every train arriving
         for platform in tube_data.getElementsByTagName('P'):
             
             platform_name = platform.getAttribute('N')
             direction = re.search("(North|East|South|West)bound", platform_name, re.I)
             rail = re.search("(Inner|Outer) Rail", platform_name, re.I)
             
-            # Deal with some Circle/Central Line platforms called "Inner" and "Outer" Rail
+            # Most stations tell us whether they are -bound in a certain direction
             if direction:
                 direction = capwords(direction.group(0))
+            # Some Circle/Central Line platforms called "Inner" and "Outer" Rail, which make no sense to customers, so I've manually
+            # entered Inner and Outer columns in the database which translate from these into North/South/East/West bearings
             elif rail:
                 self.geodata.execute("SELECT %s FROM locations WHERE Line=? AND Code=?" % rail.group(1), (line_code, station.code))
                 bearing = self.geodata.fetchone()[0]
                 direction = bearing + 'bound'
             else:
-                # Some odd cases. Chesham and Chalfont & Latimer have their own system
+                # Some odd cases. Chesham and Chalfont & Latimer don't say anything at all for the platforms on the Chesham branch of the Met Line
                 if station.code == "CHM":
                     direction = "Southbound"
                 elif station.code == "CLF" and platform.getAttribute('Num') == '3':
                     direction = "Northbound"
                 else:
                     # The following stations will have "issues" with bidrectional platforms: North Acton, Edgware Road, Loughton, White City
+                    # These are dealt with the filter function below
                     direction = "Unknown"
 
+            # Use the filter function to filter out trains that are out of service, specials or National Rail first
             platform_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and filter_tube_trains(t)]
             for train in platform_trains:
-                destination = cleanup_station_name(train.getAttribute('Destination'))
+                destination = cleanup_destination_name(train.getAttribute('Destination'))
+                # Ignore any trains terminating at this station
                 if self.get_station_by_station_name(line_code, destination):
                     if self.get_station_by_station_name(line_code, destination).name == station.name:
                         continue
@@ -265,19 +276,21 @@ class WhensMyTube(WhensMyTransport):
                 else:
                     departure_time = int(departure_time.split(":")[0])
                 
-                # SetNo identifies a unique train. Sometimes this is duplicated across platforms
+                # SetNo identifies a unique train. For stations like Earls Court this is duplicated across two platforms and can mean the same train is
+                # "scheduled" to come into both (obviously impossible), so we add this to our train so our hashing function knows to score as unique
                 set_number = train.getAttribute('SetNo')
                 destination_code = train.getAttribute('DestCode')
                 trains.append(TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code))
 
         # For platforms that are bidirectional, need to assign direction on a train-by-train basis,
-        # so create a reverse mapping of destination code to direction 
+        # so create a reverse mapping of destination code to direction, if possible
         destination_to_direction = dict([(t.destination_code, t.direction) for t in trains if t.direction != "Unknown" and t.destination != "Unknown"])
         for train in trains:
             if train.direction == "Unknown" and train.destination_code in destination_to_direction:
                 train.direction = destination_to_direction[train.destination_code]                
 
-        # Once we have all trains, organise by direction
+        # Once we have all trains and their directions established, *now* we can organise by direction
+        # Note that we may not be able to track every train - those with unknown destinations & directions are dropped here
         trains_by_direction = {}
         for train in trains:
             if train.direction != "Unknown":
@@ -297,6 +310,7 @@ class WhensMyTube(WhensMyTransport):
                     destinations_correct_order.append(destination)
 
         # This returns an empty string if no trains are due, btw
+        # TODO Might be worth putting a slash between different directions
         return '; '.join([destination + ' ' + ', '.join(train_times[destination]) for destination in destinations_correct_order])
 
     def check_station_is_open(self, station):
@@ -312,14 +326,18 @@ class WhensMyTube(WhensMyTransport):
                 raise WhensMyTransportException('tube_station_closed', station.name, station_status.getAttribute('StatusDetails').strip().lower())
         return True
 
-        
-def cleanup_station_name(station_name):
+def cleanup_destination_name(station_name):
     """
-    Get rid of TfL's odd designations to make it compatible with our list of stations in the database
+    Get rid of TfL's odd designations in the Destination field to make it compatible with our list of stations in the database
+    
+    Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this is currently pending
+    an FoI request. Once I get that, this code will be a lot neater :)
     """
+    # Destinations that are line names or Unknown get boiled down to Unknown
     if station_name in ("Unknown", "Circle and Hammersmith & City") or station_name.endswith("Train") or station_name.endswith("Line"):
         station_name = "Unknown"
     else:
+        # Regular expressions of instructions, depot names (presumably instructions for shunting after arrival), or platform numbers
         undesirables = (r'\(rev to .*\)', 'sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', r'\(plat. 1\)', ' loop')
         station_name = cleanup_name_from_undesirables(station_name, undesirables)
     return station_name
@@ -328,12 +346,19 @@ def abbreviate_station_name(station_name):
     """
     Take an official station name and abbreviate it to make it fit on Twitter better
     """
+    # Stations we just have to cut down by hand
     translations = {
         "High Street Kensington" : "High St Ken",
         "King's Cross St. Pancras" : "Kings X St P",
         "Kensington (Olympia)" : "Olympia",
     }
+    station_name = translations.get(station_name, station_name)
+
+    # Punctuation marks can be cut down  
     punctuation_to_remove = (r'\.', ', ', r'\(', r'\)', "'",)
+    station_name = cleanup_name_from_undesirables(station_name, punctuation_to_remove)
+
+    # Words like Road and Park can be slimmed down as well
     abbreviations = {
         'Bridge' : 'Br',
         'Broadway' : 'Bdwy',
@@ -357,29 +382,31 @@ def abbreviate_station_name(station_name):
         'Terminals' : 'T',
         'West' : 'W',
     }   
-    station_name = translations.get(station_name, station_name)
-    station_name = cleanup_name_from_undesirables(station_name, punctuation_to_remove)
     station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
+    
+    # Any station with & in it gets only the initial of the second word - e.g. Elephant & C
     if station_name.find('&') > -1:
         station_name = station_name[:station_name.find('&')+2]
     return station_name
 
 def filter_tube_trains(tube_xml_node):
     """
-    Filter function for TfL's tube train XML tags, to get rid of misleading or bogus trains
+    Filter function for TrackerNet's XML nodes, to get rid of misleading, out of service or downright bogus trains
     """
     destination = tube_xml_node.getAttribute('Destination')
     destination_code = tube_xml_node.getAttribute('DestCode')
     location = tube_xml_node.getAttribute('Location')
     
-    # 546 and 749 appear to be codes for Out of Service
+    # 546 and 749 appear to be codes for Out of Service http://wiki.opentfl.co.uk/TrackerNet_predictions_detailed
     if destination_code in ('546', '749'):
         return False
-    # Trains in Sidings are not much use to us
+    # Trains in sidings are not much use to us
     if destination_code == '0' and location.find('Sidings') > -1:
         return False
+    # No Specials or other Out of Service trains
     if destination in ('Special', 'Out Of Service'):
         return False
+    # National Rail trains on Bakerloo & Metropolitan lines not that useful in this case
     if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC'):
         return False
     return True

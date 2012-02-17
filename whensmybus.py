@@ -4,15 +4,18 @@
 """
 
 When's My Bus?
-
-A Twitter bot that takes requests for a bus, and replies with the real-time data from TfL on Twitter
-
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
-Things to do:
- - Create a Bus object?
- - Review & update all documentation
+A Twitter bot that takes requests for a bus, and replies with the real-time data from TfL on Twitter
+
+Inherits many methods and data structures from WhensMyTransport, including: loading the databases, config, connecting to Twitter,
+reading @ replies, replying to them, checking new followers, following them back
+
+This module just does work specific to buses: Parsing & interpreting a bus-specific message, and looking it up against the database of
+buses and routes, checking the TfL bus API and formatting an appropriate reply to be sent back
+
+==Things to do==
  - Review all logging and make sure consistent with WhensMyTube
 
 """
@@ -42,6 +45,9 @@ class BusStop():
         self.distance_away = Distance
 
     def __cmp__(self, other):
+        """
+        Comparator function - measure by distance away from the point the user is
+        """
         return cmp(self.distance_away, other.distance_away)
 
 
@@ -74,7 +80,7 @@ class WhensMyBus(WhensMyTransport):
     def process_individual_request(self, route_number, origin, destination, position=None):
         """
         Take an individual route number, with either origin or position, and optional destination, and work out
-        the stops and thus the appropriate times for the user
+        the stops and thus the appropriate times for the user, and return an appropriate reply to that user
         """
         # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
         self.geodata.execute("SELECT * FROM routes WHERE Route=?", (route_number,))
@@ -163,7 +169,8 @@ class WhensMyBus(WhensMyTransport):
             
     def get_stops_by_stop_number(self, route_number, stop_number):
         """
-        Return a single dictionary representing a bus stop that has an ID of stop_number
+        Take a route_number and a stop with ID stop_number, returns a dictionary with a single value. Key is the Run this stop sits on,
+        value is the corresponding BusStop object
         """
         # Pull the stop ID out of the routes database and see if it exists
         self.geodata.execute("SELECT * FROM routes WHERE Bus_Stop_Code=?", (stop_number, ))
@@ -185,8 +192,7 @@ class WhensMyBus(WhensMyTransport):
         """
         Take a route number and name of the origin, and work out closest bus stops in each direction
         
-        Returns a dictionary. Keys are numbers of the Run (usually 1 or 2, sometimes 3 and 4). Values are dictionaries
-        with keys: 'Stop_Name', 'Bus_Stop_Code', 'Heading', 'Distance', 'Sequence'
+        Returns a dictionary. Keys are numbers of the Run (usually 1 or 2, sometimes 3 and 4). Values are BusStop objects
         """
         # First check to see if the name is actually an ID number - if so, then use the more precise numeric method above
         match = re.match('^[0-9]{5}$', origin)
@@ -259,7 +265,6 @@ class WhensMyBus(WhensMyTransport):
             # Do the user a favour - check for both number and possible Night Bus version of the bus
             relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
                                                         and a['isRealTime'] and not a['isCancelled']]
-
             if relevant_arrivals:
                 arrival = relevant_arrivals[0]
                 scheduled_time =  arrival['scheduledTime'].replace(':', '')
@@ -286,6 +291,7 @@ def cleanup_stop_name(stop_name):
     """
     return cleanup_name_from_undesirables(stop_name, ('<>', '#', r'\[DLR\]', '>T<'))
 
+# If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
