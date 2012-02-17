@@ -10,7 +10,7 @@ A Twitter bot that takes requests for a London Underground train, and replies wi
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
-TODO
+Things to do:
  - Review & update all documentation
  - Review all logging
 
@@ -264,7 +264,8 @@ class WhensMyTube(WhensMyTransport):
                 destination_code = train.getAttribute('DestCode')
                 trains.append(TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code))
 
-        # For platforms that are bidirectional, need to assign direction on a train-by-train basis, so create a reverse mapping of destination code to direction 
+        # For platforms that are bidirectional, need to assign direction on a train-by-train basis,
+        # so create a reverse mapping of destination code to direction 
         destination_to_direction = dict([(t.destination_code, t.direction) for t in trains if t.direction != "Unknown" and t.destination != "Unknown"])
         for train in trains:
             if train.direction == "Unknown" and train.destination_code in destination_to_direction:

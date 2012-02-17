@@ -10,7 +10,7 @@ A Twitter bot that takes requests for a bus or Tube, and replies the real-time d
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
-TODO
+Things to do:
 
 WhensMyTube:
 

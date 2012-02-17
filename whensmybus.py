@@ -10,7 +10,7 @@ A Twitter bot that takes requests for a bus, and replies with the real-time data
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
-TODO
+Things to do:
  - Create a Bus object?
  - Review & update all documentation
  - Review all logging
@@ -173,7 +173,8 @@ class WhensMyBus(WhensMyTransport):
 
         # Try and get a match on it
         self.log_debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
-        self.geodata.execute("SELECT Run, Sequence, Heading, Bus_Stop_Code, Stop_Name FROM routes WHERE Bus_Stop_Code=? AND Route=?", (stop_number, route_number))
+        self.geodata.execute("SELECT Run, Sequence, Heading, Bus_Stop_Code, Stop_Name FROM routes WHERE Bus_Stop_Code=? AND Route=?",
+                             (stop_number, route_number))
         stop_data = self.geodata.fetchone()
         if stop_data:
             return { stop_data['Run'] : BusStop(**stop_data) }

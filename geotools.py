@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#pylint: disable=C0103,R0914,R0913,R0201,W0231
+#pylint: disable=C0103,R0914,R0913,R0201,W0231,W0142
 """
 Geotools for WhensMyTransport. Include GeoCoders for Yahoo!, Bing and Google Maps, and functions
 to convert between different co-ordinate systems
