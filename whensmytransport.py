@@ -304,7 +304,6 @@ class WhensMyTransport:
         """
         if hasattr(tweet, 'coordinates') and tweet.coordinates:
             self.log_debug("Detect geolocation on Tweet")
-            # Twitter gives latitude then longitude, so need to reverse this
             position = tweet.coordinates['coordinates'][::-1]
             gridref = convertWGS84toOSGrid(position)[-1]
             # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds

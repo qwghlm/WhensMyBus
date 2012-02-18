@@ -31,9 +31,9 @@ class FakeTweet:
         self.user.screen_name = username
         self.text = text
         self.place = place
-        self.coordinates = {}
+        self.geo = {}
         if coordinates:
-            self.coordinates['coordinates'] = coordinates
+            self.geo['coordinates'] = coordinates
         
 class FakeDirectMessage:
     """
@@ -180,7 +180,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         for test_data in self.test_standard_data:
             request = test_data[0]
-            tweet = FakeTweet(self.at_reply + request, (-73.985656, 40.748433)) # Empire State Building, New York
+            tweet = FakeTweet(self.at_reply + request, (40.748433, -73.985656)) # Empire State Building, New York
             self._test_correct_exception_produced(tweet, 'not_in_uk')
 
     def test_not_in_london(self):
@@ -189,7 +189,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         for test_data in self.test_standard_data:
             request = test_data[0]
-            tweet = FakeTweet(self.at_reply + request, (-3.200833, 55.948611)) # Edinburgh Castle, Edinburgh
+            tweet = FakeTweet(self.at_reply + request, (55.948611, -3.200833)) # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
 
 
@@ -208,8 +208,8 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         
         # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin
         self.test_standard_data = (
-                                   ('15', 'Limehouse Station', '53452', -0.0397, 51.5124, 'Poplar', '73923', 'Limehouse Station'),
-                                   ('425 25 205', 'Bow Road Station', '55489',  -0.02472, 51.52722, 'Mile End station', '76239', 'Bow Road Station'),
+                                   ('15', 'Limehouse Station', '53452', 51.5124, -0.0397, 'Poplar', '73923', 'Limehouse Station'),
+                                   ('425 25 205', 'Bow Road Station', '55489',  51.52722, -0.02472, 'Mile End station', '76239', 'Bow Road Station'),
                                    )
         # Troublesome destinations & data
         self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'Stratford Bus Station'),
@@ -310,7 +310,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         Generic test for standard-issue messages
         """
         #pylint: disable=W0612
-        for (route, origin_name, origin_id, lon, lat, destination_name, destination_id, expected_origin) in self.test_standard_data:
+        for (route, origin_name, origin_id, lat, lon, destination_name, destination_id, expected_origin) in self.test_standard_data:
 
             # C-string format helper
             test_variables = dict([(name, eval(name)) for name in ('route', 'origin_name', 'origin_id', 'destination_name', 'destination_id')])
@@ -323,20 +323,20 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                 for to_fragment in to_fragments:
                     message = (self.at_reply + route + from_fragment + to_fragment)
                     if not from_fragment:
-                        tweet = FakeTweet(message, (lon, lat))
+                        tweet = FakeTweet(message, (lat, lon))
                     else:
                         tweet = FakeTweet(message)
     
                     results = self.bot.process_tweet(tweet)
                     for result in results:
-                        self._test_correct_successes(result, route, expected_origin, (from_fragment.find('origin_id') == -1) and not to_fragment)
+                        self._test_correct_successes(result, route, expected_origin, (from_fragment.find(origin_id) == -1) and not to_fragment)
 
     def test_multiple_routes(self):
         """
         Test multiple routes from different bus stops in the same area (unlike the above function which
         tests multiple routes going in the same direction, from the same stop(s)
         """
-        test_data = (("277 15", (-0.030286, 51.511694), "(East India Dock Road|Limehouse Town Hall)"),) 
+        test_data = (("277 15", (51.511694, -0.030286), "(East India Dock Road|Limehouse Town Hall)"),) 
         
         for (route, position, expected_result_regex) in test_data:        
             tweet = FakeTweet(self.at_reply + route, position)
@@ -372,7 +372,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                                    ('District', 'Mile End', 51.525, -0.033, "Tower Hill", 'Mile End'),
                                    ('Hammersmith and City', 'Mile End', 51.525, -0.033, "Liverpool Street", 'Mile End'),
                                    ('Metropolitan', 'Kings Cross', 51.5309, -0.1233, "Uxbridge", "King's X St P"),
-                                   ('District', "Earl's Court", 51.4913, -0.1947, "Edgware Road", "Earl's Court"),
+                                   ('District', "Earl's Court", 51.4913, -0.1947, "Edgware Road", "Earls Ct"),
                                    ('Piccadilly', "Acton Town", 51.5028, -0.28, "Arsenal", "Acton Town"),
                                    ('Jubilee', "Swiss Cottage", 51.5431, -0.1747, "West Ham", "Swiss Cottage"),
                                    ('Northern', "Camden Town", 51.5394, -0.1427, "Morden", "Camden Town"),
@@ -442,7 +442,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                             continue
                         
                         if not from_fragment:
-                            tweet = FakeTweet(message, (lon, lat))
+                            tweet = FakeTweet(message, (lat, lon))
                         else:
                             tweet = FakeTweet(message)
         

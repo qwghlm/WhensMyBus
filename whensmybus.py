@@ -131,7 +131,7 @@ class WhensMyBus(WhensMyTransport):
             Values are BusStop objects
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
-        self.log_debug("Position in WGS84 determined as: %s %s", position[0], position[1])
+        self.log_debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
         easting, northing, gridref = convertWGS84toOSGrid(position)
         self.log_debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
         

@@ -235,7 +235,7 @@ def gridrefNumToLet(e, n, digits=10):
 
 def convertWGS84toOSGB36(lat, lon, height=0):
     """
-    Convert a longitude and latitude from WGS84 (used by GPS) to OSGB36 (used by OS maps)
+    Convert a latitude & longitude from WGS84 (used by GPS) to OSGB36 (used by OS maps)
     so as to convert from one model of the earth's spherality to another and make our 
     geolocations *really* accurate
     """
