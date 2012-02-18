@@ -242,13 +242,13 @@ class WhensMyTransport:
             if not self.validate_tweet(tweet):
                 continue
                 
-            # Try processing the Tweet. This may fail for a number of reasons, in which case we catch the
-            # exception and process an apology accordingly
+            # Try processing the Tweet. This may fail with a WhensMyTransportException for a number of reasons, in which
+            # case we catch the exception and process an apology accordingly
             try:
                 replies = self.process_tweet(tweet)
             except WhensMyTransportException as exc:
                 replies = (self.process_wmt_exception(exc),)
-            # Handle any other Exception by DMing the admin with an alert
+            # Other Python Exceptions may occur too - we handle these by DMing the admin with an alert
             except Exception as exc:
                 self.alert_admin_about_exception(tweet, exc.__class__.__name__)
                 replies = (self.process_wmt_exception(WhensMyTransportException('unknown_error')),)
@@ -365,7 +365,8 @@ class WhensMyTransport:
                         self.api.update_status(status=status, in_reply_to_status_id=in_reply_to_status_id)
 
             # This catches any errors, most typically if we send multiple Tweets to the same person with the same content
-            # In which case, not much we can do
+            # - typically if the use sends the same bad request again and again, we will reply with same error
+            # In which case, not much we can do about it, so we just ignore
             except tweepy.error.TweepError:
                 continue
 
