@@ -21,7 +21,6 @@ General:
 
  - Train, Tram, DLR & Boat equivalents
  - Handle *bound directions
- - Fix Lat/lon confusion
  
 """
 # Standard libraries of Python 2.6
@@ -300,11 +299,11 @@ class WhensMyTransport:
 
     def get_tweet_geolocation(self, tweet, user_request):
         """
-        Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a tuple; longitude first then latitude
+        Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a (latitude, longitude) tuple
         """
-        if hasattr(tweet, 'coordinates') and tweet.coordinates:
+        if hasattr(tweet, 'geo') and tweet.geo and tweet.geo.has_key('coordinates'):
             self.log_debug("Detect geolocation on Tweet")
-            position = tweet.coordinates['coordinates'][::-1]
+            position = tweet.geo['coordinates']
             gridref = convertWGS84toOSGrid(position)[-1]
             # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
             if not gridref:
@@ -315,12 +314,12 @@ class WhensMyTransport:
             else:
                 return position
 
-        # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough long & lat
+        # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough lat & long
         elif hasattr(tweet, 'place') and tweet.place:
             raise WhensMyTransportException('placeinfo_only', user_request)
         # If there's no geoinformation at all then raise the appropriate exception
         else:
-            if hasattr(tweet, 'coordinates'):
+            if hasattr(tweet, 'geo'):
                 raise WhensMyTransportException('no_geotag', user_request)
             else:
                 raise WhensMyTransportException('dms_not_taggable', user_request)
