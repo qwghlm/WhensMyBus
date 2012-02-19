@@ -1,0 +1,31 @@
+Station Code,Station Name,Line Code,Inner Rail,Outer Rail
+ALD,Aldgate,H,North,South
+ALD,Aldgate,M,North,South
+BST,Baker Street,H,West,East
+BST,Baker Street,M,West,East
+BAR,Barbican,H,West,East
+BAR,Barbican,M,West,East
+BDE,Barkingside,C,North,South
+BAY,Bayswater,H,West,East
+CHG,Chigwell,C,West,East
+ESQ,Euston Square,H,West,East
+ESQ,Euston Square,M,West,East
+FLP,Fairlop,C,North,South
+FAR,Farringdon,H,West,East
+FAR,Farringdon,M,West,East
+GHL,Gants Hill,C,East,West
+GRH,Grange Hill,C,West,East
+GPS,Great Portland Street,H,West,East
+GPS,Great Portland Street,M,West,East
+HAI,Hainault,C,North,South
+KXX,King's Cross St. Pancras,H,West,East
+KXX,King's Cross St. Pancras,M,West,East
+LST,Liverpool Street,H,West,East
+LST,Liverpool Street,M,West,East
+NEP,Newbury Park,C,East,West
+NHG,Notting Hill Gate,H,South,North
+PAD,Paddington,D,West,East
+PAD,Paddington,H,West,East
+RED,Redbridge,C,East,West
+ROD,Roding Valley,C,West,East
+WAN,Wanstead,C,East,West

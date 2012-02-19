@@ -1,17 +1,12 @@
+.DS_Store
+
 whensmy*.settings.db
 
 *.pyc
 
 *.cfg
-
 *.log
 *.log.*
 
-*.csv
-
-scratchpad.py
 html/*
-fuzzy_matching_testing.py
 
-
-.DS_Store
