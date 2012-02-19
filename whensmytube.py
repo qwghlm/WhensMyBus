@@ -24,21 +24,11 @@ import re
 from pprint import pprint # For debugging
 
 # From other modules in this package
-from whensmytransport import WhensMyTransport
-from geotools import convertWGS84toOSGrid
+from whensmytransport import WhensMyRailTransport
 from exception_handling import WhensMyTransportException
 from utils import capwords, unique_values, cleanup_name_from_undesirables
-from fuzzy_matching import get_best_fuzzy_match, get_tube_station_name_similarity
+from fuzzy_matching import get_best_fuzzy_match
 
-class TubeStation():
-    #pylint: disable=C0103,R0903,W0613
-    """
-    Class representing a Tube station
-    """
-    def __init__(self, Name='', Code='', **kwargs):
-        self.name = Name
-        self.code = Code
-        
 class TubeTrain():
     """
     Class representing a Tube train
@@ -87,17 +77,15 @@ class TubeTrain():
         destination = abbreviate_station_name(destination)
         return destination
 
-
-class WhensMyTube(WhensMyTransport):
+class WhensMyTube(WhensMyRailTransport):
     """
     Main class devoted to checking for Tube-related Tweets and replying to them. Instantiate with no variables
     (all config is done in the file whensmytransport.cfg) and then call check_tweets()
     """
     def __init__(self, testing=None, silent=False):
-        WhensMyTransport.__init__(self, 'whensmytube', testing, silent)
+        WhensMyRailTransport.__init__(self, 'whensmytube', testing, silent)
         
         # Build internal lookup table of possible line name -> "official" line name
-        # TODO Put this into a database
         line_names = (
             'Bakerloo',
             'Central',
@@ -174,56 +162,6 @@ class WhensMyTube(WhensMyTransport):
         else:
             raise WhensMyTransportException('tube_station_name_not_found', origin, line_name)
         
-    def get_station_by_geolocation(self, line_code, position):
-        """
-        Take a line and a tuple specifying latitude & longitude, and works out closest station        
-        """
-        #pylint: disable=W0613
-        # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
-        self.log_debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
-        easting, northing, gridref = convertWGS84toOSGrid(position)
-        self.log_debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
-
-        # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
-        # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
-        # and find the first row
-        query = """
-                SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
-                      Name,
-                      Code
-                FROM locations
-                WHERE Line='%s'
-                ORDER BY dist_squared
-                LIMIT 1
-                """ % (easting, easting, northing, northing, line_code)
-        self.geodata.execute(query)
-        row = self.geodata.fetchone()
-        if row:
-            self.log_debug("Have found %s station (%s)", row['Name'], row['Code'])
-            return TubeStation(**row)
-        else:
-            return None
-
-    def get_station_by_station_name(self, line_code, origin):
-        """
-        Take a line and a string specifying origin, and work out matching for that name      
-        """
-        # First off, try to get a match against bus stop names in database
-        # Users may not give exact details, so we try to match fuzzily
-        self.log_debug("Attempting to get a match on placename %s", origin)
-        self.geodata.execute("""
-                             SELECT Name, Code FROM locations WHERE Line=? OR Line='X'
-                             """, line_code)
-        rows = self.geodata.fetchall()
-        if rows:
-            best_match = get_best_fuzzy_match(origin, rows, 'Name', get_tube_station_name_similarity)
-            if best_match:
-                self.log_debug("Match found! Found: %s", best_match['Name'])
-                return TubeStation(**best_match)
-
-        self.log_debug("No match found for %s, sorry", origin)
-        return None
-        
     def get_departure_data(self, line_code, station):
         """
         Take a station ID and a line ID, and get departure data for that station
@@ -270,6 +208,7 @@ class WhensMyTube(WhensMyTransport):
                     if self.get_station_by_station_name(line_code, destination).name == station.name:
                         continue
 
+                # FIXME Departure times should be times to be consistent with WMB
                 departure_time = train.getAttribute('TimeTo')
                 if departure_time == '-' or departure_time.startswith('0'):
                     departure_time = 0

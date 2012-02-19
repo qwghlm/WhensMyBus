@@ -40,6 +40,7 @@ import tweepy
 from geotools import convertWGS84toOSGrid, YahooGeocoder
 from exception_handling import WhensMyTransportException
 from utils import WMBBrowser, load_database, is_direct_message 
+from fuzzy_matching import get_best_fuzzy_match, get_rail_station_name_similarity
 
 # Some constants we use
 VERSION_NUMBER = 0.50
@@ -508,6 +509,79 @@ class WhensMyTransport:
         limit_status = self.api.rate_limit_status()
         self.log_info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
         self.log_debug("Next reset time is %s", (limit_status['reset_time']))
+
+
+class RailStation():
+    #pylint: disable=C0103,R0903,W0613
+    """
+    Class representing a railway station
+    """
+    def __init__(self, Name='', Code='', **kwargs):
+        self.name = Name
+        self.code = Code
+
+class WhensMyRailTransport(WhensMyTransport):
+    """
+    Parent class for the WhensMyDLR and WhensMyTube bots. This deals with common functionality between the two -
+    namely looking up stations from a database given a position or name. This works best when there is a limited number of
+    stations and they have well-known, universally agreed names, which is normally railways and not buses.
+    """
+    def __init__(self, instance_name, testing=False, silent=False):
+        """
+        Constructor, called by child functions
+        """
+        WhensMyTransport.__init__(self, instance_name, testing, silent)
+    
+    def get_station_by_geolocation(self, line_code, position):
+        """
+        Take a line and a tuple specifying latitude & longitude, and works out closest station        
+        """
+        #pylint: disable=W0613
+        # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
+        self.log_debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
+        easting, northing, gridref = convertWGS84toOSGrid(position)
+        self.log_debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
+
+        # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
+        # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
+        # and find the first row
+        query = """
+                SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
+                      Name,
+                      Code
+                FROM locations
+                WHERE Line='%s'
+                ORDER BY dist_squared
+                LIMIT 1
+                """ % (easting, easting, northing, northing, line_code)
+        self.geodata.execute(query)
+        row = self.geodata.fetchone()
+        if row:
+            self.log_debug("Have found %s station (%s)", row['Name'], row['Code'])
+            return RailStation(**row)
+        else:
+            return None
+
+    def get_station_by_station_name(self, line_code, origin):
+        """
+        Take a line and a string specifying origin, and work out matching for that name      
+        """
+        # First off, try to get a match against station names in database
+        # Users may not give exact details, so we try to match fuzzily
+        self.log_debug("Attempting to get a match on placename %s", origin)
+        self.geodata.execute("""
+                             SELECT Name, Code FROM locations WHERE Line=? OR Line='X'
+                             """, line_code)
+        rows = self.geodata.fetchall()
+        if rows:
+            best_match = get_best_fuzzy_match(origin, rows, 'Name', get_rail_station_name_similarity)
+            if best_match:
+                self.log_debug("Match found! Found: %s", best_match['Name'])
+                return RailStation(**best_match)
+
+        self.log_debug("No match found for %s, sorry", origin)
+        return None
+
 
 if __name__ == "__main__":
     print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytube.py"

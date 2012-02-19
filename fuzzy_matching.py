@@ -62,7 +62,7 @@ def get_bus_stop_name_similarity(origin, stop):
     # Else fall back on name similarity
     return get_name_similarity(origin, stop)
 
-def get_tube_station_name_similarity(origin, station):
+def get_rail_station_name_similarity(origin, station):
     """
     Custom similarity for train stations - takes into account fact many people use abbreviated names
     """
