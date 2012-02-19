@@ -20,7 +20,6 @@ WhensMyTube:
 General:
 
  - Train, Tram, DLR & Boat equivalents
- - Handle *bound directions
  
 """
 # Standard libraries of Python 2.6
