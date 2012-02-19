@@ -17,7 +17,50 @@ from pprint import pprint
 # Local files
 from geotools import convertWGS84toOSGB36, LatLongToOSGrid
 from utils import WMBBrowser, load_database
-from whensmytube import abbreviate_station_name
+
+def parse_stations_from_kml(filter_function=lambda a, b: True):
+    """
+    Parses KML file of stations & associated data, and returns them as a dictionary
+    """
+    stations = {}
+    dom = parse(open('./sourcedata/tube-locations.kml'))
+    station_geodata = dom.getElementsByTagName('Placemark')    
+    for station in station_geodata:
+        name = station.getElementsByTagName('name')[0].firstChild.data.strip().replace(' Station', '')
+        style = station.getElementsByTagName('styleUrl')[0].firstChild.data.strip()
+        if filter_function(name, style):
+            coordinates = station.getElementsByTagName('coordinates')[0].firstChild.data.strip()
+            (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
+            (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
+            (easting, northing) = LatLongToOSGrid(lat, lon)
+            stations[name.lower()] = { 'Name' : name, 'Location_Easting' : str(easting), 'Location_Northing' : str(northing),
+                                       'Code' : '', 'Lines' : '', 'Inner' : '', 'Outer' : '' }
+    return stations
+
+def export_rows_to_db(db_filename, tablename, fieldnames, rows, indices=()):
+    """
+    Generic database SQL composing & export function
+    """
+    sql = ""
+    sql += "drop table if exists %s;\r\n" % tablename
+    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
+
+    for field_data in rows:
+        sql += "insert into locations values "
+        sql += "(\"%s\");\r\n" % '", "'.join(field_data)
+
+    for index in indices:
+        sql += "CREATE INDEX %s_index ON %s (%s);\r\n" % (index, tablename, index)
+    export_sql_to_db(db_filename, sql)
+
+def export_sql_to_db(db_filename, sql):
+    """
+    Generic database SQL export function
+    """
+    tempf = tempfile.NamedTemporaryFile('w')
+    tempf.write(sql)
+    tempf.flush()
+    print subprocess.check_output(["sqlite3", db_filename], stdin=open(tempf.name))
 
 def import_bus_csv_to_db():
     """
@@ -32,10 +75,8 @@ def import_bus_csv_to_db():
     CSV parser is really dumb and can't deal with quoted values) and then converts it to
     the database file ./db/whensmybus.geodata.db
     """ 
-    sql = ""
-    inputpath = './sourcedata/bus-routes.csv'
-    
     # Fix CSV - replace commas with semi-colons, allow sqlite to import without cocking it all up
+    inputpath = './sourcedata/bus-routes.csv'
     inputfile = open(inputpath)
     reader = csv.reader(inputfile)
     fieldnames = reader.next()  # Skip first line (fieldnames)
@@ -58,10 +99,10 @@ def import_bus_csv_to_db():
                     'Run',
                     'Sequence',)
                     
-    fieldnames = ['%s%s' % (f, integer_values.count(f) and ' INT' or '') for f in fieldnames]
+    fieldnames = ['%s%s' % (f, f in integer_values and ' INT' or '') for f in fieldnames]
     
     # Produce SQL for this table
-    sql += "drop table if exists %s;\r\n" % tablename
+    sql = "drop table if exists %s;\r\n" % tablename
     sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
     sql += '.separator ";"\r\n'
     sql += ".import %s %s\r\n" % (outputpath, tablename)
@@ -72,14 +113,44 @@ def import_bus_csv_to_db():
     sql += "CREATE INDEX route_run_index ON routes (Route, Run);\r\n"
     sql += "CREATE INDEX route_stop_index ON routes (Route, Bus_Stop_Code);\r\n"
     
-    # Send SQL via a temporary file to the sqlite3 process
-    tempf = tempfile.NamedTemporaryFile('w')
-    tempf.write(sql)
-    tempf.flush()
-    print subprocess.check_output(["sqlite3", "./db/whensmybus.geodata.db"], stdin=open(tempf.name))
-    
+    export_sql_to_db("./db/whensmybus.geodata.db", sql)    
     # Drop SSV file now we don't need it
     os.unlink(outputpath)
+
+def import_dlr_xml_to_db():
+    """
+    Utility script that produces the script for converting TfL's Tube data KML into a sqlite database
+        
+    Pulls together data from two files:
+
+    1. The data for Tube & DLR station locations, originally from TfL but augmented with new data (Heathrow Terminal 5) 
+    corrected for station names (e.g. Shepherd's Bush Market), and saved as tube-locations.kml
+    
+    2. Data for station codes and station names, scraped from the DLR website (sorry guys), saved as dlr-references.csv
+    """
+    fieldnames = ('Name', 'Code', 'Lines', 'Location_Easting INT', 'Location_Northing INT')
+
+    dlr_station_filter = lambda name, style: style.find("#dlrStyle") > -1
+    stations = parse_stations_from_kml(dlr_station_filter)
+    # Parse CSV file of what stations are on what lines
+    dlr_data = open('./sourcedata/dlr-references.csv')
+    reader = csv.reader(dlr_data)
+    reader.next()
+    for line in reader:
+        code = line[0]
+        name = line[1]
+        if name.lower() in stations:
+            stations[name.lower()]['Code'] = code
+            stations[name.lower()]['Lines'] = 'DLR'      
+        else:
+            print "Cannot find %s from dlr-references in geodata!" % name
+            
+    for name in stations:
+        if not stations[name]['Code']:
+            print "Cannot find %s from geodata in dlr-references!" % name
+
+    rows = [[station[fieldname.split(' ')[0]] for fieldname in fieldnames] for station in stations.values()]
+    export_rows_to_db("./db/whensmydlr.geodata.db", "locations", fieldnames, rows, ('Name',))
 
 def import_tube_xml_to_db():
     """
@@ -98,38 +169,16 @@ def import_tube_xml_to_db():
     the more standard East or Westbound terms. This was generated by scrape_tfl_destination_codes() and then filled
     in by hand
     """
-    tablename = 'locations'
-    
     fieldnames = ('Name', 'Code', 'Line', 'Location_Easting INT', 'Location_Northing INT', 'Inner', 'Outer')
-    
-    sql = ""
-    sql += "drop table if exists %s;\r\n" % tablename
-    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
 
-    stations = {}
+    # Parse our XML file of locations, and only extract Tube stations
+    tube_station_filter = lambda name, style: style.find("#tubeStyle") > -1
+    stations = parse_stations_from_kml(tube_station_filter)
     
-    # Parse our XML file of locations
-    dom = parse(open('./sourcedata/tube-locations.kml'))
-    station_geodata = dom.getElementsByTagName('Placemark')    
-    for station in station_geodata:
-    
-        name = station.getElementsByTagName('name')[0].firstChild.data.strip().replace(' Station', '')
-        style = station.getElementsByTagName('styleUrl')[0].firstChild.data.strip()
-        # Ignore non-Tube stations
-        if style != "#tubeStyle" or name in ('Shadwell', 'Wapping', 'Rotherhithe', 'Surrey Quays', 'New Cross', 'New Cross Gate'):
-            continue
-
-        coordinates = station.getElementsByTagName('coordinates')[0].firstChild.data.strip()
-        (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
-        (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
-        (easting, northing) = LatLongToOSGrid(lat, lon)
-        stations[name.lower()] = { 'Name' : name, 'Location_Easting' : easting, 'Location_Northing' : northing,
-                                   'Code' : '', 'Lines' : '', 'Inner' : '', 'Outer' : '' }
-
     # Parse CSV file of what stations are on what lines
     tube_data = open('./sourcedata/tube-references.csv')
     reader = csv.reader(tube_data)
-    fieldnames = reader.next()
+    reader.next()
     for line in reader:
         code = line[0]
         name = line[1]
@@ -143,7 +192,7 @@ def import_tube_xml_to_db():
     # Parse CSV file of what direction the "Inner" and "Outer" rails are for stations on circular loops
     circle_data = open('./sourcedata/circle_platform_data.csv')
     reader = csv.reader(circle_data)
-    fieldnames = reader.next()
+    reader.next()
     for line in reader:
         name = line[1]
         if name.lower() in stations:
@@ -153,7 +202,6 @@ def import_tube_xml_to_db():
             print "Cannot find %s from circle_platform_data in geodata!" % name
         
     rows = []
-    name_lengths = []
     for station in stations.values():
         station_name = station['Name']
         # Shorten stations such as Hammersmith/Edgware Road which are disambiguated by brackets, get rid of them
@@ -167,27 +215,11 @@ def import_tube_xml_to_db():
             for line in station['Lines']:
                 if line != 'O': 
                     field_data = (station['Name'], station['Code'], line,
-                                  str(station['Location_Easting']), str(station['Location_Northing']),
+                                  station['Location_Easting'], station['Location_Northing'],
                                   station['Inner'], station['Outer'])
                     rows.append(field_data)
 
-        abbreviated_name = abbreviate_station_name(station_name)
-        name_lengths.append((abbreviated_name, len(abbreviated_name)))
-            
-    print "Long names:"
-    for long_name in sorted(name_lengths, lambda a, b: -cmp(a[1], b[1]))[:20]:
-        print long_name
-    print "Average value: %3f" % (sum([length for (name, length) in name_lengths]) / float(len(name_lengths)))
-
-    for field_data in rows:
-        sql += "insert into locations values "
-        sql += "(\"%s\");\r\n" % '", "'.join(field_data)
-    sql += "CREATE INDEX code_index ON locations (code);\r\n"
-
-    tempf = tempfile.NamedTemporaryFile('w')
-    tempf.write(sql)
-    tempf.flush()
-    print subprocess.check_output(["sqlite3", "./db/whensmytube.geodata.db"], stdin=open(tempf.name))
+    export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('Name',))
 
 def scrape_tfl_destination_codes(write_file=False):
     """
@@ -195,17 +227,16 @@ def scrape_tfl_destination_codes(write_file=False):
     platform, destination code and destination name, and puts it into a database to help with us producing
     better output for users
     
-    It also generates a blank CSV template for those stations with Inner/Outer Rail designations
+    It also checks for platforms that are not designated -bound direction, and generates a blank CSV template
+    for those stations with Inner/Outer Rail designations
+    
+    TODO Split these out into two separate functions
     """
     line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
-    
     (database, cursor) = load_database("whensmytube.geodata.db")
-    destination_summary = {}
     browser = WMBBrowser()
     
-    station_platforms = {}
-    
-    print "Platforms without a Inner/Outer Rail specification:"
+    destination_summary = {}
     for line_code in line_codes:
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
         try:
@@ -224,9 +255,12 @@ def scrape_tfl_destination_codes(write_file=False):
             
             cursor.execute("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
             database.commit()
-            
             destination_summary[destination_code] = destination
-    
+
+
+    print "Platforms without a Inner/Outer Rail specification:"
+    station_platforms = {}
+    for line_code in line_codes:
         for station in train_data.getElementsByTagName('S'):
             station_code = station.getAttribute('Code')[:3]
             station_name = station.getAttribute('N')[:-1]
@@ -261,7 +295,6 @@ def scrape_tfl_destination_codes(write_file=False):
         cursor.execute("SELECT Name FROM locations WHERE Name=?", (station_name,))
         if not cursor.fetchone():
             errors.append("%s is not in the station database" % station_name)
-            
     outputfile.flush()
     
     print ""
@@ -272,6 +305,7 @@ def scrape_tfl_destination_codes(write_file=False):
 
 if __name__ == "__main__":
     #import_bus_csv_to_db()
-    import_tube_xml_to_db()
-    #scrape_tfl_destination_codes()
+    #import_tube_xml_to_db()
+    #import_dlr_xml_to_db()
+    scrape_tfl_destination_codes()
     pass
