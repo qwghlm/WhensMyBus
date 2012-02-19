@@ -153,7 +153,7 @@ def capwords(phrase):
         
 def cleanup_name_from_undesirables(name, undesirables):
     """
-    Clean out every word in the iterable undesirables from the name supplied, and capitalise
+    Clean out every word in the iterable undesirables from the name supplied, and capitalize
     """
     for undesirable in undesirables:
         name = re.sub(undesirable, '', name, flags=re.I)
@@ -165,6 +165,7 @@ def cleanup_name_from_undesirables(name, undesirables):
 def unique_values(seq):
     """
     Return unique values of sequence seq, according to ID function idfun. From http://www.peterbe.com/plog/uniqifiers-benchmark
+    and modified. Values in seq must be hashable for this to work
     """
     seen = {} 
     result = [] 
