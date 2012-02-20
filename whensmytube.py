@@ -9,15 +9,14 @@ Released under the MIT License
 
 A Twitter bot that takes requests for a London Underground train, and replies with the real-time data from TfL on Twitter
 
-Inherits many methods and data structures from WhensMyTransport, including: loading the databases, config, connecting to Twitter,
+Inherits many methods and data structures from WhensMyTransport and WhensMyRailTransport, including: loading the databases, config, connecting to Twitter,
 reading @ replies, replying to them, checking new followers, following them back
 
-This module just does work specific to Tube trains: Parsing & interpreting a Tube-specific message, and looking it up against the database of
-Tube stations, checking the TfL TrackerNet API and formatting an appropriate reply to be sent back
+This module just does work specific to Tube trains: Parsing & interpreting a Tube-specific message, and checking the TfL TrackerNet API and
+formatting an appropriate reply to be sent back
 
 Things to do:
  - Review all logging and make sure consistent with WhensMyBus
-
 """
 # Standard libraries of Python 2.6
 import re
@@ -272,14 +271,27 @@ def cleanup_destination_name(station_name):
     Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this is currently pending
     an FoI request. Once I get that, this code will be a lot neater :)
     """
+    station_name = re.sub(r"\band\b", "&", station_name, flags=re.I)
     # Destinations that are line names or Unknown get boiled down to Unknown
-    if station_name in ("Unknown", "Circle and Hammersmith & City") or station_name.endswith("Train") or station_name.endswith("Line"):
+    if station_name in ("Unknown", "Circle & Hammersmith & City") or station_name.startswith("Circle Line") or station_name.endswith("Train") or station_name.endswith("Line"):
         station_name = "Unknown"
     else:
         # Regular expressions of instructions, depot names (presumably instructions for shunting after arrival), or platform numbers
-        undesirables = (r'\(rev to .*\)', 'sidings', 'then depot', 'depot', 'ex barnet branch', '/ london road', r'\(plat. 1\)', ' loop')
+        undesirables = ('\(rev to .*\)',
+                        'sidings?',
+                        '(then )?depot',
+                        'ex (barnet|edgware) branch',
+                        '\(ex .*\)',
+                        '/ london road',
+                        '27 Road',
+                        '\(plat\. [0-9]+\)',
+                        ' loop',
+                        '\(circle\)')
         station_name = cleanup_name_from_undesirables(station_name, undesirables)
     return station_name
+    
+def cleanup_via_from_destination_name(station_name):
+    return re.sub(" \(?via .*$", "", station_name, flags=re.I)
 
 def abbreviate_station_name(station_name):
     """

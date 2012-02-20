@@ -62,22 +62,21 @@ def get_bus_stop_name_similarity(origin, stop):
     # Else fall back on name similarity
     return get_name_similarity(origin, stop)
 
-def get_rail_station_name_similarity(origin, station):
+def get_rail_station_name_similarity(query, canonical):
     """
     Custom similarity for train stations - takes into account fact many people use abbreviated names
     """
-    score = get_name_similarity(origin, station)
-
-    # For low-scoring matches, we try matching between a string the same size as the origin, if its shorter than the name
+    score = get_name_similarity(query, canonical)
+    # For low-scoring matches, we try matching between a string the same size as the user query, if its shorter than the name
     # being tested against, so this works for e.g. Kings Cross matching King's Cross St Pancras
-    if score < 70 and len(origin) < len(station):
-        abbreviated_score = get_name_similarity(origin, station[:len(origin)])
+    if score < 70 and len(query) < len(canonical):
+        abbreviated_score = get_name_similarity(query, canonical[:len(query)])
         if abbreviated_score >= 90:
             return abbreviated_score
 
     return score
 
-def get_best_fuzzy_match(search_term, possible_values, lookup_key=None, comparison_function=get_name_similarity):
+def get_best_fuzzy_match(search_term, possible_values, lookup_key=None, comparison_function=get_name_similarity, minimum_confidence=70):
     """
     Get the best matching item in a list of possible_values that matches search_term
     If lookup_key is defined, assume each element of possible_values is a dict and lookup that key to do comparison
@@ -94,7 +93,7 @@ def get_best_fuzzy_match(search_term, possible_values, lookup_key=None, comparis
     fuzzy_matches.sort(lambda a, b: cmp(a[1], b[1]))
     (best_value, confidence) = fuzzy_matches[-1]
     
-    if confidence >= 70:
+    if confidence >= minimum_confidence:
         return best_value
     else:
         return None

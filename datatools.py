@@ -17,6 +17,8 @@ from pprint import pprint
 # Local files
 from geotools import convertWGS84toOSGB36, LatLongToOSGrid
 from utils import WMBBrowser, load_database
+from whensmytube import cleanup_destination_name, cleanup_via_from_destination_name
+from fuzzy_matching import get_best_fuzzy_match, get_rail_station_name_similarity
 
 def parse_stations_from_kml(filter_function=lambda a, b: True):
     """
@@ -232,7 +234,7 @@ def scrape_tfl_destination_codes(write_file=False):
     
     TODO Split these out into two separate functions
     """
-    line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
+    line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W') # TODO Fix this
     (database, cursor) = load_database("whensmytube.geodata.db")
     browser = WMBBrowser()
     
@@ -257,7 +259,25 @@ def scrape_tfl_destination_codes(write_file=False):
             database.commit()
             destination_summary[destination_code] = destination
 
-
+    # Check to see if destination is in our database
+    cursor.execute("SELECT destination_name, line_code FROM destination_codes")
+    for row in cursor.fetchall():
+        destination = cleanup_via_from_destination_name(cleanup_destination_name(row[0]))
+        if destination in ("Unknown", "Special", "Out Of Service"):
+            continue
+        if destination.startswith('Br To') or destination in ('Network Rail', 'Chiltern Toc'):
+            continue            
+        cursor.execute("SELECT Name FROM locations WHERE Name=? AND Line=?", (destination, row[1]))
+        if not cursor.fetchone():
+            cursor.execute("SELECT Name FROM locations WHERE Name=?", (destination,))
+            station_is_on_other_line = cursor.fetchall()
+            if not station_is_on_other_line:
+                cursor.execute("SELECT Name FROM locations WHERE Line=?", (row[1],))
+                all_stations = [station['Name'] for station in cursor.fetchall()]
+                if not get_best_fuzzy_match(destination, all_stations, comparison_function=get_rail_station_name_similarity, minimum_confidence=70):
+                    cursor.execute("SELECT Name FROM locations WHERE Line=?", (row[1],))
+                    print "Destination %s on %s not found in locations database" % (row[0], row[1])
+    
     print "Platforms without a Inner/Outer Rail specification:"
     station_platforms = {}
     for line_code in line_codes:
