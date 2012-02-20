@@ -115,6 +115,7 @@ class WhensMyTube(WhensMyRailTransport):
         """
         (line_name, origin, destination) = self.tokenize_message(message, self.tube_line_regex)
         if line_name.lower().startswith('thank'):
+            self.log_debug("This looks like a thank-you, skipping")
             return (None, None, None)
 
         line_name = line_name and re.sub(" Line", "", line_name, flags=re.I)
@@ -197,6 +198,7 @@ class WhensMyTube(WhensMyRailTransport):
                     # The following stations will have "issues" with bidrectional platforms: North Acton, Edgware Road, Loughton, White City
                     # These are dealt with the filter function below
                     direction = "Unknown"
+                    self.log_debug("Have encountered a platform without direction specified (%s)", platform_name)
 
             # Use the filter function to filter out trains that are out of service, specials or National Rail first
             platform_trains = [t for t in platform.getElementsByTagName('T') if t.getAttribute('LN') == line_code and filter_tube_trains(t)]
@@ -224,8 +226,13 @@ class WhensMyTube(WhensMyRailTransport):
         # so create a reverse mapping of destination code to direction, if possible
         destination_to_direction = dict([(t.destination_code, t.direction) for t in trains if t.direction != "Unknown" and t.destination != "Unknown"])
         for train in trains:
-            if train.direction == "Unknown" and train.destination_code in destination_to_direction:
-                train.direction = destination_to_direction[train.destination_code]                
+            if train.direction == "Unknown":
+                if train.destination_code in destination_to_direction:
+                    train.direction = destination_to_direction[train.destination_code]
+                    self.log_debug("Reassigning direction of train bound for %s, from Unknown to %s", train.destination, train.direction)
+                else:
+                    self.log_debug("Warning! Could not resolve direction of a train to %s", train.destination)
+
 
         # Once we have all trains and their directions established, *now* we can organise by direction
         # Note that we may not be able to track every train - those with unknown destinations & directions are dropped here
@@ -241,6 +248,7 @@ class WhensMyTube(WhensMyRailTransport):
         for trains in trains_by_direction.values():
             for train in unique_values(sorted(trains))[:3]:
                 destination = train.get_destination()
+                self.log_debug("Adding a train to %s at %s to the output", train.destination, train.departure_time)
                 if destination in destinations_correct_order:
                     train_times[destination].append(train.get_departure_time())
                 else:
@@ -248,7 +256,6 @@ class WhensMyTube(WhensMyRailTransport):
                     destinations_correct_order.append(destination)
 
         # This returns an empty string if no trains are due, btw
-        # TODO Might be worth putting a slash between different directions
         return '; '.join([destination + ' ' + ', '.join(train_times[destination]) for destination in destinations_correct_order])
 
     def check_station_is_open(self, station):
@@ -291,6 +298,11 @@ def cleanup_destination_name(station_name):
     return station_name
     
 def cleanup_via_from_destination_name(station_name):
+    """
+    Get rid of "via" from a destination name to make
+    it match easier to a canonical station name
+    """
+    #pylint: disable=C0103
     return re.sub(" \(?via .*$", "", station_name, flags=re.I)
 
 def abbreviate_station_name(station_name):

@@ -103,9 +103,11 @@ class WhensMyBus(WhensMyTransport):
                     # run; if that stop has a sequence number greater than this stop then it's a valid route, so include this run 
                     relevant_stops = dict([(run, stop) for (run, stop) in relevant_stops.items() 
                                             if run in possible_destinations and possible_destinations[run].sequence > stop.sequence])
-                                            
+                    self.log_debug("Successfully found a match for destination %s, filtering down to runs: %s", destination, relevant_stops.keys())
+
             # We may not be able to find a destination, in which case - don't worry about this bit, and stick to unfiltered
             except WhensMyTransportException:
+                self.log_debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
                 pass
 
         # If the above has found stops on this route, get data for each
@@ -249,9 +251,7 @@ class WhensMyBus(WhensMyTransport):
         that stop(s)
         """
         time_info = []
-
-        # Values in tuple correspond to what was added in relevant_stops.append() above
-        for stop in relevant_stops.values():
+        for (run, stop) in relevant_stops.items():
 
             stop_name = cleanup_stop_name(stop.name)
             tfl_url = "http://countdown.tfl.gov.uk/stopBoard/%s" % stop.number
@@ -267,19 +267,21 @@ class WhensMyBus(WhensMyTransport):
                                                         and a['isRealTime'] and not a['isCancelled']]
             if relevant_arrivals:
                 arrival = relevant_arrivals[0]
-                scheduled_time =  arrival['scheduledTime'].replace(':', '')
+                scheduled_time = arrival['scheduledTime'].replace(':', '')
                 # Short hack to get BST working
                 if localtime().tm_isdst:
                     hour = (int(scheduled_time[0:2]) + 1) % 24
                     scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
                     
+                self.log_debug("Run %s, stop %s produced bus to %s %s", run, stop_name, arrival['destination'], scheduled_time)
                 time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
             else:
+                self.log_debug("Run %s, stop %s produced no buses", run, stop_name)
                 time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(stop.heading)))
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
         if len(time_info) > 2:
-            self.log_debug("Number of runs is %s, removing any non-existent entries" , len(time_info))
+            self.log_debug("Number of runs is %s, removing any non-existent entries", len(time_info))
             time_info = [t for t in time_info if t.find("None shown") == -1]
 
         return time_info
