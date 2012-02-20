@@ -229,7 +229,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         self.assertNotEqual(result, result.upper())
         
         # Should say one of our route numbers, expected origin and a time
-        route_regex = "^(%s)" % '|'.join(routes_specified.upper().split(' '))
+        route_regex = "^(%s)" % '|'.join(routes_specified.upper().replace(',', '').split(' '))
         self.assertRegexpMatches(result, route_regex)
         self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
         
@@ -322,6 +322,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
                     message = (self.at_reply + route + from_fragment + to_fragment)
+                    print message
                     if not from_fragment:
                         tweet = FakeTweet(message, (lat, lon))
                     else:

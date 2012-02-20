@@ -341,15 +341,24 @@ class WhensMyTransport:
         """
         Send back a reply to the user; this might be a DM or might be a public reply
         """
-        # Take care of over-long messages. 137 allows us breathing room for a letter D and spaces for
+        # Take care of over-long messages. 136 allows us breathing room for a letter D and spaces for
         # a direct message & three dots at the end, so split this kind of reply
-        #
-        # NB This trusts that there are no more than 125 or so characters in each sub-message
-        if len(username) + len(reply) > 137:
-            messages = reply.split("; ")
-            messages = [u"%s…" % messages[0]] + [u"…%s…" % message for message in messages[1:-1]] + [u"…%s" % messages[-1]]
+        max_message_length = 136 - len(username)
+        if len(reply) > max_message_length:
+            words = reply.split(';')
+            messages = [u""]
+            for word in words:
+                if len(word) > max_message_length:
+                    continue
+                if len(messages[-1]) + len(word) < max_message_length:
+                    messages[-1] = messages[-1] + word + ';'
+                else:
+                    messages[-1] = messages[-1].strip() + u"…"
+                    messages.append(u"…")
+            messages[-1] = messages[-1][:-1]
+            
         else:
-            messages = (reply,)
+            messages = [reply]
 
         # Send the reply/replies we have generated to the user
         for message in messages:
@@ -441,7 +450,7 @@ class WhensMyTransport:
         # Sometime people forget to put a 'from' in their message. So we try and put one in for them
         # Go through and find the index of the first token that does not match what a request token should be
         if "from" not in tokens and request_token_regex:
-            non_request_token_indexes = [i for i in range(0, len(tokens)) if not re.match('^%s$' % request_token_regex, tokens[i], re.I)]
+            non_request_token_indexes = [i for i in range(0, len(tokens)) if not re.match("^%s,?$" % request_token_regex, tokens[i], re.I)]
             if non_request_token_indexes:
                 first_non_request_token_index = non_request_token_indexes[0]
                 if first_non_request_token_index > 0 and tokens[first_non_request_token_index] != "to":
