@@ -372,7 +372,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.test_standard_data = (
                                    ('District', 'Mile End', 51.525, -0.033, "Tower Hill", 'Mile End'),
                                    ('Hammersmith and City', 'Mile End', 51.525, -0.033, "Liverpool Street", 'Mile End'),
-                                   ('Metropolitan', 'Kings Cross', 51.5309, -0.1233, "Uxbridge", "King's X St P"),
+                                   ('Metropolitan', 'Kings Cross', 51.5309, -0.1233, "Uxbridge", "Kings X St P"),
                                    ('District', "Earl's Court", 51.4913, -0.1947, "Edgware Road", "Earls Ct"),
                                    ('Piccadilly', "Acton Town", 51.5028, -0.28, "Arsenal", "Acton Town"),
                                    ('Jubilee', "Swiss Cottage", 51.5431, -0.1747, "West Ham", "Swiss Cottage"),
