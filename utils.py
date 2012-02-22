@@ -16,6 +16,7 @@ import ConfigParser
 import xml.dom.minidom
 
 from pprint import pprint
+from xml.etree.ElementTree import fromstring
 
 from exception_handling import WhensMyTransportException
 
@@ -44,7 +45,7 @@ def is_direct_message(tweet):
 
 class WMBBrowser:
     """
-    A simple JSON fetcher with caching. Not designed to be used for many thousands of URLs, or for concurrent access
+    A simple JSON/XML fetcher with caching. Not designed to be used for many thousands of URLs, or for concurrent access
     """
     def __init__(self):
         """
@@ -97,21 +98,27 @@ class WMBBrowser:
                 logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
                 raise WhensMyTransportException(exception_code)  
 
-    def fetch_xml(self, url, exception_code='tfl_server_down'):
+    def fetch_xml_tree(self, url, exception_code='tfl_server_down'):
         """
         Fetches an XML URL and returns Python object representation of the DOM
         """
         xml_data = self.fetch_url(url, exception_code)
-    
         # Try to parse this as XML
         if xml_data:
             try:
-                dom = xml.dom.minidom.parseString(xml_data)
-                return dom
+                tree = fromstring(xml_data)
+                namespace = '{%s}' % xml.dom.minidom.parseString(xml_data).firstChild.getAttribute('xmlns')               
+                # Remove horrible namespace functionality
+                if namespace:
+                    for elem in tree.getiterator():
+                        if elem.tag.startswith(namespace):
+                            elem.tag = elem.tag[len(namespace):]
+                return tree
             except Exception, exc:
+                print 
                 logging.error("%s encountered when parsing %s - likely not XML!", exc, url)
-                raise WhensMyTransportException(exception_code)  
-
+                raise WhensMyTransportException(exception_code)
+                
 # OAuth stuff
 
 def make_oauth_key(instance_name='whensmybus'):

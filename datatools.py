@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#pylint: disable=W0703,W0107
+#pylint: disable=W0703,W0107,C0103
 """
 Data importing tools for WhensMyTransport - import TfL's data into an easier format for us to use
 """
@@ -11,7 +11,6 @@ import sys
 import subprocess
 import tempfile
 
-from xml.dom.minidom import parse
 from pprint import pprint
 
 # Local files
@@ -20,18 +19,19 @@ from utils import WMBBrowser, load_database
 from whensmytube import cleanup_destination_name, cleanup_via_from_destination_name
 from fuzzy_matching import get_best_fuzzy_match, get_rail_station_name_similarity
 
+line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
+
 def parse_stations_from_kml(filter_function=lambda a, b: True):
     """
     Parses KML file of stations & associated data, and returns them as a dictionary
     """
     stations = {}
-    dom = parse(open('./sourcedata/tube-locations.kml'))
-    station_geodata = dom.getElementsByTagName('Placemark')    
-    for station in station_geodata:
-        name = station.getElementsByTagName('name')[0].firstChild.data.strip().replace(' Station', '')
-        style = station.getElementsByTagName('styleUrl')[0].firstChild.data.strip()
+    kml = WMBBrowser().fetch_xml_tree('file:///%s/sourcedata/tube-locations.kml' % os.getcwd())
+    for station in kml.findall('.//Placemark'):
+        name = station.find('name').text.strip().replace(' Station', '')
+        style = station.find('styleUrl').text
         if filter_function(name, style):
-            coordinates = station.getElementsByTagName('coordinates')[0].firstChild.data.strip()
+            coordinates = station.find('Point/coordinates').text
             (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
             (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
             (easting, northing) = LatLongToOSGrid(lat, lon)
@@ -130,7 +130,7 @@ def import_dlr_xml_to_db():
     
     2. Data for station codes and station names, scraped from the DLR website (sorry guys), saved as dlr-references.csv
     """
-    fieldnames = ('Name', 'Code', 'Lines', 'Location_Easting INT', 'Location_Northing INT')
+    fieldnames = ('Name', 'Code', 'Line', 'Location_Easting INT', 'Location_Northing INT')
 
     dlr_station_filter = lambda name, style: style.find("#dlrStyle") > -1
     stations = parse_stations_from_kml(dlr_station_filter)
@@ -143,7 +143,7 @@ def import_dlr_xml_to_db():
         name = line[1]
         if name.lower() in stations:
             stations[name.lower()]['Code'] = code
-            stations[name.lower()]['Lines'] = 'DLR'      
+            stations[name.lower()]['Line'] = 'DLR'      
         else:
             print "Cannot find %s from dlr-references in geodata!" % name
             
@@ -223,18 +223,12 @@ def import_tube_xml_to_db():
 
     export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('Name',))
 
-def scrape_tfl_destination_codes(write_file=False):
+def scrape_tfl_destination_codes():
     """
     An experimental script that takes current Tube data from TfL, scrapes it to find every possible existing
     platform, destination code and destination name, and puts it into a database to help with us producing
     better output for users
-    
-    It also checks for platforms that are not designated -bound direction, and generates a blank CSV template
-    for those stations with Inner/Outer Rail designations
-    
-    TODO Split these out into two separate functions
     """
-    line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W') # TODO Fix this
     (database, cursor) = load_database("whensmytube.geodata.db")
     browser = WMBBrowser()
     
@@ -242,14 +236,14 @@ def scrape_tfl_destination_codes(write_file=False):
     for line_code in line_codes:
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
         try:
-            train_data = browser.fetch_xml(tfl_url)
+            train_data = browser.fetch_xml_tree(tfl_url)
         except Exception:
             print "Couldn't get data for %s" % line_code
             continue
     
-        for train in train_data.getElementsByTagName('T'):
-            destination = train.getAttribute('DE')
-            destination_code = train.getAttribute('D')
+        for train in train_data.findall('T'):
+            destination = train.attrib['DE']
+            destination_code = train.attrib['D']
             
             if destination_summary.get(destination_code, destination) != destination and destination_code != '0':
                 print "Error - mismatching destinations: %s (existing) and %s (new) with code %s" \
@@ -277,17 +271,31 @@ def scrape_tfl_destination_codes(write_file=False):
                 if not get_best_fuzzy_match(destination, all_stations, comparison_function=get_rail_station_name_similarity, minimum_confidence=70):
                     cursor.execute("SELECT Name FROM locations WHERE Line=?", (row[1],))
                     print "Destination %s on %s not found in locations database" % (row[0], row[1])
-    
+
+def scrape_odd_platform_designations(write_file=False):
+    """
+    Check Tfl Tube API for Underground platforms that are not designated with a *-bound direction, and (optionally)
+    generates a blank CSV template for those stations with Inner/Outer Rail designations
+    """
+    (_database, cursor) = load_database("whensmytube.geodata.db")
+    browser = WMBBrowser()
+
     print "Platforms without a Inner/Outer Rail specification:"
     station_platforms = {}
     for line_code in line_codes:
-        for station in train_data.getElementsByTagName('S'):
-            station_code = station.getAttribute('Code')[:3]
-            station_name = station.getAttribute('N')[:-1]
+        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
+        try:
+            train_data = browser.fetch_xml_tree(tfl_url)
+        except Exception:
+            print "Couldn't get data for %s" % line_code
+            continue
+        for station in train_data.findall('S'):
+            station_code = station.attrib['Code'][:3]
+            station_name = station.attrib['N'][:-1]
             station_name = station_name.replace(" Circle", "")
             
-            for platform in station.getElementsByTagName('P'):
-                platform_name = platform.getAttribute('N')
+            for platform in station.findall('P'):
+                platform_name = platform.attrib['N']
                 direction = re.search("(North|East|South|West)bound", platform_name, re.I)
                 if direction is None:
                     rail = re.search("(Inner|Outer) Rail", platform_name, re.I)
@@ -325,7 +333,8 @@ def scrape_tfl_destination_codes(write_file=False):
 
 if __name__ == "__main__":
     #import_bus_csv_to_db()
-    #import_tube_xml_to_db()
+    import_tube_xml_to_db()
     #import_dlr_xml_to_db()
-    scrape_tfl_destination_codes()
+    #scrape_tfl_destination_codes()
+    #scrape_odd_platform_designations()
     pass
