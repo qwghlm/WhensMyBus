@@ -124,6 +124,8 @@ class WhensMyDLR(WhensMyRailTransport):
                 result = train_info_regex.search(train)
                 if result:
                     destination = capwords(result.group(1).strip())
+                    if destination == 'Terminates Here':
+                        continue
                     departure_delta = timedelta(minutes=(result.group(3) and int(result.group(3)) or 0))
                     departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
                     trains_by_platform[platform_name] = trains_by_platform[platform_name] + [DLRTrain(destination, departure_time)]

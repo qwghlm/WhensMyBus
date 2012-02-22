@@ -457,8 +457,14 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         self.geodata_table_names = ('locations', )
         
         self.test_standard_data = (
+                                   ('DLR', 'Bank', 51.513, -0.088, 'Canary Wharf', 'Bank'),
+                                   ('DLR', 'Tower Gateway', 51.5104, -0.0746, 'Beckton', 'Tower Gateway'),
                                    ('DLR', 'Limehouse', 51.5124, -0.0397, 'Canary Wharf', 'Limehouse'),
                                    ('DLR', 'Heron Quay', 51.5028, -0.0213, 'Canary Wharf', 'Heron Quays'),
+                                   ('DLR', 'Lewisham', 51.4653, -0.0133, 'Canary Wharf', 'Lewisham'),
+                                   ('DLR', 'W India Quay', 51.506667, -0.022222, 'Canary Wharf', 'W India Quay'),
+                                   ('DLR', 'Canning Town', 51.514, 0.0083, 'Westferry', 'Canning Town'),
+                                   ('DLR', 'Poplar', 51.5077, -0.0174, 'Westferry', 'Poplar'),
                                   )
         self.test_nonstandard_data = ()
 
