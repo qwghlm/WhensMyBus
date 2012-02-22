@@ -525,9 +525,11 @@ class RailStation():
     """
     Class representing a railway station
     """
-    def __init__(self, Name='', Code='', **kwargs):
+    def __init__(self, Name='', Code='', Location_Easting=0, Location_Northing=0, **kwargs):
         self.name = Name
         self.code = Code
+        self.location_easting = Location_Easting
+        self.location_northing = Location_Northing
 
 class WhensMyRailTransport(WhensMyTransport):
     """
@@ -557,7 +559,9 @@ class WhensMyRailTransport(WhensMyTransport):
         query = """
                 SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
                       Name,
-                      Code
+                      Code,
+                      Location_Easting,
+                      Location_Northing
                 FROM locations
                 WHERE Line='%s'
                 ORDER BY dist_squared
@@ -579,7 +583,7 @@ class WhensMyRailTransport(WhensMyTransport):
         # Users may not give exact details, so we try to match fuzzily
         self.log_debug("Attempting to get a match on placename %s", origin)
         self.geodata.execute("""
-                             SELECT Name, Code FROM locations WHERE Line=? OR Line='X'
+                             SELECT Name, Code, Location_Easting, Location_Northing FROM locations WHERE Line=? OR Line='X'
                              """, line_code)
         rows = self.geodata.fetchall()
         if rows:

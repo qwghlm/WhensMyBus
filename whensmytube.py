@@ -172,7 +172,7 @@ class WhensMyTube(WhensMyRailTransport):
         tube_data = self.browser.fetch_xml(tfl_url)
 
         # Go through each platform and get data about every train arriving, including which direction it's headed
-        trains = []
+        trains_by_direction = {}
         for platform in tube_data.getElementsByTagName('P'):
             
             platform_name = platform.getAttribute('N')
@@ -196,7 +196,7 @@ class WhensMyTube(WhensMyRailTransport):
                     direction = "Northbound"
                 else:
                     # The following stations will have "issues" with bidrectional platforms: North Acton, Edgware Road, Loughton, White City
-                    # These are dealt with the filter function below
+                    # These are dealt with the below
                     direction = "Unknown"
                     self.log_debug("Have encountered a platform without direction specified (%s)", platform_name)
 
@@ -216,30 +216,23 @@ class WhensMyTube(WhensMyRailTransport):
                 else:
                     departure_time = int(departure_time.split(":")[0])
                 
+                if direction == "Unknown":
+                    if destination == "Unknown":
+                        continue
+                    destination_obj = self.get_station_by_station_name(line_code, destination)
+                    if not destination_obj:
+                        continue
+                    else:
+                        # FIXME Get the co-ordinates of this station, and the destination, and work out if the train
+                        # is east or westbound from this!
+                        continue
+
                 # SetNo identifies a unique train. For stations like Earls Court this is duplicated across two platforms and can mean the same train is
                 # "scheduled" to come into both (obviously impossible), so we add this to our train so our hashing function knows to score as unique
                 set_number = train.getAttribute('SetNo')
                 destination_code = train.getAttribute('DestCode')
-                trains.append(TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code))
-
-        # For platforms that are bidirectional, need to assign direction on a train-by-train basis,
-        # so create a reverse mapping of destination code to direction, if possible
-        destination_to_direction = dict([(t.destination_code, t.direction) for t in trains if t.direction != "Unknown" and t.destination != "Unknown"])
-        for train in trains:
-            if train.direction == "Unknown":
-                if train.destination_code in destination_to_direction:
-                    train.direction = destination_to_direction[train.destination_code]
-                    self.log_debug("Reassigning direction of train bound for %s, from Unknown to %s", train.destination, train.direction)
-                else:
-                    self.log_debug("Warning! Could not resolve direction of a train to %s", train.destination)
-
-
-        # Once we have all trains and their directions established, *now* we can organise by direction
-        # Note that we may not be able to track every train - those with unknown destinations & directions are dropped here
-        trains_by_direction = {}
-        for train in trains:
-            if train.direction != "Unknown":
-                trains_by_direction[train.direction] = trains_by_direction.get(train.direction, []) + [train]
+                train_obj = TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code)
+                trains_by_direction[direction] = trains_by_direction.get(direction, []) + [train_obj]
 
         # For each direction, display the first three unique trains, sorted in time order
         # Dictionaries alone do not preserve order, hence a list of the correct order for destinations as well
