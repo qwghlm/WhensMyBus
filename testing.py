@@ -465,6 +465,8 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
                                    ('DLR', 'W India Quay', 51.506667, -0.022222, 'Canary Wharf', 'W India Quay'),
                                    ('DLR', 'Canning Town', 51.514, 0.0083, 'Westferry', 'Canning Town'),
                                    ('DLR', 'Poplar', 51.5077, -0.0174, 'Westferry', 'Poplar'),
+                                   ('DLR', 'Limehouse', 51.5124, -0.0397, 'Canary Wharf', 'Limehouse'),
+                                   ('DLR', 'Heron Quay', 51.5028, -0.0213, 'Canary Wharf', 'Heron Quays'),
                                   )
         self.test_nonstandard_data = ()
 
