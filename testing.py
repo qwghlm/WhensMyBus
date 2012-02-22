@@ -13,6 +13,7 @@ if sys.version_info < (2, 7):
     sys.exit(1)
 
 from whensmybus import WhensMyBus
+from whensmydlr import WhensMyDLR
 from whensmytube import WhensMyTube
 from exception_handling import WhensMyTransportException
 
@@ -146,9 +147,9 @@ class WhensMyTransportTestCase(unittest.TestCase):
                      ' ',
                      '         '):
             tweet = FakeTweet(self.at_reply + message)
-            self._test_correct_exception_produced(tweet, 'blank_tweet')
+            self._test_correct_exception_produced(tweet, 'blank_%s_tweet' % self.bot.instance_name.replace('whensmy', ''))
             direct_message = FakeDirectMessage(message)
-            self._test_correct_exception_produced(direct_message, 'blank_tweet')
+            self._test_correct_exception_produced(direct_message, 'blank_%s_tweet' % self.bot.instance_name.replace('whensmy', ''))
     
     #
     # Geotagging tests
@@ -296,15 +297,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         message = '15 from eucg;$78' 
         tweet = FakeTweet(self.at_reply + message) 
         self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;$78')
-        
-    def test_unicode_nonsense(self):
-        """
-        Test to confirm we can handle odd Unicode garbage
-        """
-        message = u"242 N 51°32' 0'' / W 0°4' 0''"
-        tweet = FakeTweet(self.at_reply + message) 
-        self._test_correct_exception_produced(tweet, 'unknown_error', '242')
-                
+                       
     def test_standard_messages(self):
         """
         Generic test for standard-issue messages
@@ -370,12 +363,12 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.geodata_table_names = ('locations', )
         
         self.test_standard_data = (
-                                   ('District', 'Mile End', 51.525, -0.033, "Tower Hill", 'Mile End'),
-                                   ('Hammersmith and City', 'Mile End', 51.525, -0.033, "Liverpool Street", 'Mile End'),
-                                   ('Metropolitan', 'Kings Cross', 51.5309, -0.1233, "Uxbridge", "Kings X St P"),
+                                   ('Central', 'Epping', 51.693, 0.1138, "Bank", 'Epping'), # Second-most northern after Chesham
+                                   ('District', 'Upminster', 51.559, 0.2511, "Tower Hill", 'Upminster'), # Most eastern
+                                   ('Northern', 'Morden', 51.402222, -0.195, "Bank", 'Morden'), # Most southern
+                                   ('Metropolitan', 'Amersham', 51.674108, -0.6074, "Baker Street", 'Amersham'), # Second-most western after Chesham
                                    ('District', "Earl's Court", 51.4913, -0.1947, "Edgware Road", "Earls Ct"),
                                    ('Piccadilly', "Acton Town", 51.5028, -0.28, "Arsenal", "Acton Town"),
-                                   ('Jubilee', "Swiss Cottage", 51.5431, -0.1747, "West Ham", "Swiss Cottage"),
                                    ('Northern', "Camden Town", 51.5394, -0.1427, "Morden", "Camden Town"),
                                    ('Central', "White City", 51.5121, -0.2246, "Ruislip Gardens", "White City"),
                                    ('Circle', "Edgware Road", 51.52, -0.167778, "Moorgate", "Edgware Rd"),
@@ -389,7 +382,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         Generic test to confirm message is being produced correctly
         """
         self.assertNotEqual(result, result.upper())
-        self.assertRegexpMatches(result, r"(%s to .* (due|[0-9]{1,2}min)|There aren't any %s Line trains)" % (expected_origin, routes_specified))
+        self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There aren't any %s Line trains)" % (expected_origin, routes_specified))
         if destination_not_specified:
             pass # TODO Tests for when a destination is specified
         print result
@@ -416,7 +409,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         message = 'District Line from Stratford'
         tweet = FakeTweet(self.at_reply + message) 
-        self._test_correct_exception_produced(tweet, 'tube_station_name_not_found', 'Stratford', 'District')
+        self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Stratford', 'District Line')
     
     def test_standard_messages(self):
         """
@@ -451,6 +444,69 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                         for result in results:
                             self._test_correct_successes(result, line, expected_origin, not to_fragment)
 
+class WhensMyDLRTestCase(WhensMyTransportTestCase):
+    """
+    Main Test Case for When's My DLR
+    """
+    def setUp(self):
+        """
+        Setup test
+        """
+        self.bot = WhensMyDLR(testing=True, silent=True)
+        self.at_reply = '@%s ' % self.bot.username
+        self.geodata_table_names = ('locations', )
+        
+        self.test_standard_data = (
+                                   ('DLR', 'Limehouse', 51.5124, -0.0397, 'Canary Wharf', 'Limehouse'),
+                                   ('DLR', 'Heron Quay', 51.5028, -0.0213, 'Canary Wharf', 'Heron Quays'),
+                                  )
+        self.test_nonstandard_data = ()
+
+    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_not_specified=True):
+        """
+        Generic test to confirm message is being produced correctly
+        """
+        self.assertNotEqual(result, result.upper())
+        self.assertRegexpMatches(result, r"(%s to .* ([0-9]{1,4})|There aren't any %s trains)" % (expected_origin, routes_specified))
+        if destination_not_specified:
+            pass # TODO Tests for when a destination is specified
+        print result
+
+    def test_bad_station_name(self):
+        """
+        Test to confirm stations that don't exist on the DLR are correctly handled
+        """
+        message = 'DLR from Ealing Broadway'
+        tweet = FakeTweet(self.at_reply + message) 
+        self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Ealing Broadway', 'DLR')
+            
+    def test_standard_messages(self):
+        """
+        Generic test for standard-issue messages
+        """
+        #pylint: disable=W0612
+        for (line, origin_name, lat, lon, destination_name, expected_origin) in self.test_standard_data:
+        
+            # C-string format helper
+            test_variables = dict([(name, eval(name)) for name in ('origin_name', 'destination_name', 'line')])
+
+            # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
+            from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
+            to_fragments =   [value % test_variables for value in ("", " to %(destination_name)s")]
+            line_fragments = [value % test_variables for value in ("", "%(line)s",)]
+
+            for from_fragment in from_fragments:
+                for to_fragment in to_fragments:
+                    for line_fragment in line_fragments:
+                        message = (self.at_reply + line_fragment + from_fragment + to_fragment)
+                        if not from_fragment:
+                            tweet = FakeTweet(message, (lat, lon))
+                        else:
+                            tweet = FakeTweet(message)
+        
+                        results = self.bot.process_tweet(tweet)
+                        for result in results:
+                            self._test_correct_successes(result, 'DLR', expected_origin, not to_fragment)
 
 def run_tests(): 
     """
@@ -478,6 +534,11 @@ def run_tests():
         tube_errors = ('bad_line_name',)
         station_errors = ('missing_station_data', 'station_line_mismatch')
         failures = format_errors + geotag_errors + tube_errors + station_errors
+        successes = ('standard_messages',)
+    elif test_case_name == "WhensMyDLR":
+        dlr_errors = ()
+        station_errors = ('bad_station_name',)
+        failures = format_errors[:-1] + geotag_errors + dlr_errors + station_errors # Exclude blank tweet test
         successes = ('standard_messages',)
     else:
         print "Error - %s is not a valid Test Case Name" % test_case_name

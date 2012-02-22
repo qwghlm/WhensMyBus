@@ -7,19 +7,26 @@ When's My Transport?
 
 A Twitter bot that takes requests for a bus or Tube, and replies the real-time data from TfL on Twitter
 
+This is a parent classes used by all three bots, handling common functionality between them all, such as (but not limited to)
+loading the databases, config, connecting to Twitter, reading @ replies, replying to them, checking new followers, following them back
+as well as models and classes for useful constructs such as Trains and Stations
+
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
 Things to do:
 
-WhensMyTube:
+WhensMyTube/DLR:
 
  - Destination handling
  - Direction handling
 
 General:
 
- - Train, Tram, DLR & Boat equivalents
+ - Equivalent for National Rail (alas, tram & boat have no public APIs)
+ - Better Natural Language parsing
+ - Knowledge of network layouts for Tube & bus
+ - Checking of TfL APIs for weekend & long-term closures
  
 """
 # Standard libraries of Python 2.6
@@ -39,7 +46,7 @@ import tweepy
 # From other modules in this package
 from geotools import convertWGS84toOSGrid, YahooGeocoder
 from exception_handling import WhensMyTransportException
-from utils import WMBBrowser, load_database, is_direct_message 
+from utils import WMBBrowser, load_database, is_direct_message, cleanup_name_from_undesirables
 from fuzzy_matching import get_best_fuzzy_match, get_rail_station_name_similarity
 
 # Some constants we use
@@ -75,6 +82,7 @@ class WhensMyTransport:
         
         debug_level = config.get(self.instance_name, 'debug_level')
         self.setup_logging(silent_mode, debug_level)
+        self.allow_blank_tweets = False
         
         if testing is not None:
             self.testing = testing
@@ -241,7 +249,6 @@ class WhensMyTransport:
             # If the Tweet is not valid (e.g. not directly addressed, from ourselves) then skip it
             if not self.validate_tweet(tweet):
                 continue
-                
             # Try processing the Tweet. This may fail with a WhensMyTransportException for a number of reasons, in which
             # case we catch the exception and process an apology accordingly
             try:
@@ -328,13 +335,9 @@ class WhensMyTransport:
         """
         In case someone's just being nice to us, send them a "No problem"
         """
-        message = tweet.text.lower()
-        if message.find('thanks') > -1 or message.find('thank you') > -1:
+        message = self.sanitize_message(tweet.text).lower()
+        if message.startswith('thanks') or message.startswith('thank you'):
             return ("No problem :)",)
-        # The worst Easter Egg in the world
-        if self.instance_name == 'whensmybus' and (message.find('venga bus') > -1 or message.find('vengabus') > -1):
-            return ("The Vengabus is coming, and everybody's jumping http://bit.ly/9uGZ9C",)
-
         return ()
             
     def send_reply_back(self, reply, username, send_direct_message=False, in_reply_to_status_id=None):
@@ -388,6 +391,10 @@ class WhensMyTransport:
         
         Each reply might be more than 140 characters
         """
+        # Don't do anything if this is a thank-you
+        if self.check_politeness(tweet):
+            return []
+            
         # Get route number, from and to from the message
         message = tweet.text
         (requested_routes, origin, destination) = self.parse_message(message)
@@ -437,7 +444,7 @@ class WhensMyTransport:
             error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
         self.send_reply_back(error_message, self.admin_name, send_direct_message=True)
 
-    def tokenize_message(self, message, request_token_regex=None):
+    def tokenize_message(self, message, request_token_regex=None, request_token_optional=False):
         """
         Split a message into tokens
         Message is of format: "@username requested_lines_or_routes [from origin] [to destination]"
@@ -453,8 +460,9 @@ class WhensMyTransport:
             non_request_token_indexes = [i for i in range(0, len(tokens)) if not re.match("^%s,?$" % request_token_regex, tokens[i], re.I)]
             if non_request_token_indexes:
                 first_non_request_token_index = non_request_token_indexes[0]
-                if first_non_request_token_index > 0 and tokens[first_non_request_token_index] != "to":
-                    tokens.insert(first_non_request_token_index, "from")
+                if tokens[first_non_request_token_index] != "to":
+                    if first_non_request_token_index > 0 or request_token_optional:  
+                        tokens.insert(first_non_request_token_index, "from")
 
         # Work out what boundaries "from" and "to" exist at
         if "from" in tokens:
@@ -492,8 +500,8 @@ class WhensMyTransport:
             message = message.strip()
             
         # Exception if the Tweet contains nothing useful
-        if not message:
-            raise WhensMyTransportException('blank_tweet')
+        if not message and not self.allow_blank_tweets:
+            raise WhensMyTransportException('blank_%s_tweet' % self.instance_name.replace('whensmy', ''))
 
         return message
         
@@ -530,6 +538,39 @@ class RailStation():
         self.code = Code
         self.location_easting = Location_Easting
         self.location_northing = Location_Northing
+
+class Train():
+    """
+    Class representing a train of any kind (Tube, DLR)
+    """
+    def __init__(self):
+        self.departure_time = None
+        self.destination = None
+        self.direction = None
+        return
+        
+    def __cmp__(self, other):
+        """
+        Return comparison value to enable sort by departure time
+        """
+        return cmp(self.departure_time, other.departure_time)
+
+    def get_departure_time(self):
+        """
+        Return this train's departure time in human format
+        """
+        return str(self.departure_time)
+
+    def get_destination(self):
+        """
+        Return this train's destination in suitably shortened format
+        """
+        if self.destination == "Unknown":
+            destination = "%s Train" % self.direction
+        else:
+            destination = self.destination
+        destination = abbreviate_station_name(destination)
+        return destination
 
 class WhensMyRailTransport(WhensMyTransport):
     """
@@ -584,7 +625,7 @@ class WhensMyRailTransport(WhensMyTransport):
         self.log_debug("Attempting to get a match on placename %s", origin)
         self.geodata.execute("""
                              SELECT Name, Code, Location_Easting, Location_Northing FROM locations WHERE Line=? OR Line='X'
-                             """, line_code)
+                             """, (line_code,))
         rows = self.geodata.fetchall()
         if rows:
             best_match = get_best_fuzzy_match(origin, rows, 'Name', get_rail_station_name_similarity)
@@ -595,6 +636,53 @@ class WhensMyRailTransport(WhensMyTransport):
         self.log_debug("No match found for %s, sorry", origin)
         return None
 
+def abbreviate_station_name(station_name):
+    """
+    Take an official station name and abbreviate it to make it fit on Twitter better
+    """
+    # Stations we just have to cut down by hand
+    translations = {
+        "High Street Kensington" : "High St Ken",
+        "King's Cross St. Pancras" : "Kings X St P",
+        "Kensington (Olympia)" : "Olympia",
+        "W'wich Arsenal" : "Woolwich A",
+    }
+    station_name = translations.get(station_name, station_name)
+
+    # Punctuation marks can be cut down  
+    punctuation_to_remove = (r'\.', ', ', r'\(', r'\)', "'",)
+    station_name = cleanup_name_from_undesirables(station_name, punctuation_to_remove)
+
+    # Words like Road and Park can be slimmed down as well
+    abbreviations = {
+        'Bridge' : 'Br',
+        'Broadway' : 'Bdwy',
+        'Central' : 'Ctrl',
+        'Court' : 'Ct',
+        'Cross' : 'X',
+        'Crescent' : 'Cresc',
+        'East' : 'E',
+        'Gardens' : 'Gdns',
+        'Green' : 'Grn',
+        'Heathway' : 'Hthwy',
+        'Junction' : 'Jct',
+        'Market' : 'Mkt',
+        'North' : 'N',
+        'Park' : 'Pk',
+        'Road' : 'Rd',
+        'South' : 'S',
+        'Square' : 'Sq',
+        'Street' : 'St',
+        'Terminal' : 'T',
+        'Terminals' : 'T',
+        'West' : 'W',
+    }   
+    station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
+    
+    # Any station with & in it gets only the initial of the second word - e.g. Elephant & C
+    if station_name.find('&') > -1:
+        station_name = station_name[:station_name.find('&')+2]
+    return station_name
 
 if __name__ == "__main__":
     print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytube.py"
