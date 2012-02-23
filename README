@@ -1,7 +1,6 @@
 When's My Transport
 
-When's My Transport is a suite of three bots that tell you what time London's buses, Tube and DLR are arriving
-at a stop near you. It currently runs as three bots:
+When's My Transport is a suite of three bots that tell you what time London's buses, Tube and DLR are arriving at a stop near you. It currently runs as three bots:
 
 @whensmybus  http://twitter.com/#!/whensmybus
 @whensmytube http://twitter.com/#!/whensmytube
@@ -22,9 +21,9 @@ This also works with Direct Messages so you can message privately.
 
 More info about how to use the bot here:
 
-http://whensmybus.tumblr.com/
-http://whensmytube.tumblr.com/
-http://whensmydlr.tumblr.com/
+http://whensmybus.tumblr.com/about/
+http://whensmytube.tumblr.com/about/
+http://whensmydlr.tumblr.com/about/
 
 SOURCE CODE
 
@@ -33,12 +32,10 @@ Available from https://github.com/qwghlm/WhensMyBus
 REQUIREMENTS
 
 Requires: Python 2.6 or greater to run the bot. Python 2.7 required for unit testing. Not yet tested with Python 3
+
 See INSTALL for installation instructions and details of dependencies
 
 CREDITS & THANKS
 
-My thanks go to Adrian Short for inspiring me to write this
-http://adrianshort.co.uk/2011/09/08/open-data-for-everyday-life/
-
-and Chris Veness for his geographic co-ordinate translation scripts
-http://www.movable-type.co.uk/scripts/latlong-gridref.html
+- My thanks go to Adrian Short for inspiring me to write this http://adrianshort.co.uk/2011/09/08/open-data-for-everyday-life/
+- And Chris Veness for his geographic co-ordinate translation scripts http://www.movable-type.co.uk/scripts/latlong-gridref.html
