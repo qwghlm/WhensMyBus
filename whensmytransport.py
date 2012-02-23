@@ -573,39 +573,6 @@ class Train():
         destination = abbreviate_station_name(destination)
         return destination
 
-class Train():
-    """
-    Class representing a train of any kind (Tube, DLR)
-    """
-    def __init__(self):
-        self.departure_time = None
-        self.destination = None
-        self.direction = None
-        return
-        
-    def __cmp__(self, other):
-        """
-        Return comparison value to enable sort by departure time
-        """
-        return cmp(self.departure_time, other.departure_time)
-
-    def get_departure_time(self):
-        """
-        Return this train's departure time in human format
-        """
-        return str(self.departure_time)
-
-    def get_destination(self):
-        """
-        Return this train's destination in suitably shortened format
-        """
-        if self.destination == "Unknown":
-            destination = "%s Train" % self.direction
-        else:
-            destination = self.destination
-        destination = abbreviate_station_name(destination)
-        return destination
-
 class WhensMyRailTransport(WhensMyTransport):
     """
     Parent class for the WhensMyDLR and WhensMyTube bots. This deals with common functionality between the two -
