@@ -1,4 +1,4 @@
-When's My Bus? installation instructions
+When's My Bus/Tube/DLR installation instructions
 
 Requires: Python 2.6 or greater to run the bot. Python 2.7 required for unit testing. Not yet tested with Python 3
 
@@ -8,7 +8,7 @@ Requires: Python 2.6 or greater to run the bot. Python 2.7 required for unit tes
     > cd tweepy
     > python setup.py install
 
-2. Download the code & data for WhensMyBus from Github:
+2. Download the code & data for WhensMyBus (this contains code for all three bots) from Github:
 
     > git clone git://github.com/qwghlm/WhensMyBus.git
     > cd WhensMyBus
@@ -23,22 +23,30 @@ All the geodata is there, you do however need to set up Twitter account and acce
 
 6. Once your App is set up, create an access token for your own account
 
-7. If you want to add the ability to geocode addresses, you will need an App ID from Yahoo. Get one from Yahoo!
+7. WhensMyBus only: If you want to add the ability to geocode addresses, you will need an App ID from Yahoo. Get one from Yahoo!
 PlaceFinder: http://developer.yahoo.com/geo/placefinder/
 
-8. Edit the whensmytransport.cfg.sample, fill in the Twitter username, consumer key & secret, user key & secret, plus the 
+8. Edit the whensmytransport.cfg.sample, go the relevant section ([whensmybus], [whensmytube], [whensmydlr]). Fill in the Twitter username, consumer key & secret, user key & secret, plus the 
 Yahoo app id (optional, see above) and save as whensmytransport.cfg
 
 9. You can also change the debug_level to DEBUG (more messages) and test_mode to True (it will read
 Tweets, but not Tweet back at the users who made them)
 
-10. You now have a working bot! To get started, on the command line go:
+10. You now have a working bot! To get started, on the command line run any or all of the following:
 
-    > ./whensmybus.py
+    $ ./whensmybus.py
+    $ ./whensmytube.py
+    $ ./whensmydlr.py
 
 NOTES
 
 * If you ever want to update the CSV file(s) in sourcedata/ and update the database, follow the instructions for import_bus_csv_to_db() in utils.py
 * If you ever want to add the app to more Twitter accounts, follow the instructions for make_oauth_key() in utils.py
-* If you ever want to run unit tests, run testing.py. All tests should clear if a geocoder is installed; else the last one will fail
+* If you ever want to run unit tests, run:
+ 
+    $ python testing.py WhensMyBus
+    $ python testing.py WhensMyTube
+    $ python testing.py WhensMyDLR
+
+  All tests should clear if a geocoder is installed; else the ones with placenames will fail
 * Although only the Yahoo geocoder is used, there is code for Google and Bing's as well in geotools.py
