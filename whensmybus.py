@@ -108,7 +108,6 @@ class WhensMyBus(WhensMyTransport):
             # We may not be able to find a destination, in which case - don't worry about this bit, and stick to unfiltered
             except WhensMyTransportException:
                 self.log_debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
-                pass
 
         # If the above has found stops on this route, get data for each
         if relevant_stops:
