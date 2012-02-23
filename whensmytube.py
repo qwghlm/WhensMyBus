@@ -180,16 +180,20 @@ class WhensMyTube(WhensMyRailTransport):
                 departure_delta = timedelta(seconds=int(train.attrib['SecondsTo']))
                 departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
                 
+                # Try and work out direction from destination. By luck, all the stations that have bidirectional
+                # platforms are on an East-West line, so we just inspect the position of the destination's easting
+                # and compare it to this station's
                 if direction == "Unknown":
                     if destination == "Unknown":
                         continue
-                    destination_obj = self.get_station_by_station_name(line_code, destination)
-                    if not destination_obj:
+                    destination_station = self.get_station_by_station_name(line_code, destination)
+                    if not destination_station:
                         continue
                     else:
-                        # FIXME Get the co-ordinates of this station, and the destination, and work out if the train
-                        # is east or westbound from this!
-                        continue
+                        if destination_station.location_easting < station.location_easting:
+                            direction = "Westbound"
+                        else:
+                            direction = "Eastbound"
 
                 # SetNo identifies a unique train. For stations like Earls Court this is duplicated across two platforms and can mean the same train is
                 # "scheduled" to come into both (obviously impossible), so we add this to our train so our hashing function knows to score as unique

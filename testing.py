@@ -363,6 +363,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.geodata_table_names = ('locations', )
         
         self.test_standard_data = (
+                                   ('Central', "White City", 51.5121, -0.2246, "Ruislip Gardens", "White City"),
                                    ('Central', 'Epping', 51.693, 0.1138, "Bank", 'Epping'), # Second-most northern after Chesham
                                    ('District', 'Upminster', 51.559, 0.2511, "Tower Hill", 'Upminster'), # Most eastern
                                    ('Northern', 'Morden', 51.402222, -0.195, "Bank", 'Morden'), # Most southern
@@ -370,7 +371,6 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                                    ('District', "Earl's Court", 51.4913, -0.1947, "Edgware Road", "Earls Ct"),
                                    ('Piccadilly', "Acton Town", 51.5028, -0.28, "Arsenal", "Acton Town"),
                                    ('Northern', "Camden Town", 51.5394, -0.1427, "Morden", "Camden Town"),
-                                   ('Central', "White City", 51.5121, -0.2246, "Ruislip Gardens", "White City"),
                                    ('Circle', "Edgware Road", 51.52, -0.167778, "Moorgate", "Edgware Rd"),
                                    ('Waterloo & City', "Waterloo", 51.5031, -0.1132, "Bank", "Waterloo"),
                                    ('Victoria', "Victoria", 51.4966, -0.1448, "Walthamstow", "Victoria"),
