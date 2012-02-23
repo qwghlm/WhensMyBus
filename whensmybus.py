@@ -27,7 +27,7 @@ from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyTransport
-from geotools import convertWGS84toOSGrid, heading_to_direction
+from geotools import convertWGS84toOSEastingNorthing, heading_to_direction
 from exception_handling import WhensMyTransportException
 from utils import cleanup_name_from_undesirables
 from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity
@@ -134,8 +134,8 @@ class WhensMyBus(WhensMyTransport):
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
         self.log_debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
-        easting, northing, gridref = convertWGS84toOSGrid(position)
-        self.log_debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
+        easting, northing = convertWGS84toOSEastingNorthing(position)
+        self.log_debug("Translated into OS Easting %s, Northing %s", easting, northing)
         
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,))

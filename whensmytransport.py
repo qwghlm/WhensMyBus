@@ -44,7 +44,7 @@ from pprint import pprint # For debugging
 import tweepy
 
 # From other modules in this package
-from geotools import convertWGS84toOSGrid, YahooGeocoder
+from geotools import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
 from exception_handling import WhensMyTransportException
 from utils import WMBBrowser, load_database, is_direct_message, cleanup_name_from_undesirables
 from fuzzy_matching import get_best_fuzzy_match, get_rail_station_name_similarity
@@ -311,12 +311,13 @@ class WhensMyTransport:
         if hasattr(tweet, 'geo') and tweet.geo and tweet.geo.has_key('coordinates'):
             self.log_debug("Detect geolocation on Tweet")
             position = tweet.geo['coordinates']
-            gridref = convertWGS84toOSGrid(position)[-1]
+            easting, northing = convertWGS84toOSEastingNorthing(position)
+            gridref = gridrefNumToLet(easting, northing)
             # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
             if not gridref:
                 raise WhensMyTransportException('not_in_uk')
-            # Grids TQ and TL cover London, SU is actually west of the M25 but the 81 travels to Slough just to make life difficult for me
-            elif gridref[:2] not in ('TQ', 'TL', 'SU'):
+            # Check minimums & maximum numeric grid references - corresponding to Chesham (W), Shenfield (E), Dorking (S) and Potters Bar (N)
+            elif not (495000 <= easting <= 565000 and 145000 <= northing <= 205000):
                 raise WhensMyTransportException('not_in_london')
             else:
                 return position
@@ -624,8 +625,8 @@ class WhensMyRailTransport(WhensMyTransport):
         #pylint: disable=W0613
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
         self.log_debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
-        easting, northing, gridref = convertWGS84toOSGrid(position)
-        self.log_debug("Translated into OS Easting %s, Northing %s, Grid Reference %s", easting, northing, gridref)
+        easting, northing = convertWGS84toOSEastingNorthing(position)
+        self.log_debug("Translated into OS Easting %s, Northing %s", easting, northing)
 
         # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
         # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
