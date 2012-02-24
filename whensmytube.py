@@ -26,7 +26,7 @@ from whensmytransport import WhensMyRailTransport
 from lib.models import TubeTrain
 from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
-from lib.stringutils import capwords, cleanup_name_from_undesirables, get_best_fuzzy_match
+from lib.stringutils import capwords, get_best_fuzzy_match
 
 class WhensMyTube(WhensMyRailTransport):
     """
@@ -133,8 +133,7 @@ class WhensMyTube(WhensMyRailTransport):
             # Some Circle/Central Line platforms called "Inner" and "Outer" Rail, which make no sense to customers, so I've manually
             # entered Inner and Outer columns in the database which translate from these into North/South/East/West bearings
             elif rail:
-                self.geodata.execute("SELECT %s FROM locations WHERE Line=? AND Code=?" % rail.group(1), (line_code, station.code))
-                bearing = self.geodata.fetchone()[0]
+                bearing = self.geodata.get_value("SELECT %s FROM locations WHERE Line=? AND Code=?" % rail.group(1), (line_code, station.code))
                 direction = bearing + 'bound'
             else:
                 # Some odd cases. Chesham and Chalfont & Latimer don't say anything at all for the platforms on the Chesham branch of the Met Line

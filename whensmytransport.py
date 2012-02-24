@@ -39,12 +39,12 @@ from pprint import pprint # For debugging
 
 # From library modules in this package
 from lib.browser import WMTBrowser
-from lib.database import load_database
+from lib.database import WMTDatabase
 from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
 from lib.logger import setup_logging
 from lib.models import RailStation
-from lib.stringutils import cleanup_name_from_undesirables, get_best_fuzzy_match, get_rail_station_name_similarity
+from lib.stringutils import get_best_fuzzy_match, get_rail_station_name_similarity
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
 # Some constants we use
@@ -76,35 +76,37 @@ class WhensMyTransport:
             print """Please make sure there is a %s file in this directory""" % config_file
             sys.exit(1)
 
+        # Name of the admin so we know who to alert if there is an issue
         self.admin_name = config.get(self.instance_name, 'admin_name')
-        self.allow_blank_tweets = False
-        
+
+        # Setup debugging
         debug_level = config.get(self.instance_name, 'debug_level')
         setup_logging(self.instance_name, silent_mode, debug_level)
         
-        # Load up the databases for geodata & settings
-        (_notused, self.geodata) = load_database('%s.geodata.db' % self.instance_name)
+        # Setup database of stops/stations and their locations
+        self.geodata = WMTDatabase('%s.geodata.db' % self.instance_name)
         
-        # JSON Browser
+        # Setup browser for JSON & XML
         self.browser = WMTBrowser()
         
-        # API keys
+        # Setup geocoder for looking up place names
         yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')
         self.geocoder = yahoo_app_id and YahooGeocoder(yahoo_app_id)
         
-        # Setup Twitter
+        # Setup Twitter client
         self.username = config.get(self.instance_name,'username')
         consumer_key = config.get(self.instance_name, 'consumer_key')
         consumer_secret = config.get(self.instance_name, 'consumer_secret')
         access_token = config.get(self.instance_name, 'key')
         access_token_secret = config.get(self.instance_name, 'secret')
-
         if testing is None:
             testing = config.get(self.instance_name, 'test_mode')
         if testing:
             logging.info("In TEST MODE - No Tweets will be made!")
-
         self.twitter_client = WMTTwitterClient(self.instance_name, consumer_key, consumer_secret, access_token, access_token_secret, testing)
+
+        # This can be overridden by child classes
+        self.allow_blank_tweets = False
         
     def check_tweets(self):
         """
@@ -378,8 +380,7 @@ class WhensMyRailTransport(WhensMyTransport):
                 ORDER BY dist_squared
                 LIMIT 1
                 """ % (easting, easting, northing, northing, line_code)
-        self.geodata.execute(query)
-        row = self.geodata.fetchone()
+        row = self.geodata.get_row(query)
         if row:
             logging.debug("Have found %s station (%s)", row['Name'], row['Code'])
             return RailStation(**row)
@@ -393,10 +394,9 @@ class WhensMyRailTransport(WhensMyTransport):
         # First off, try to get a match against station names in database
         # Users may not give exact details, so we try to match fuzzily
         logging.debug("Attempting to get a match on placename %s", origin)
-        self.geodata.execute("""
-                             SELECT Name, Code, Location_Easting, Location_Northing FROM locations WHERE Line=? OR Line='X'
-                             """, (line_code,))
-        rows = self.geodata.fetchall()
+        rows = self.geodata.get_rows("""
+                                     SELECT Name, Code, Location_Easting, Location_Northing FROM locations WHERE Line=? OR Line='X'
+                                     """, (line_code,))
         if rows:
             best_match = get_best_fuzzy_match(origin, rows, 'Name', get_rail_station_name_similarity)
             if best_match:
