@@ -290,4 +290,3 @@ def filter_tube_trains(tube_xml_element):
 if __name__ == "__main__":
     WMT = WhensMyTube()
     WMT.check_tweets()
-    WMT.check_followers()

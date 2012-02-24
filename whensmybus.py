@@ -292,4 +292,3 @@ def cleanup_stop_name(stop_name):
 if __name__ == "__main__":
     WMB = WhensMyBus()
     WMB.check_tweets()
-    WMB.check_followers()

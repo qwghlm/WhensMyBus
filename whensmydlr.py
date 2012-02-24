@@ -160,4 +160,3 @@ class WhensMyDLR(WhensMyRailTransport):
 if __name__ == "__main__":
     WMD = WhensMyDLR()
     WMD.check_tweets()
-    WMD.check_followers()
