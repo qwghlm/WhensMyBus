@@ -132,7 +132,7 @@ class GoogleGeocoder(BaseGeocoder):
         return points
 
 
-# Geotools for WhensMyBus. With thanks to Chris Veness, as this is basically
+# Thanks go to Chris Veness, as this is basically
 # a translation of his JavaScript co-ordinate translation scripts
 # http://www.movable-type.co.uk/scripts/latlong-gridref.html
 #

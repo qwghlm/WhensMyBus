@@ -158,7 +158,7 @@ def is_direct_message(tweet):
 
 # OAuth stuff
 
-def make_oauth_key(instance_name='whensmybus'):
+def make_oauth_key(instance_name):
     """
     Adapted from
     http://talkfast.org/2010/05/31/twitter-from-the-command-line-in-python-using-oauth
