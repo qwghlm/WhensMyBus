@@ -64,7 +64,7 @@ class WhensMyTransport:
         
         # Try opening the file first just to see if it exists, exception caught below
         try:
-            config_file = 'whensmytransport.cfg'
+            config_file = 'config.cfg'
             open(HOME_DIR + '/' + config_file)
             config = ConfigParser.SafeConfigParser({ 'test_mode' : False,
                                                      'debug_level' : 'INFO',
