@@ -10,7 +10,7 @@ import time
 
 # Tweepy is a Twitter API library available from https://github.com/tweepy/tweepy
 import tweepy
-from lib.database import WMTSettings
+from lib.settings import WMTSettings
 
 class WMTTwitterClient():
     """
