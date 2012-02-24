@@ -17,8 +17,8 @@ from pprint import pprint
 from lib.browser import WMTBrowser
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
-from lib.models import TubeTrain
-from lib.stringutils import get_best_fuzzy_match, get_rail_station_name_similarity
+from lib.models import TubeTrain, RailStation
+from lib.stringutils import get_best_fuzzy_match
 
 line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
 
@@ -263,8 +263,8 @@ def scrape_tfl_destination_codes():
         if not database.get_row("SELECT Name FROM locations WHERE Name=? AND Line=?", (destination, row[1])):
             station_is_on_other_line = database.get_rows("SELECT Name FROM locations WHERE Name=?", (destination,))
             if not station_is_on_other_line:
-                all_stations = [station['Name'] for station in database.get_rows("SELECT Name FROM locations WHERE Line=?", (row[1],))]
-                if not get_best_fuzzy_match(destination, all_stations, comparison_function=get_rail_station_name_similarity, minimum_confidence=70):
+                all_stations_on_line = [RailStation(**row) for row in database.get_rows("SELECT Name FROM locations WHERE Line=?", (row[1],))]
+                if not get_best_fuzzy_match(destination, all_stations_on_line):
                     print "Destination %s on %s not found in locations database" % (row[0], row[1])
 
 def scrape_odd_platform_designations(write_file=False):

@@ -2,7 +2,7 @@
 """
 Models/abstractions of concepts such as stations, trains, bus stops etc.
 """
-from lib.stringutils import cleanup_name_from_undesirables
+from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
 import re
 
 class RailStation():
@@ -64,17 +64,32 @@ class RailStation():
             station_name = station_name[:station_name.find('&')+2]
         return station_name
 
+    def get_similarity(self, test_string=''):
+        """
+        Custom similarity for train stations - takes into account fact many people use abbreviated names
+        """
+        score = get_name_similarity(self.name, test_string)
+        # For low-scoring matches, we try matching between a string the same size as the user query, if its shorter than the name
+        # being tested against, so this works for e.g. Kings Cross matching King's Cross St Pancras
+        if score < 70 and len(test_string) < len(self.name):
+            abbreviated_score = get_name_similarity(test_string, self.name[:len(test_string)])
+            if abbreviated_score >= 90:
+                return abbreviated_score
+    
+        return score
+
 class BusStop():
     #pylint: disable=C0103,R0903,W0613
     """
     Class representing a bus stop
     """
-    def __init__(self, Stop_Name='', Bus_Stop_Code='', Heading=0, Sequence=1, Distance=0.0, **kwargs):
+    def __init__(self, Stop_Name='', Bus_Stop_Code='', Heading=0, Sequence=1, Distance=0.0, Run=0, **kwargs):
         self.name = Stop_Name
         self.number = Bus_Stop_Code
         self.heading = Heading
         self.sequence = Sequence
         self.distance_away = Distance
+        self.run = Run
 
     def __cmp__(self, other):
         """
@@ -82,11 +97,60 @@ class BusStop():
         """
         return cmp(self.distance_away, other.distance_away)
         
+    def __repr__(self):
+        return self.get_normalised_name()
+    
     def get_clean_name(self):
         """
         Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from this stop's name
         """
         return cleanup_name_from_undesirables(self.name, ('<>', '#', r'\[DLR\]', '>T<'))
+
+    def get_normalised_name(self):
+        """
+        Normalise a bus stop name, sorting out punctuation, capitalisation, abbreviations & symbols
+        """
+        # Upper-case and abbreviate road names
+        normalised_name = self.get_clean_name().upper()
+        for (word, abbreviation) in (('SQUARE', 'SQ'), ('AVENUE', 'AVE'), ('STREET', 'ST'), ('ROAD', 'RD'), ('STATION', 'STN'), ('PUBLIC HOUSE', 'PUB')):
+            normalised_name = re.sub(r'\b' + word + r'\b', abbreviation, normalised_name)
+    
+        # Get rid of common words like 'The'
+        for common_word in ('THE',):
+            normalised_name = re.sub(r'\b' + common_word + r'\b', '', normalised_name)
+        
+        # Remove spaces and punctuation and return
+        normalised_name = re.sub('[\W]', '', normalised_name)
+        return normalised_name
+
+    def get_similarity(self, test_string=''):
+        """
+        Custom similarity match for bus stops - takes into account many of them will be from train stations or bus stations
+        """
+        # Use the above function to normalise our names and facilitate easier comparison
+        my_name = self.get_normalised_name()
+        their_name = BusStop(test_string).get_normalised_name()
+        
+        # Exact match is obviously best
+        if my_name == their_name:
+            return 100
+            
+        # If user has specified a station or bus station, then a partial match at start or end of string works for us
+        # We prioritise, just slightly, names that have the match at the beginning
+        if re.search("(BUS)?STN", their_name):
+            if my_name.startswith(their_name):
+                return 95
+            if my_name.endswith(their_name):
+                return 94
+                
+        # If on the other hand, we add station or bus station to their name and it matches, that's also pretty good
+        if re.search("^%s(BUS)?STN" % their_name, my_name):
+            return 91
+        if re.search("%s(BUS)?STN$" % their_name, my_name):
+            return 90 
+        
+        # Else fall back on name similarity
+        return get_name_similarity(my_name, their_name)
 
 class Train():
     """

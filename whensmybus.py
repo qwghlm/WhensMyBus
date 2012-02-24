@@ -27,7 +27,7 @@ from whensmytransport import WhensMyTransport
 from lib.geo import convertWGS84toOSEastingNorthing, heading_to_direction
 from lib.exceptions import WhensMyTransportException
 from lib.models import BusStop
-from lib.stringutils import get_best_fuzzy_match, get_bus_stop_name_similarity
+from lib.stringutils import get_best_fuzzy_match
 
 class WhensMyBus(WhensMyTransport):
     """
@@ -184,12 +184,16 @@ class WhensMyBus(WhensMyTransport):
             rows = self.geodata.get_rows("""
                                          SELECT Stop_Name, Bus_Stop_Code, Heading, Sequence, Run FROM routes WHERE Route=? AND Run=?
                                          """, (route_number, run))
+                                         
             # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
             if rows:
-                best_match = get_best_fuzzy_match(origin, rows, 'Stop_Name', get_bus_stop_name_similarity)
+                possible_stops = [BusStop(**row) for row in rows]
+                best_match = get_best_fuzzy_match(origin, possible_stops)
                 if best_match:
-                    logging.info("Found stop name %s for Run %s via fuzzy matching", best_match['Stop_Name'], best_match['Run'])
-                    relevant_stops[run] = BusStop(**best_match)
+                    logging.info("Found stop name %s for Run %s via fuzzy matching", best_match.name, best_match.run)
+                    relevant_stops[run] = best_match
+                else:
+                    logging.info("Could not find a match out of %s candidates for %s", len(possible_stops), origin)
 
         # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name
         for run in (1, 2):

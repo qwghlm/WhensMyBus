@@ -44,7 +44,7 @@ from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
 from lib.logger import setup_logging
 from lib.models import RailStation
-from lib.stringutils import get_best_fuzzy_match, get_rail_station_name_similarity
+from lib.stringutils import get_best_fuzzy_match
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
 # Some constants we use
@@ -398,10 +398,11 @@ class WhensMyRailTransport(WhensMyTransport):
                                      SELECT Name, Code, Location_Easting, Location_Northing FROM locations WHERE Line=? OR Line='X'
                                      """, (line_code,))
         if rows:
-            best_match = get_best_fuzzy_match(origin, rows, 'Name', get_rail_station_name_similarity)
+            possible_stations = [RailStation(**row) for row in rows]
+            best_match = get_best_fuzzy_match(origin, possible_stations)
             if best_match:
-                logging.debug("Match found! Found: %s", best_match['Name'])
-                return RailStation(**best_match)
+                logging.debug("Match found! Found: %s", best_match.name)
+                return best_match
 
         logging.debug("No match found for %s, sorry", origin)
         return None
