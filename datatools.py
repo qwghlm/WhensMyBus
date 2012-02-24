@@ -14,10 +14,11 @@ import tempfile
 from pprint import pprint
 
 # Local files
-from geotools import convertWGS84toOSGB36, LatLongToOSGrid
-from utils import WMBBrowser, load_database
+from utils import load_database
 from whensmytube import cleanup_destination_name, cleanup_via_from_destination_name
-from fuzzy_matching import get_best_fuzzy_match, get_rail_station_name_similarity
+from lib.browser import WMTBrowser
+from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
+from lib.stringutils import get_best_fuzzy_match, get_rail_station_name_similarity
 
 line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
 
@@ -26,7 +27,7 @@ def parse_stations_from_kml(filter_function=lambda a, b: True):
     Parses KML file of stations & associated data, and returns them as a dictionary
     """
     stations = {}
-    kml = WMBBrowser().fetch_xml_tree('file:///%s/sourcedata/tube-locations.kml' % os.getcwd())
+    kml = WMTBrowser().fetch_xml_tree('file:///%s/sourcedata/tube-locations.kml' % os.getcwd())
     for station in kml.findall('.//Placemark'):
         name = station.find('name').text.strip().replace(' Station', '')
         style = station.find('styleUrl').text
@@ -230,7 +231,7 @@ def scrape_tfl_destination_codes():
     better output for users
     """
     (database, cursor) = load_database("whensmytube.geodata.db")
-    browser = WMBBrowser()
+    browser = WMTBrowser()
     
     destination_summary = {}
     for line_code in line_codes:
@@ -278,7 +279,7 @@ def scrape_odd_platform_designations(write_file=False):
     generates a blank CSV template for those stations with Inner/Outer Rail designations
     """
     (_database, cursor) = load_database("whensmytube.geodata.db")
-    browser = WMBBrowser()
+    browser = WMTBrowser()
 
     print "Platforms without a Inner/Outer Rail specification:"
     station_platforms = {}

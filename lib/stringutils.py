@@ -1,9 +1,29 @@
+#!/usr/bin/env python
 """
-Fuzzy string matching
+String utilities, including fuzzy string matching
 """
 import difflib
 import re
 from pprint import pprint
+
+# String utils
+
+def capwords(phrase):
+    """
+    Capitalize each word in a string. A word is defined as anything with a space separating it from the next word.   
+    """
+    not_to_be_capitalized = ('via', 'CX')
+    capitalized = ' '.join([s in not_to_be_capitalized and s or s.capitalize() for s in phrase.split(' ')])
+    return capitalized
+        
+def cleanup_name_from_undesirables(name, undesirables):
+    """
+    Clean out every word in the iterable undesirables from the name supplied, and capitalize
+    """
+    for undesirable in undesirables:
+        name = re.sub(undesirable, '', name, flags=re.I)
+    name = re.sub(r' +', ' ', name.strip())
+    return capwords(name)
 
 def normalise_stop_name(name):
     """

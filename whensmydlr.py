@@ -27,8 +27,9 @@ from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyRailTransport, Train, abbreviate_station_name
-from exception_handling import WhensMyTransportException
-from utils import capwords, unique_values
+from lib.exceptions import WhensMyTransportException
+from lib.stringutils import capwords
+from utils import unique_values
 
 class DLRTrain(Train):
     """

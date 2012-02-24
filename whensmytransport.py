@@ -44,10 +44,11 @@ from pprint import pprint # For debugging
 import tweepy
 
 # From other modules in this package
-from geotools import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
-from exception_handling import WhensMyTransportException
-from utils import WMBBrowser, load_database, is_direct_message, cleanup_name_from_undesirables
-from fuzzy_matching import get_best_fuzzy_match, get_rail_station_name_similarity
+from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
+from lib.exceptions import WhensMyTransportException
+from utils import load_database, is_direct_message
+from lib.browser import WMTBrowser
+from lib.stringutils import cleanup_name_from_undesirables, get_best_fuzzy_match, get_rail_station_name_similarity
 
 # Some constants we use
 VERSION_NUMBER = 0.50
@@ -99,7 +100,7 @@ class WhensMyTransport:
         self.settingsdb.commit()
         
         # JSON Browser
-        self.browser = WMBBrowser()
+        self.browser = WMTBrowser()
         
         # API keys
         yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')

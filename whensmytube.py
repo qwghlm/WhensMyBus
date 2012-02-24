@@ -20,14 +20,14 @@ Things to do:
 """
 # Standard libraries of Python 2.6
 import re
+from datetime import datetime, timedelta
 from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyRailTransport, Train, abbreviate_station_name
-from exception_handling import WhensMyTransportException
-from utils import capwords, unique_values, cleanup_name_from_undesirables
-from fuzzy_matching import get_best_fuzzy_match
-from datetime import datetime, timedelta
+from utils import unique_values
+from lib.exceptions import WhensMyTransportException
+from lib.stringutils import capwords, cleanup_name_from_undesirables, get_best_fuzzy_match
 
 class TubeTrain(Train):
     """

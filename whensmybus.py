@@ -27,10 +27,9 @@ from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyTransport
-from geotools import convertWGS84toOSEastingNorthing, heading_to_direction
-from exception_handling import WhensMyTransportException
-from utils import cleanup_name_from_undesirables
-from fuzzy_matching import get_best_fuzzy_match, get_bus_stop_name_similarity
+from lib.geo import convertWGS84toOSEastingNorthing, heading_to_direction
+from lib.exceptions import WhensMyTransportException
+from lib.stringutils import get_best_fuzzy_match, get_bus_stop_name_similarity, cleanup_name_from_undesirables
 
 class BusStop():
     #pylint: disable=C0103,R0903,W0613

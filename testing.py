@@ -15,7 +15,7 @@ if sys.version_info < (2, 7):
 from whensmybus import WhensMyBus
 from whensmydlr import WhensMyDLR
 from whensmytube import WhensMyTube
-from exception_handling import WhensMyTransportException
+from lib.exceptions import WhensMyTransportException
 
 import argparse
 import re

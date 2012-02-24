@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Module containing custom exceptions for WhensMyTransport
 """
