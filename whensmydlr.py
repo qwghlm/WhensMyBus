@@ -22,25 +22,11 @@ from datetime import datetime, timedelta
 from pprint import pprint # For debugging
 
 # From other modules in this package
-from whensmytransport import WhensMyRailTransport, Train, abbreviate_station_name
+from whensmytransport import WhensMyRailTransport 
+from lib.models import DLRTrain
 from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.stringutils import capwords
-
-class DLRTrain(Train):
-    """
-    Class representing a DLR train
-    """
-    #pylint: disable=W0231
-    def __init__(self, destination, departure_time):
-        self.destination = destination
-        self.departure_time = departure_time
-
-    def __hash__(self):
-        """
-        Return hash value to enable ability to use as dictionary key
-        """
-        return hash('-'.join([self.destination, str(self.departure_time)]))
 
 class WhensMyDLR(WhensMyRailTransport):
     """
@@ -82,7 +68,7 @@ class WhensMyDLR(WhensMyRailTransport):
         if station:
             time_info = self.get_departure_data(line_code, station)
             if time_info:
-                return "%s to %s" % (abbreviate_station_name(station.name), time_info)
+                return "%s to %s" % (station.get_abbreviated_name(), time_info)
             else:
                 raise WhensMyTransportException('no_rail_arrival_data', 'DLR', station.name)
         else:

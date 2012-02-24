@@ -22,30 +22,12 @@ from datetime import datetime, timedelta
 from pprint import pprint # For debugging
 
 # From other modules in this package
-from whensmytransport import WhensMyRailTransport, Train, abbreviate_station_name
+from whensmytransport import WhensMyRailTransport
+from lib.models import TubeTrain
 from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.stringutils import capwords, cleanup_name_from_undesirables, get_best_fuzzy_match
 
-class TubeTrain(Train):
-    """
-    Class representing a Tube train
-    """
-    #pylint: disable=W0231
-    def __init__(self, destination, direction, departure_time, set_number, line_code, destination_code):
-        self.destination = destination
-        self.direction = direction
-        self.departure_time = departure_time
-        self.set_number = set_number
-        self.line_code = line_code
-        self.destination_code = destination_code
-
-    def __hash__(self):
-        """
-        Return hash value to enable ability to use as dictionary key
-        """
-        return hash('-'.join([self.set_number, self.destination_code, str(self.departure_time)]))
-       
 class WhensMyTube(WhensMyRailTransport):
     """
     Main class devoted to checking for Tube-related Tweets and replying to them. Instantiate with no variables
@@ -121,7 +103,7 @@ class WhensMyTube(WhensMyRailTransport):
 
             time_info = self.get_departure_data(line_code, station)
             if time_info:
-                return "%s to %s" % (abbreviate_station_name(station.name), time_info)
+                return "%s to %s" % (station.get_abbreviated_name(), time_info)
             else:
                 raise WhensMyTransportException('no_rail_arrival_data', line_name + ' Line', station.name)
         else:
@@ -169,35 +151,36 @@ class WhensMyTube(WhensMyRailTransport):
             # Use the filter function to filter out trains that are out of service, specials or National Rail first
             platform_trains = [t for t in platform.findall("T[@LN='%s']" % line_code) if filter_tube_trains(t)]
             for train in platform_trains:
-                destination = cleanup_destination_name(train.attrib['Destination'])
-                # Ignore any trains terminating at this station
-                if self.get_station_by_station_name(line_code, destination):
-                    if self.get_station_by_station_name(line_code, destination).name == station.name:
-                        continue
-
+            
+                # Create a TubeTrain object
+                destination = train.attrib['Destination']
                 departure_delta = timedelta(seconds=int(train.attrib['SecondsTo']))
                 departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
+                set_number = train.attrib['SetNo']
+                destination_code = train.attrib['DestCode']
+
+                train_obj = TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code)
+
+                # Ignore any trains terminating at this station
+                if self.get_station_by_station_name(line_code, train_obj.destination):
+                    if self.get_station_by_station_name(line_code, train_obj.destination).name == station.name:
+                        continue
                 
                 # Try and work out direction from destination. By luck, all the stations that have bidirectional
                 # platforms are on an East-West line, so we just inspect the position of the destination's easting
                 # and compare it to this station's
-                if direction == "Unknown":
-                    if destination == "Unknown":
+                if train_obj.direction == "Unknown":
+                    if train_obj.destination == "Unknown":
                         continue
-                    destination_station = self.get_station_by_station_name(line_code, destination)
+                    destination_station = self.get_station_by_station_name(line_code, train_obj.destination)
                     if not destination_station:
                         continue
                     else:
                         if destination_station.location_easting < station.location_easting:
-                            direction = "Westbound"
+                            train_obj.direction = "Westbound"
                         else:
-                            direction = "Eastbound"
+                            train_obj.direction = "Eastbound"
 
-                # SetNo identifies a unique train. For stations like Earls Court this is duplicated across two platforms and can mean the same train is
-                # "scheduled" to come into both (obviously impossible), so we add this to our train so our hashing function knows to score as unique
-                set_number = train.attrib['SetNo']
-                destination_code = train.attrib['DestCode']
-                train_obj = TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code)
                 trains_by_direction[direction] = trains_by_direction.get(direction, []) + [train_obj]
 
         # For each direction, display the first three unique trains, sorted in time order
@@ -229,41 +212,6 @@ class WhensMyTube(WhensMyRailTransport):
             if station_node.attrib['Name'] == station.name and status_node.attrib['Description'] == 'Closed':
                 raise WhensMyTransportException('tube_station_closed', station.name, station_status.attrib['StatusDetails'].strip().lower())
         return True
-
-def cleanup_destination_name(station_name):
-    """
-    Get rid of TfL's odd designations in the Destination field to make it compatible with our list of stations in the database
-    
-    Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this is currently pending
-    an FoI request. Once I get that, this code will be a lot neater :)
-    """
-    station_name = re.sub(r"\band\b", "&", station_name, flags=re.I)
-    # Destinations that are line names or Unknown get boiled down to Unknown
-    if station_name in ("Unknown", "Circle & Hammersmith & City") or station_name.startswith("Circle Line") \
-        or station_name.endswith("Train") or station_name.endswith("Line"):
-        station_name = "Unknown"
-    else:
-        # Regular expressions of instructions, depot names (presumably instructions for shunting after arrival), or platform numbers
-        undesirables = ('\(rev to .*\)',
-                        'sidings?',
-                        '(then )?depot',
-                        'ex (barnet|edgware) branch',
-                        '\(ex .*\)',
-                        '/ london road',
-                        '27 Road',
-                        '\(plat\. [0-9]+\)',
-                        ' loop',
-                        '\(circle\)')
-        station_name = cleanup_name_from_undesirables(station_name, undesirables)
-    return station_name
-    
-def cleanup_via_from_destination_name(station_name):
-    """
-    Get rid of "via" from a destination name to make
-    it match easier to a canonical station name
-    """
-    #pylint: disable=C0103
-    return re.sub(" \(?via .*$", "", station_name, flags=re.I)
 
 def filter_tube_trains(tube_xml_element):
     """

@@ -26,26 +26,8 @@ from pprint import pprint # For debugging
 from whensmytransport import WhensMyTransport
 from lib.geo import convertWGS84toOSEastingNorthing, heading_to_direction
 from lib.exceptions import WhensMyTransportException
+from lib.models import BusStop
 from lib.stringutils import get_best_fuzzy_match, get_bus_stop_name_similarity, cleanup_name_from_undesirables
-
-class BusStop():
-    #pylint: disable=C0103,R0903,W0613
-    """
-    Class representing a bus stop
-    """
-    def __init__(self, Stop_Name='', Bus_Stop_Code='', Heading=0, Sequence=1, Distance=0.0, **kwargs):
-        self.name = Stop_Name
-        self.number = Bus_Stop_Code
-        self.heading = Heading
-        self.sequence = Sequence
-        self.distance_away = Distance
-
-    def __cmp__(self, other):
-        """
-        Comparator function - measure by distance away from the point the user is
-        """
-        return cmp(self.distance_away, other.distance_away)
-
 
 class WhensMyBus(WhensMyTransport):
     """
@@ -248,7 +230,7 @@ class WhensMyBus(WhensMyTransport):
         time_info = []
         for (run, stop) in relevant_stops.items():
 
-            stop_name = cleanup_stop_name(stop.name)
+            stop_name = stop.get_clean_name()
             tfl_url = "http://countdown.tfl.gov.uk/stopBoard/%s" % stop.number
             bus_data = self.browser.fetch_json(tfl_url)
             arrivals = bus_data.get('arrivals', [])
@@ -280,13 +262,6 @@ class WhensMyBus(WhensMyTransport):
             time_info = [t for t in time_info if t.find("None shown") == -1]
 
         return time_info
-
-
-def cleanup_stop_name(stop_name):
-    """
-    Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from a string, and capitalise all words
-    """
-    return cleanup_name_from_undesirables(stop_name, ('<>', '#', r'\[DLR\]', '>T<'))
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":

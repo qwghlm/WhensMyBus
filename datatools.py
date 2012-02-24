@@ -14,10 +14,10 @@ import tempfile
 from pprint import pprint
 
 # Local files
-from whensmytube import cleanup_destination_name, cleanup_via_from_destination_name
 from lib.browser import WMTBrowser
 from lib.database import load_database
 from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
+from lib.models import TubeTrain
 from lib.stringutils import get_best_fuzzy_match, get_rail_station_name_similarity
 
 line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
@@ -257,7 +257,7 @@ def scrape_tfl_destination_codes():
     # Check to see if destination is in our database
     cursor.execute("SELECT destination_name, line_code FROM destination_codes")
     for row in cursor.fetchall():
-        destination = cleanup_via_from_destination_name(cleanup_destination_name(row[0]))
+        destination = TubeTrain(row[0]).get_clean_destination_name()
         if destination in ("Unknown", "Special", "Out Of Service"):
             continue
         if destination.startswith('Br To') or destination in ('Network Rail', 'Chiltern Toc'):
