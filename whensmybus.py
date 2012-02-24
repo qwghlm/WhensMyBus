@@ -16,6 +16,7 @@ This module just does work specific to buses: Parsing & interpreting a bus-speci
 buses and routes, checking the TfL bus API and formatting an appropriate reply to be sent back
 """
 # Standard libraries of Python 2.6
+import logging
 import re
 from math import sqrt
 from time import localtime
@@ -67,7 +68,7 @@ class WhensMyBus(WhensMyTransport):
         route_token_matches = [re.match(route_regex, r, re.I) for r in route_string.split(' ')]
         route_numbers = [r.group(0).upper() for r in route_token_matches if r]
         if not route_numbers:
-            self.log_debug("@ reply didn't contain a valid-looking bus number, skipping")
+            logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
             return (None, None, None)
 
         return (route_numbers, origin, destination)
@@ -98,11 +99,11 @@ class WhensMyBus(WhensMyTransport):
                     # run; if that stop has a sequence number greater than this stop then it's a valid route, so include this run 
                     relevant_stops = dict([(run, stop) for (run, stop) in relevant_stops.items() 
                                             if run in possible_destinations and possible_destinations[run].sequence > stop.sequence])
-                    self.log_debug("Successfully found a match for destination %s, filtering down to runs: %s", destination, relevant_stops.keys())
+                    logging.debug("Successfully found a match for destination %s, filtering down to runs: %s", destination, relevant_stops.keys())
 
             # We may not be able to find a destination, in which case - don't worry about this bit, and stick to unfiltered
             except WhensMyTransportException:
-                self.log_debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
+                logging.debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
 
         # If the above has found stops on this route, get data for each
         if relevant_stops:
@@ -127,9 +128,9 @@ class WhensMyBus(WhensMyTransport):
             Values are BusStop objects
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
-        self.log_debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
+        logging.debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
         easting, northing = convertWGS84toOSEastingNorthing(position)
-        self.log_debug("Translated into OS Easting %s, Northing %s", easting, northing)
+        logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
         
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         self.geodata.execute("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,))
@@ -160,7 +161,7 @@ class WhensMyBus(WhensMyTransport):
             if stop_data:
                 relevant_stops[run] = BusStop(Distance=sqrt(stop_data['dist_squared']), **stop_data)
         
-        self.log_debug("Have found stop numbers: %s", ', '.join([stop.number for stop in relevant_stops.values()]))
+        logging.debug("Have found stop numbers: %s", ', '.join([stop.number for stop in relevant_stops.values()]))
         return relevant_stops
             
     def get_stops_by_stop_number(self, route_number, stop_number):
@@ -175,7 +176,7 @@ class WhensMyBus(WhensMyTransport):
             raise WhensMyTransportException('bad_stop_id', stop_number)
 
         # Try and get a match on it
-        self.log_debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
+        logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
         self.geodata.execute("SELECT Run, Sequence, Heading, Bus_Stop_Code, Stop_Name FROM routes WHERE Bus_Stop_Code=? AND Route=?",
                              (stop_number, route_number))
         stop_data = self.geodata.fetchone()
@@ -197,7 +198,7 @@ class WhensMyBus(WhensMyTransport):
 
         # First off, try to get a match against bus stop names in database
         # Users may not give exact details, so we try to match fuzzily
-        self.log_debug("Attempting to get a match on placename %s", origin)
+        logging.debug("Attempting to get a match on placename %s", origin)
         relevant_stops = {}
                      
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
@@ -213,18 +214,18 @@ class WhensMyBus(WhensMyTransport):
             if rows:
                 best_match = get_best_fuzzy_match(origin, rows, 'Stop_Name', get_bus_stop_name_similarity)
                 if best_match:
-                    self.log_info("Found stop name %s for Run %s via fuzzy matching", best_match['Stop_Name'], best_match['Run'])
+                    logging.info("Found stop name %s for Run %s via fuzzy matching", best_match['Stop_Name'], best_match['Run'])
                     relevant_stops[run] = BusStop(**best_match)
 
         # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name
         for run in (1, 2):
             if run not in relevant_stops and self.geocoder:
-                self.log_debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
+                logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
                 geocode_url = self.geocoder.get_geocode_url(origin)
                 geodata = self.browser.fetch_json(geocode_url)
                 points = self.geocoder.parse_geodata(geodata)
                 if not points:
-                    self.log_debug("Could not find any matching location for %s", origin)
+                    logging.debug("Could not find any matching location for %s", origin)
                     continue
 
                 # For each of the places found, get the nearest stop that serves this run
@@ -232,9 +233,9 @@ class WhensMyBus(WhensMyTransport):
                 possible_stops = [stop for stop in possible_stops if stop]
                 if possible_stops:
                     relevant_stops[run] = sorted(possible_stops)[0]
-                    self.log_debug("Have found stop named: %s", relevant_stops[run].name)
+                    logging.debug("Have found stop named: %s", relevant_stops[run].name)
                 else:
-                    self.log_debug("Found a location, but could not find a nearby stop for %s", origin)
+                    logging.debug("Found a location, but could not find a nearby stop for %s", origin)
             
         return relevant_stops
             
@@ -267,15 +268,15 @@ class WhensMyBus(WhensMyTransport):
                     hour = (int(scheduled_time[0:2]) + 1) % 24
                     scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
                     
-                self.log_debug("Run %s, stop %s produced bus to %s %s", run, stop_name, arrival['destination'], scheduled_time)
+                logging.debug("Run %s, stop %s produced bus to %s %s", run, stop_name, arrival['destination'], scheduled_time)
                 time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
             else:
-                self.log_debug("Run %s, stop %s produced no buses", run, stop_name)
+                logging.debug("Run %s, stop %s produced no buses", run, stop_name)
                 time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(stop.heading)))
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
         if len(time_info) > 2:
-            self.log_debug("Number of runs is %s, removing any non-existent entries", len(time_info))
+            logging.debug("Number of runs is %s, removing any non-existent entries", len(time_info))
             time_info = [t for t in time_info if t.find("None shown") == -1]
 
         return time_info

@@ -92,7 +92,7 @@ class WhensMyTransport:
             self.testing = config.get(self.instance_name, 'test_mode')
         
         if self.testing:
-            self.log_info("In TEST MODE - No Tweets will be made!")
+            logging.info("In TEST MODE - No Tweets will be made!")
 
         # Load up the databases for geodata & settings
         (_notused, self.geodata) = load_database('%s.geodata.db' % self.instance_name)
@@ -109,7 +109,7 @@ class WhensMyTransport:
         
         # OAuth on Twitter
         self.username = config.get(self.instance_name,'username')
-        self.log_debug("Authenticating with Twitter")
+        logging.debug("Authenticating with Twitter")
         consumer_key = config.get(self.instance_name, 'consumer_key')
         consumer_secret = config.get(self.instance_name, 'consumer_secret')
         key = config.get(self.instance_name, 'key')
@@ -141,19 +141,7 @@ class WhensMyTransport:
             rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
             logging.getLogger('').addHandler(console)
             logging.getLogger('').addHandler(rotator)
-            self.log_debug("Initializing...")
-
-    def log_info(self, message, *args):
-        """
-        Wrapper for debugging at the INFO level
-        """
-        logging.info(message, *args)
-    
-    def log_debug(self, message, *args):
-        """
-        Wrapper for debugging at the DEBUG level
-        """
-        logging.debug(message, *args)
+            logging.debug("Initializing...")
 
     def get_setting(self, setting_name):
         """
@@ -188,7 +176,7 @@ class WhensMyTransport:
         last_follower_check = self.get_setting("last_follower_check") or 0
         if time.time() - last_follower_check < 600:
             return
-        self.log_info("Checking to see if I have any new followers...")
+        logging.info("Checking to see if I have any new followers...")
         self.update_setting("last_follower_check", time.time())
 
         # Get IDs of our friends (people we already follow), and our followers
@@ -211,10 +199,10 @@ class WhensMyTransport:
         for twitter_id in twitter_ids_to_follow[::-1]:
             try:
                 person = self.api.create_friendship(twitter_id)
-                self.log_info("Following user %s", person.screen_name )
+                logging.info("Following user %s", person.screen_name )
             except tweepy.error.TweepError:
                 protected_users_to_ignore.append(twitter_id)
-                self.log_info("Error following user %s, most likely the account is protected", twitter_id)
+                logging.info("Error following user %s, most likely the account is protected", twitter_id)
                 continue
 
         self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
@@ -242,9 +230,9 @@ class WhensMyTransport:
         
         # No need to bother if no replies
         if not tweets and not direct_messages:
-            self.log_info("No new Tweets, exiting...")
+            logging.info("No new Tweets, exiting...")
         else:
-            self.log_info("%s replies and %s direct messages received!" , len(tweets), len(direct_messages))
+            logging.info("%s replies and %s direct messages received!" , len(tweets), len(direct_messages))
 
         for tweet in direct_messages + tweets:
 
@@ -288,20 +276,20 @@ class WhensMyTransport:
 
         # Bit of logging, plus we always return True for DMs
         if is_direct_message(tweet):
-            self.log_info("Have a DM from %s: %s", tweet.sender.screen_name, message)
+            logging.info("Have a DM from %s: %s", tweet.sender.screen_name, message)
             return True
         else:
             username = tweet.user.screen_name
-            self.log_info("Have an @ reply from %s: %s", username, message)
+            logging.info("Have an @ reply from %s: %s", username, message)
 
         # Don't start talking to yourself
         if username == self.username:
-            self.log_debug("Not talking to myself, that way madness lies")
+            logging.debug("Not talking to myself, that way madness lies")
             return False
 
         # Ignore mentions that are not direct replies
         if not message.lower().startswith('@%s' % self.username.lower()):
-            self.log_debug("Not a proper @ reply, skipping")
+            logging.debug("Not a proper @ reply, skipping")
             return False
 
         return True
@@ -311,7 +299,7 @@ class WhensMyTransport:
         Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a (latitude, longitude) tuple
         """
         if hasattr(tweet, 'geo') and tweet.geo and tweet.geo.has_key('coordinates'):
-            self.log_debug("Detect geolocation on Tweet")
+            logging.debug("Detect geolocation on Tweet")
             position = tweet.geo['coordinates']
             easting, northing = convertWGS84toOSEastingNorthing(position)
             gridref = gridrefNumToLet(easting, northing)
@@ -370,12 +358,12 @@ class WhensMyTransport:
         for message in messages:
             try:
                 if send_direct_message:
-                    self.log_info("Sending direct message to %s: '%s'", username, message)
+                    logging.info("Sending direct message to %s: '%s'", username, message)
                     if not self.testing:
                         self.api.send_direct_message(user=username, text=message)
                 else:
                     status = "@%s %s" % (username, message)
-                    self.log_info("Making status update: '%s'", status)
+                    logging.info("Making status update: '%s'", status)
                     if not self.testing:
                         self.api.update_status(status=status, in_reply_to_status_id=in_reply_to_status_id)
 
@@ -432,7 +420,7 @@ class WhensMyTransport:
         """
         Turns a WhensMyTransportException into a message for the user
         """
-        self.log_debug("Exception encountered: %s" , exc.value)
+        logging.debug("Exception encountered: %s" , exc.value)
         return "Sorry! %s" % exc.value
 
     def alert_admin_about_exception(self, tweet, exception_name):
@@ -527,8 +515,8 @@ class WhensMyTransport:
         Helper function to log what our Twitter API hit count & limit is
         """
         limit_status = self.api.rate_limit_status()
-        self.log_info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
-        self.log_debug("Next reset time is %s", (limit_status['reset_time']))
+        logging.info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
+        logging.debug("Next reset time is %s", (limit_status['reset_time']))
 
 
 class RailStation():
@@ -593,9 +581,9 @@ class WhensMyRailTransport(WhensMyTransport):
         """
         #pylint: disable=W0613
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
-        self.log_debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
+        logging.debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
         easting, northing = convertWGS84toOSEastingNorthing(position)
-        self.log_debug("Translated into OS Easting %s, Northing %s", easting, northing)
+        logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
 
         # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
         # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
@@ -614,7 +602,7 @@ class WhensMyRailTransport(WhensMyTransport):
         self.geodata.execute(query)
         row = self.geodata.fetchone()
         if row:
-            self.log_debug("Have found %s station (%s)", row['Name'], row['Code'])
+            logging.debug("Have found %s station (%s)", row['Name'], row['Code'])
             return RailStation(**row)
         else:
             return None
@@ -625,7 +613,7 @@ class WhensMyRailTransport(WhensMyTransport):
         """
         # First off, try to get a match against station names in database
         # Users may not give exact details, so we try to match fuzzily
-        self.log_debug("Attempting to get a match on placename %s", origin)
+        logging.debug("Attempting to get a match on placename %s", origin)
         self.geodata.execute("""
                              SELECT Name, Code, Location_Easting, Location_Northing FROM locations WHERE Line=? OR Line='X'
                              """, (line_code,))
@@ -633,10 +621,10 @@ class WhensMyRailTransport(WhensMyTransport):
         if rows:
             best_match = get_best_fuzzy_match(origin, rows, 'Name', get_rail_station_name_similarity)
             if best_match:
-                self.log_debug("Match found! Found: %s", best_match['Name'])
+                logging.debug("Match found! Found: %s", best_match['Name'])
                 return RailStation(**best_match)
 
-        self.log_debug("No match found for %s, sorry", origin)
+        logging.debug("No match found for %s, sorry", origin)
         return None
 
 def abbreviate_station_name(station_name):

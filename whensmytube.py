@@ -16,6 +16,7 @@ This module just does work specific to Tube trains: Parsing & interpreting a Tub
 formatting an appropriate reply to be sent back
 """
 # Standard libraries of Python 2.6
+import logging
 import re
 from datetime import datetime, timedelta
 from pprint import pprint # For debugging
@@ -163,7 +164,7 @@ class WhensMyTube(WhensMyRailTransport):
                     # The following stations will have "issues" with bidrectional platforms: North Acton, Edgware Road, Loughton, White City
                     # These are dealt with the below
                     direction = "Unknown"
-                    self.log_debug("Have encountered a platform without direction specified (%s)", platform_name)
+                    logging.debug("Have encountered a platform without direction specified (%s)", platform_name)
 
             # Use the filter function to filter out trains that are out of service, specials or National Rail first
             platform_trains = [t for t in platform.findall("T[@LN='%s']" % line_code) if filter_tube_trains(t)]
@@ -206,7 +207,7 @@ class WhensMyTube(WhensMyRailTransport):
         for trains in trains_by_direction.values():
             for train in unique_values(sorted(trains))[:3]:
                 destination = train.get_destination()
-                self.log_debug("Adding a train to %s at %s to the output", train.destination, train.departure_time)
+                logging.debug("Adding a train to %s at %s to the output", train.destination, train.departure_time)
                 if destination in destinations_correct_order:
                     train_times[destination].append(train.get_departure_time())
                 else:

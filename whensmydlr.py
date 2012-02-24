@@ -16,6 +16,7 @@ This module just does work specific to DLR trains: Parsing & interpreting a DLR-
 formatting an appropriate reply to be sent back
 """
 # Standard libraries of Python 2.6
+import logging
 import re
 from datetime import datetime, timedelta
 from pprint import pprint # For debugging
@@ -125,9 +126,9 @@ class WhensMyDLR(WhensMyRailTransport):
                     departure_delta = timedelta(minutes=(result.group(3) and int(result.group(3)) or 0))
                     departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
                     trains_by_platform[platform_name] = trains_by_platform[platform_name] + [DLRTrain(destination, departure_time)]
-                    self.log_debug("Found a train going to %s at %s", destination, departure_time)
+                    logging.debug("Found a train going to %s at %s", destination, departure_time)
                 else:
-                    self.log_debug("Error - could not parse this line: %s", train)
+                    logging.debug("Error - could not parse this line: %s", train)
                         
         # Some platforms run trains the same way (e.g. at termini). DLR doesn't tell us if this is the case, so we look at the destinations
         # on each pair of platforms and see if there is any overlap, using the set object and its intersection function. Any such
@@ -136,7 +137,7 @@ class WhensMyDLR(WhensMyRailTransport):
         common_platforms =  [(plat1, plat2) for (plat1, plat2) in platform_pairs 
                              if set([t.destination for t in trains_by_platform[plat1]]).intersection([t.destination for t in trains_by_platform[plat2]])]
         for (plat1, plat2) in common_platforms[:1]:
-            self.log_debug("Merging platforms %s and %s", plat1, plat2)
+            logging.debug("Merging platforms %s and %s", plat1, plat2)
             trains_by_platform[plat1+plat2] = trains_by_platform[plat1] + trains_by_platform[plat2]
             del trains_by_platform[plat1]
             del trains_by_platform[plat2]
