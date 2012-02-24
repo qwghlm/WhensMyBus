@@ -32,9 +32,7 @@ General:
 # Standard libraries of Python 2.6
 import ConfigParser
 import logging
-import logging.handlers
 import os
-import pickle
 import re
 import sys
 import time
@@ -45,9 +43,10 @@ import tweepy
 
 # From library modules in this package
 from lib.browser import WMTBrowser
-from lib.database import load_database
+from lib.database import load_database, WMTSettings
 from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
+from lib.logger import setup_logging
 from lib.stringutils import cleanup_name_from_undesirables, get_best_fuzzy_match, get_rail_station_name_similarity
 from lib.twitterclient import is_direct_message
 
@@ -83,7 +82,8 @@ class WhensMyTransport:
         self.admin_name = config.get(self.instance_name, 'admin_name')
         
         debug_level = config.get(self.instance_name, 'debug_level')
-        self.setup_logging(silent_mode, debug_level)
+        setup_logging(self.instance_name, silent_mode, debug_level)
+        
         self.allow_blank_tweets = False
         
         if testing is not None:
@@ -96,9 +96,7 @@ class WhensMyTransport:
 
         # Load up the databases for geodata & settings
         (_notused, self.geodata) = load_database('%s.geodata.db' % self.instance_name)
-        (self.settingsdb, self.settings) = load_database('%s.settings.db' % self.instance_name)
-        self.settings.execute("create table if not exists %s_settings (setting_name unique, setting_value)" % self.instance_name)
-        self.settingsdb.commit()
+        self.settings = WMTSettings(self.instance_name)
         
         # JSON Browser
         self.browser = WMTBrowser()
@@ -118,66 +116,16 @@ class WhensMyTransport:
         auth.set_access_token(key, secret)        
         self.api = tweepy.API(auth)
 
-    def setup_logging(self, silent_mode, debug_level):
-        """
-        Set up some logging for this instance
-        """
-        if len(logging.getLogger('').handlers) == 0:
-            logging.basicConfig(level=logging.DEBUG, filename=os.devnull)
-
-            # Logging to stdout shows info or debug level depending on user config file. Setting silent to True will override either
-            if silent_mode:
-                console_output = open(os.devnull, 'w')
-            else:
-                console_output = sys.stdout
-            console = logging.StreamHandler(console_output)
-            console.setLevel(logging.__dict__[debug_level])
-            console.setFormatter(logging.Formatter('%(message)s'))
-
-            # Set up some proper logging to file that catches debugs
-            logfile = os.path.abspath('%s/logs/%s.log' % (HOME_DIR, self.instance_name))
-            rotator = logging.handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
-            rotator.setLevel(logging.DEBUG)
-            rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
-            logging.getLogger('').addHandler(console)
-            logging.getLogger('').addHandler(rotator)
-            logging.debug("Initializing...")
-
-    def get_setting(self, setting_name):
-        """
-        Fetch value of setting from settings database
-        """
-        #pylint: disable=W0703
-        self.settings.execute("select setting_value from %s_settings where setting_name = ?" % self.instance_name, (setting_name,))
-        row = self.settings.fetchone()
-        setting_value = row and row[0]
-        # Try unpickling, if this doesn't work then return the raw value (to deal with legacy databases)
-        if setting_value is not None:
-            try:
-                setting_value = pickle.loads(setting_value.encode('utf-8'))
-            except Exception: # Pickle can throw loads of weird exceptions, gotta catch them all!
-                pass
-        return setting_value
-
-    def update_setting(self, setting_name, setting_value):
-        """
-        Set value of named setting in settings database
-        """
-        setting_value = pickle.dumps(setting_value)
-        self.settings.execute("insert or replace into %s_settings (setting_name, setting_value) values (?, ?)" % self.instance_name,
-                              (setting_name, setting_value))
-        self.settingsdb.commit()
-        
     def check_followers(self):
         """
         Check my followers. If any of them are not following me, try to follow them back
         """
         # Don't bother if we have checked in the last ten minutes
-        last_follower_check = self.get_setting("last_follower_check") or 0
+        last_follower_check = self.settings.get_setting("last_follower_check") or 0
         if time.time() - last_follower_check < 600:
             return
         logging.info("Checking to see if I have any new followers...")
-        self.update_setting("last_follower_check", time.time())
+        self.settings.update_setting("last_follower_check", time.time())
 
         # Get IDs of our friends (people we already follow), and our followers
         followers_ids = self.api.followers_ids()
@@ -190,7 +138,7 @@ class WhensMyTransport:
             friends_ids = friends_ids[0]
         
         # Some users are protected and have been requested but not accepted - we need not continually ping them
-        protected_users_to_ignore = self.get_setting("protected_users_to_ignore") or []
+        protected_users_to_ignore = self.settings.get_setting("protected_users_to_ignore") or []
         
         # Work out the difference between the two, and also ignore protected users we have already requested
         # Twitter gives us these in reverse order, so we pick the final twenty (i.e the earliest to follow)
@@ -205,7 +153,7 @@ class WhensMyTransport:
                 logging.info("Error following user %s, most likely the account is protected", twitter_id)
                 continue
 
-        self.update_setting("protected_users_to_ignore", protected_users_to_ignore)
+        self.settings.update_setting("protected_users_to_ignore", protected_users_to_ignore)
         self.report_twitter_limit_status()
     
     def check_tweets(self):
@@ -213,8 +161,8 @@ class WhensMyTransport:
         Check Tweets that are replies to us
         """
         # Get the IDs of the Tweets and Direct Message we last answered
-        last_answered_tweet = self.get_setting('last_answered_tweet')
-        last_answered_direct_message = self.get_setting('last_answered_direct_message')
+        last_answered_tweet = self.settings.get_setting('last_answered_tweet')
+        last_answered_direct_message = self.settings.get_setting('last_answered_direct_message')
         
         # Fetch those Tweets and DMs. This is most likely to fail if OAuth is not correctly set up
         try:
@@ -259,10 +207,10 @@ class WhensMyTransport:
                 # DMs and @ replies have different structures and different handlers
                 if is_direct_message(tweet):            
                     self.send_reply_back(reply, tweet.sender.screen_name, send_direct_message=True)
-                    self.update_setting('last_answered_direct_message', tweet.id)
+                    self.settings.update_setting('last_answered_direct_message', tweet.id)
                 else:
                     self.send_reply_back(reply, tweet.user.screen_name, in_reply_to_status_id=tweet.id)
-                    self.update_setting('last_answered_tweet', tweet.id)
+                    self.settings.update_setting('last_answered_tweet', tweet.id)
 
         # Keep an eye on our rate limit, for science
         self.report_twitter_limit_status()

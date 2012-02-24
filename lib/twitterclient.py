@@ -6,6 +6,13 @@ import sys
 import tweepy
 import ConfigParser
 
+class TwitterClient():
+    """
+    A Twitter Client that fetches Tweets and manages follows
+    """
+    def __init__(self):
+        pass
+
 def is_direct_message(tweet):
     """
     Returns True if a Tweet object is that of Tweepy's Direct Message, False if any other kind
