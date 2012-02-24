@@ -15,7 +15,7 @@ from pprint import pprint
 
 # Local files
 from lib.browser import WMTBrowser
-from lib.database import load_database
+from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
 from lib.models import TubeTrain
 from lib.stringutils import get_best_fuzzy_match, get_rail_station_name_similarity
@@ -230,7 +230,7 @@ def scrape_tfl_destination_codes():
     platform, destination code and destination name, and puts it into a database to help with us producing
     better output for users
     """
-    (database, cursor) = load_database("whensmytube.geodata.db")
+    database = WMTDatabase("whensmytube.geodata.db")
     browser = WMTBrowser()
     
     destination_summary = {}
@@ -250,27 +250,21 @@ def scrape_tfl_destination_codes():
                 print "Error - mismatching destinations: %s (existing) and %s (new) with code %s" \
                       % (destination_summary[destination_code], destination, destination_code)
             
-            cursor.execute("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
-            database.commit()
+            database.write_query("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
             destination_summary[destination_code] = destination
 
     # Check to see if destination is in our database
-    cursor.execute("SELECT destination_name, line_code FROM destination_codes")
-    for row in cursor.fetchall():
+    for row in database.get_rows("SELECT destination_name, line_code FROM destination_codes"):
         destination = TubeTrain(row[0]).get_clean_destination_name()
         if destination in ("Unknown", "Special", "Out Of Service"):
             continue
         if destination.startswith('Br To') or destination in ('Network Rail', 'Chiltern Toc'):
             continue            
-        cursor.execute("SELECT Name FROM locations WHERE Name=? AND Line=?", (destination, row[1]))
-        if not cursor.fetchone():
-            cursor.execute("SELECT Name FROM locations WHERE Name=?", (destination,))
-            station_is_on_other_line = cursor.fetchall()
+        if not database.get_row("SELECT Name FROM locations WHERE Name=? AND Line=?", (destination, row[1])):
+            station_is_on_other_line = database.get_rows("SELECT Name FROM locations WHERE Name=?", (destination,))
             if not station_is_on_other_line:
-                cursor.execute("SELECT Name FROM locations WHERE Line=?", (row[1],))
-                all_stations = [station['Name'] for station in cursor.fetchall()]
+                all_stations = [station['Name'] for station in database.get_rows("SELECT Name FROM locations WHERE Line=?", (row[1],))]
                 if not get_best_fuzzy_match(destination, all_stations, comparison_function=get_rail_station_name_similarity, minimum_confidence=70):
-                    cursor.execute("SELECT Name FROM locations WHERE Line=?", (row[1],))
                     print "Destination %s on %s not found in locations database" % (row[0], row[1])
 
 def scrape_odd_platform_designations(write_file=False):
@@ -278,7 +272,7 @@ def scrape_odd_platform_designations(write_file=False):
     Check Tfl Tube API for Underground platforms that are not designated with a *-bound direction, and (optionally)
     generates a blank CSV template for those stations with Inner/Outer Rail designations
     """
-    (_database, cursor) = load_database("whensmytube.geodata.db")
+    database = WMTDatabase("whensmytube.geodata.db")
     browser = WMTBrowser()
 
     print "Platforms without a Inner/Outer Rail specification:"
@@ -321,8 +315,7 @@ def scrape_odd_platform_designations(write_file=False):
     for (station_name, station_code) in sorted(station_platforms.keys()):
         for line_code in sorted(station_platforms[(station_name, station_code)]):
             writer.writerow([station_code, station_name, line_code, '', ''])
-        cursor.execute("SELECT Name FROM locations WHERE Name=?", (station_name,))
-        if not cursor.fetchone():
+        if not database.get_value("SELECT Name FROM locations WHERE Name=?", (station_name,)):
             errors.append("%s is not in the station database" % station_name)
     outputfile.flush()
     
