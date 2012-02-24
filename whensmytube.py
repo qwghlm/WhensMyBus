@@ -22,8 +22,8 @@ from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyRailTransport, Train, abbreviate_station_name
-from utils import unique_values
 from lib.exceptions import WhensMyTransportException
+from lib.listutils import unique_values
 from lib.stringutils import capwords, cleanup_name_from_undesirables, get_best_fuzzy_match
 
 class TubeTrain(Train):

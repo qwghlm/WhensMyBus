@@ -1,12 +1,8 @@
 #!/usr/bin/env python
 #pylint: disable=W0107
 """
-Utilities for WhensMyTransport
+List & Iterable Utilities for WhensMyTransport
 """
-from pprint import pprint
-
-# List utils
-
 def unique_values(seq):
     """
     Return unique values of sequence seq, according to ID function idfun. From http://www.peterbe.com/plog/uniqifiers-benchmark
