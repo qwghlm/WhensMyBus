@@ -14,9 +14,9 @@ import tempfile
 from pprint import pprint
 
 # Local files
-from utils import load_database
 from whensmytube import cleanup_destination_name, cleanup_via_from_destination_name
 from lib.browser import WMTBrowser
+from lib.database import load_database
 from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
 from lib.stringutils import get_best_fuzzy_match, get_rail_station_name_similarity
 

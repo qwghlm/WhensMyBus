@@ -43,12 +43,13 @@ from pprint import pprint # For debugging
 # Tweepy is a Twitter API library available from https://github.com/tweepy/tweepy
 import tweepy
 
-# From other modules in this package
-from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
-from lib.exceptions import WhensMyTransportException
-from utils import load_database, is_direct_message
+# From library modules in this package
 from lib.browser import WMTBrowser
+from lib.database import load_database
+from lib.exceptions import WhensMyTransportException
+from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
 from lib.stringutils import cleanup_name_from_undesirables, get_best_fuzzy_match, get_rail_station_name_similarity
+from lib.twitterclient import is_direct_message
 
 # Some constants we use
 VERSION_NUMBER = 0.50
