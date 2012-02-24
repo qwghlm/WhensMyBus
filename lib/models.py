@@ -98,6 +98,9 @@ class BusStop():
         return cmp(self.distance_away, other.distance_away)
         
     def __repr__(self):
+        """
+        Representation function for debugging
+        """
         return self.get_normalised_name()
     
     def get_clean_name(self):
