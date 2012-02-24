@@ -6,7 +6,6 @@ to convert between different co-ordinate systems
 """
 import math
 import urllib
-from pprint import pprint
 
 # Geocoders Define the URL and how to parse the resulting JSON object
 
