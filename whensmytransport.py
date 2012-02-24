@@ -69,7 +69,7 @@ class WhensMyTransport:
             config = ConfigParser.SafeConfigParser({ 'test_mode' : False,
                                                      'debug_level' : 'INFO',
                                                      'yahoo_app_id' : None})
-            config.read(HOME_DIR + '/whensmytransport.cfg')
+            config.read(HOME_DIR + '/' + config_file)
             config.get(self.instance_name, 'debug_level')            
         except (ConfigParser.Error, IOError):
             print """Fatal error: can't find a valid config file with options for %s.""" % self.instance_name
