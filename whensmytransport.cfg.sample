@@ -2,13 +2,13 @@
 ## Twitter config
 # Username goes here, no @ sign
 username :
-# App OAuth key
+# Consumer OAuth key
 consumer_key :
-# App OAuth secret
+# Consumer OAuth secret
 consumer_secret :
-# User OAuth key
+# Access token
 key :
-# User OAuth secret
+# Access token secret
 secret :
 # Your Username - so the bot can DM you with error messages. Just a string, no @ sign (e.g. qwghlm). Make sure you're following it!
 admin_name : 
@@ -25,13 +25,13 @@ yahoo_app_id :
 ## Twitter config
 # Username goes here, no @ sign
 username :
-# App OAuth key
+# Consumer OAuth key
 consumer_key :
-# App OAuth secret
+# Consumer OAuth secret
 consumer_secret :
-# User OAuth key
+# Access token
 key :
-# User OAuth secret
+# Access token secret
 secret :
 # Your Username - so the bot can DM you with error messages. Just a string, no @ sign (e.g. qwghlm). Make sure you're following it!
 admin_name : 
@@ -44,13 +44,13 @@ admin_name :
 ## Twitter config
 # Username goes here, no @ sign
 username :
-# App OAuth key
+# Consumer OAuth key
 consumer_key :
-# App OAuth secret
+# Consumer OAuth secret
 consumer_secret :
-# User OAuth key
+# Access token 
 key :
-# User OAuth secret
+# Access token secret
 secret :
 # Your Username - so the bot can DM you with error messages. Just a string, no @ sign (e.g. qwghlm). Make sure you're following it!
 admin_name : 

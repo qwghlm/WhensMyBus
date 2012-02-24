@@ -16,10 +16,10 @@ class WMTTwitterClient():
     """
     A Twitter Client that fetches Tweets and manages follows for When's My Transport
     """
-    def __init__(self, instance_name, key, secret, consumer_key, consumer_secret, testing=False):
+    def __init__(self, instance_name, consumer_key, consumer_secret, access_token, access_token_secret, testing=False):
         logging.debug("Authenticating with Twitter")
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        auth.set_access_token(key, secret)        
+        auth.set_access_token(access_token, access_token_secret)        
         self.api = tweepy.API(auth)
         self.settings = WMTSettings(instance_name)
         self.testing = testing

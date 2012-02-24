@@ -96,15 +96,15 @@ class WhensMyTransport:
         self.username = config.get(self.instance_name,'username')
         consumer_key = config.get(self.instance_name, 'consumer_key')
         consumer_secret = config.get(self.instance_name, 'consumer_secret')
-        key = config.get(self.instance_name, 'key')
-        secret = config.get(self.instance_name, 'secret')
+        access_token = config.get(self.instance_name, 'key')
+        access_token_secret = config.get(self.instance_name, 'secret')
 
         if testing is None:
             testing = config.get(self.instance_name, 'test_mode')
         if testing:
             logging.info("In TEST MODE - No Tweets will be made!")
 
-        self.twitter_client = WMTTwitterClient(self.instance_name, key, secret, consumer_key, consumer_secret, testing)
+        self.twitter_client = WMTTwitterClient(self.instance_name, consumer_key, consumer_secret, access_token, access_token_secret, testing)
         
     def check_tweets(self):
         """
