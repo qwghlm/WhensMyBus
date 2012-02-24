@@ -14,9 +14,6 @@ reading @ replies, replying to them, checking new followers, following them back
 
 This module just does work specific to Tube trains: Parsing & interpreting a Tube-specific message, and checking the TfL TrackerNet API and
 formatting an appropriate reply to be sent back
-
-Things to do:
- - Review all logging and make sure consistent with WhensMyBus
 """
 # Standard libraries of Python 2.6
 import re

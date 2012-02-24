@@ -14,10 +14,6 @@ reading @ replies, replying to them, checking new followers, following them back
 
 This module just does work specific to buses: Parsing & interpreting a bus-specific message, and looking it up against the database of
 buses and routes, checking the TfL bus API and formatting an appropriate reply to be sent back
-
-==Things to do==
- - Review all logging and make sure consistent with WhensMyTube
-
 """
 # Standard libraries of Python 2.6
 import re
