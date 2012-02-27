@@ -119,7 +119,7 @@ class WMTTwitterClient():
                     messages[-1] = messages[-1] + word + ';'
                 else:
                     messages[-1] = messages[-1].strip() + u"…"
-                    messages.append(u"…")
+                    messages.append(u"…" + word)
             messages[-1] = messages[-1][:-1]
             
         else:
