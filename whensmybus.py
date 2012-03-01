@@ -18,21 +18,18 @@ buses and routes, checking the TfL bus API and formatting an appropriate reply t
 # Standard libraries of Python 2.6
 import logging
 import re
-from math import sqrt
 from time import localtime
 from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyTransport
-from lib.geo import convertWGS84toOSEastingNorthing, heading_to_direction
+from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
 from lib.models import BusStop
-from lib.stringutils import get_best_fuzzy_match
 
 class WhensMyBus(WhensMyTransport):
     """
-    Main class devoted to checking for bus-related Tweets and replying to them. Instantiate with no variables
-    (all config is done in the file whensmytransport.cfg) and then call check_tweets()
+    Main class devoted to checking for bus-related Tweets and replying to them.
     """
     def __init__(self, testing=None, silent=False):
         """
@@ -61,8 +58,7 @@ class WhensMyBus(WhensMyTransport):
         the stops and thus the appropriate times for the user, and return an appropriate reply to that user
         """
         # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
-        rows = self.geodata.get_rows("SELECT * FROM routes WHERE Route=?", (route_number,))
-        if not len(rows):
+        if not self.geodata.check_existence_of('Route', route_number):
             raise WhensMyTransportException('nonexistent_bus', route_number)
 
         # Dig out relevant stop for this route from the geotag, if provided
@@ -109,37 +105,15 @@ class WhensMyBus(WhensMyTransport):
             Keys are numbers of the Run (usually 1 or 2, sometimes 3 or 4).
             Values are BusStop objects
         """
-        # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
-        logging.debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
-        easting, northing = convertWGS84toOSEastingNorthing(position)
-        logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
-        
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
-        max_runs = int(self.geodata.get_value("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,)))       
+        max_runs = self.geodata.get_max_value('Run', {'Route' : route_number})
+
         relevant_stops = {}
+
         for run in range(1, max_runs+1):
-        
-            # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
-            # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
-            # and find the first row
-            query = """
-                    SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
-                          Sequence,
-                          Heading,
-                          Bus_Stop_Code,
-                          Stop_Name
-                    FROM routes
-                    WHERE Route='%s' AND Run='%s'
-                    ORDER BY dist_squared
-                    LIMIT 1
-                    """ % (easting, easting, northing, northing, route_number, run)
-    
-            # Note we fetch the Bus_Stop_Code not the Stop_Code_LBSL value out of this row - this is the ID used in TfL's system
-            stop_data = self.geodata.get_row(query)
-            # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
-            if stop_data:
-                relevant_stops[run] = BusStop(Distance=sqrt(stop_data['dist_squared']), **stop_data)
-        
+            stop = self.geodata.find_closest(position, {'Route' : route_number, 'Run' : run}, BusStop)
+            if stop:
+                relevant_stops[run] = stop
         logging.debug("Have found stop numbers: %s", ', '.join([stop.number for stop in relevant_stops.values()]))
         return relevant_stops
             
@@ -149,16 +123,14 @@ class WhensMyBus(WhensMyTransport):
         value is the corresponding BusStop object
         """
         # Pull the stop ID out of the routes database and see if it exists
-        stop = self.geodata.get_row("SELECT * FROM routes WHERE Bus_Stop_Code=?", (stop_number, ))
-        if not stop:
+        if not self.geodata.check_existence_of('Bus_Stop_Code', stop_number):
             raise WhensMyTransportException('bad_stop_id', stop_number)
 
         # Try and get a match on it
         logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
-        stop_data = self.geodata.get_row("SELECT Run, Sequence, Heading, Bus_Stop_Code, Stop_Name FROM routes WHERE Bus_Stop_Code=? AND Route=?",
-                                         (stop_number, route_number))
-        if stop_data:
-            return { stop_data['Run'] : BusStop(**stop_data) }
+        stop = self.geodata.find_exact_match({'Bus_Stop_Code' : stop_number, 'Route' : route_number}, BusStop)
+        if stop:
+            return { stop.run : stop }
         else:
             return {}
             
@@ -179,21 +151,12 @@ class WhensMyBus(WhensMyTransport):
         relevant_stops = {}
                      
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
-        max_runs = int(self.geodata.get_value("SELECT MAX(Run) FROM routes WHERE Route=?", (route_number,)))    
+        max_runs = self.geodata.get_max_value('Run', {'Route' : route_number})
         for run in range(1, max_runs+1):
-            rows = self.geodata.get_rows("""
-                                         SELECT Stop_Name, Bus_Stop_Code, Heading, Sequence, Run FROM routes WHERE Route=? AND Run=?
-                                         """, (route_number, run))
-                                         
-            # Some Runs are non-existent (e.g. Routes that have a Run 4 but not a Run 3) so check if this is the case
-            if rows:
-                possible_stops = [BusStop(**row) for row in rows]
-                best_match = get_best_fuzzy_match(origin, possible_stops)
-                if best_match:
-                    logging.info("Found stop name %s for Run %s via fuzzy matching", best_match.name, best_match.run)
-                    relevant_stops[run] = best_match
-                else:
-                    logging.info("Could not find a match out of %s candidates for %s", len(possible_stops), origin)
+            best_match = self.geodata.find_fuzzy_match({'Route' : route_number, 'Run' : run}, origin, BusStop)
+            if best_match:
+                logging.info("Found stop name %s for Run %s via fuzzy matching", best_match.name, best_match.run)
+                relevant_stops[run] = best_match
 
         # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name
         for run in (1, 2):
@@ -261,5 +224,8 @@ class WhensMyBus(WhensMyTransport):
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":
+    """
+    Instantiate with no variables (all config is done in the file config.cfg) and then call check_tweets()
+    """
     WMB = WhensMyBus()
     WMB.check_tweets()

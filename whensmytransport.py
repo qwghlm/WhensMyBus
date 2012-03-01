@@ -39,12 +39,11 @@ from pprint import pprint # For debugging
 
 # From library modules in this package
 from lib.browser import WMTBrowser
-from lib.database import WMTDatabase
 from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
+from lib.locations import WMTLocations
 from lib.logger import setup_logging
 from lib.models import RailStation
-from lib.stringutils import get_best_fuzzy_match
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
 # Some constants we use
@@ -84,7 +83,7 @@ class WhensMyTransport:
         setup_logging(self.instance_name, silent_mode, debug_level)
         
         # Setup database of stops/stations and their locations
-        self.geodata = WMTDatabase('%s.geodata.db' % self.instance_name)
+        self.geodata = WMTLocations(self.instance_name)
         
         # Setup browser for JSON & XML
         self.browser = WMTBrowser()
@@ -355,57 +354,20 @@ class WhensMyRailTransport(WhensMyTransport):
         Constructor, called by child functions
         """
         WhensMyTransport.__init__(self, instance_name, testing, silent)
-    
+ 
     def get_station_by_geolocation(self, line_code, position):
         """
         Take a line and a tuple specifying latitude & longitude, and works out closest station        
         """
-        #pylint: disable=W0613
-        # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
-        logging.debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
-        easting, northing = convertWGS84toOSEastingNorthing(position)
-        logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
-
-        # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
-        # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
-        # and find the first row
-        query = """
-                SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
-                      Name,
-                      Code,
-                      Location_Easting,
-                      Location_Northing
-                FROM locations
-                WHERE Line='%s'
-                ORDER BY dist_squared
-                LIMIT 1
-                """ % (easting, easting, northing, northing, line_code)
-        row = self.geodata.get_row(query)
-        if row:
-            logging.debug("Have found %s station (%s)", row['Name'], row['Code'])
-            return RailStation(**row)
-        else:
-            return None
+        logging.debug("Attempting to get closest to position: %s", position)
+        return self.geodata.find_closest(position, { 'Line' : line_code }, RailStation)
 
     def get_station_by_station_name(self, line_code, origin):
         """
         Take a line and a string specifying origin, and work out matching for that name      
         """
-        # First off, try to get a match against station names in database
-        # Users may not give exact details, so we try to match fuzzily
-        logging.debug("Attempting to get a match on placename %s", origin)
-        rows = self.geodata.get_rows("""
-                                     SELECT Name, Code, Location_Easting, Location_Northing FROM locations WHERE Line=? OR Line='X'
-                                     """, (line_code,))
-        if rows:
-            possible_stations = [RailStation(**row) for row in rows]
-            best_match = get_best_fuzzy_match(origin, possible_stations)
-            if best_match:
-                logging.debug("Match found! Found: %s", best_match.name)
-                return best_match
-
-        logging.debug("No match found for %s, sorry", origin)
-        return None
+        logging.debug("Attempting to get a fuzzy match on placename %s", origin)
+        return self.geodata.find_fuzzy_match({'Line' : line_code}, origin, RailStation)
 
 if __name__ == "__main__":
     print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytube.py"

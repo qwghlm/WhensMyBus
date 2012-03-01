@@ -131,10 +131,9 @@ class WhensMyTube(WhensMyRailTransport):
             if direction:
                 direction = capwords(direction.group(0))
             # Some Circle/Central Line platforms called "Inner" and "Outer" Rail, which make no sense to customers, so I've manually
-            # entered Inner and Outer columns in the database which translate from these into North/South/East/West bearings
+            # entered Inner and Outer attributes in the object (taken from the database) which translate from these into North/South/East/West
             elif rail:
-                bearing = self.geodata.get_value("SELECT %s FROM locations WHERE Line=? AND Code=?" % rail.group(1), (line_code, station.code))
-                direction = bearing + 'bound'
+                direction = station.__dict__[rail.group(1)] + 'bound'
             else:
                 # Some odd cases. Chesham and Chalfont & Latimer don't say anything at all for the platforms on the Chesham branch of the Met Line
                 if station.code == "CHM":
