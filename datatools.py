@@ -93,7 +93,7 @@ def import_bus_csv_to_db():
     outputfile.flush()
     outputfile.close()
 
-    tablename = 'routes'
+    tablename = 'locations'
 
     integer_values = ('Location_Easting',
                     'Location_Northing',
@@ -106,15 +106,16 @@ def import_bus_csv_to_db():
     
     # Produce SQL for this table
     sql = "drop table if exists %s;\r\n" % tablename
+    sql += "drop table if exists routes;\r\n"
     sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
     sql += '.separator ";"\r\n'
     sql += ".import %s %s\r\n" % (outputpath, tablename)
     sql += "delete from %s WHERE Virtual_Bus_Stop;\r\n" % tablename
     sql += "\r\n"
     
-    sql += "CREATE INDEX route_index ON routes (Route);\r\n"
-    sql += "CREATE INDEX route_run_index ON routes (Route, Run);\r\n"
-    sql += "CREATE INDEX route_stop_index ON routes (Route, Bus_Stop_Code);\r\n"
+    sql += "CREATE INDEX route_index ON locations (Route);\r\n"
+    sql += "CREATE INDEX route_run_index ON locations (Route, Run);\r\n"
+    sql += "CREATE INDEX route_stop_index ON locations (Route, Bus_Stop_Code);\r\n"
     
     export_sql_to_db("./db/whensmybus.geodata.db", sql)    
     # Drop SSV file now we don't need it
@@ -326,8 +327,8 @@ def scrape_odd_platform_designations(write_file=False):
     outputfile.close()
 
 if __name__ == "__main__":
-    #import_bus_csv_to_db()
-    import_tube_xml_to_db()
+    import_bus_csv_to_db()
+    #import_tube_xml_to_db()
     #import_dlr_xml_to_db()
     #scrape_tfl_destination_codes()
     #scrape_odd_platform_designations()
