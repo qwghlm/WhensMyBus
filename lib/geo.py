@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#pylint: disable=C0103,R0914,R0913,R0201,W0231,W0142
+#pylint: disable=C0103,R0201,W0231,W0142,R0903
 """
 Geotools for WhensMyTransport. Include GeoCoders for Yahoo!, Bing and Google Maps, and functions
 to convert between different co-ordinate systems
@@ -146,9 +146,8 @@ class GoogleGeocoder(BaseGeocoder):
 #
 def LatLongToOSGrid(lat, lon):
     """
-    convert Geodesic co-ordinates to an OS Eastings/Northings grid reference
+    Convert Geodesic co-ordinates to an OS grid reference, returned as an (eastings, northings) tuple
     """
-    
     lat = math.radians(lat)
     lon = math.radians(lon)
     
@@ -203,7 +202,7 @@ def LatLongToOSGrid(lat, lon):
 
 def gridrefNumToLet(e, n, digits=10):
     """
-    Convert Easting & Northing to standard OS Grid Reference
+    Convert Easting & Northing and return it as string representing the OS Grid Reference
     """
     e100k = math.floor(e/100000.0)
     n100k = math.floor(n/100000.0)
@@ -234,8 +233,10 @@ def gridrefNumToLet(e, n, digits=10):
 
 def convertWGS84toOSGB36(lat, lon, height=0):
     """
-    Convert a latitude & longitude from WGS84 (used by GPS) to OSGB36 (used by OS maps)
-    so as to convert from one model of the earth's spherality to another and make our 
+    Convert a latitude & longitude from WGS84 (used by GPS) and return a (latitude, longitude)
+    tuple of its equivalent in the OSGB36 system (used by OS maps)
+
+    This allows us to convert from one model of the earth's spherality to another and make our 
     geolocations *really* accurate
     """
     # ellipse parameters
@@ -318,7 +319,7 @@ def convert(lat, lon, height, e1, t, e2):
     
 def convertWGS84toOSEastingNorthing(position):
     """
-    Convert a WGS84 (lat, lon) tuple into a (easting, northing) tuple
+    Convert a WGS84 (latitude, longitude) tuple into a (easting, northing) tuple
     """
     position = convertWGS84toOSGB36(*position)
     easting, northing = LatLongToOSGrid(position[0], position[1])
@@ -328,7 +329,7 @@ def convertWGS84toOSEastingNorthing(position):
     
 def heading_to_direction(heading):
     """
-    Helper function to convert a heading (in degrees) to human-readable direction
+    Helper function to convert a heading (in degrees), returns a human-readable direction as a string
     """
     dirs = ('North', 'NE', 'East', 'SE', 'South', 'SW', 'West', 'NW')
     # North lies between -22 and +22, NE between 23 and 67, East between 68 and 112, etc 

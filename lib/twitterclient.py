@@ -66,7 +66,7 @@ class WMTTwitterClient():
 
     def fetch_tweets(self):
         """
-        Fetch Tweets that are replies to us
+        Fetch Tweets that are replies & direct messages to us and return as a list
         """
         # Get the IDs of the Tweets and Direct Message we last answered
         last_answered_tweet = self.settings.get_setting('last_answered_tweet')
@@ -96,7 +96,7 @@ class WMTTwitterClient():
     
     def report_twitter_limit_status(self):
         """
-        Helper function to log what our Twitter API hit count & limit is
+        Log what our Twitter API hit count & limit is
         """
         limit_status = self.api.rate_limit_status()
         logging.info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
@@ -104,7 +104,7 @@ class WMTTwitterClient():
 
     def send_reply_back(self, reply, username, send_direct_message, in_reply_to_status_id=None):
         """
-        Send back a reply to the user; this might be a DM or might be a public reply
+        Send back a reply to username; this might be a DM or might be a public reply
         """
         # Take care of over-long messages. 136 allows us breathing room for a letter D and spaces for
         # a direct message & three dots at the end, so split this kind of reply
@@ -149,14 +149,11 @@ class WMTTwitterClient():
                 continue
 
 
-
 def is_direct_message(tweet):
     """
     Returns True if a Tweet object is that of Tweepy's Direct Message, False if any other kind
     """
     return isinstance(tweet, tweepy.models.DirectMessage)
-
-# OAuth stuff
 
 def make_oauth_key(instance_name):
     """
@@ -186,4 +183,4 @@ def make_oauth_key(instance_name):
     print "secret : %s" % auth.access_token.secret
 
 if __name__ == "__main__":
-    make_oauth_key()
+    make_oauth_key('whensmybus')

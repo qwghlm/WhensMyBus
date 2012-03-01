@@ -10,11 +10,11 @@ DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/
 
 class WMTDatabase():
     """
-    Class representing database 
+    Class representing a database client for When's My Transport
     """
     def __init__(self, dbfilename):
         """
-        Load a database
+        Initialise & load a database from file
         """
         logging.debug("Opening database %s", dbfilename)
         self.database = sqlite3.connect(DB_PATH + '/' + dbfilename)
@@ -30,7 +30,7 @@ class WMTDatabase():
     
     def get_rows(self, sql, args=()):
         """
-        Returns an iterator representing all the rows from the query's results
+        Returns a list of sqlite3.Row objects, representing all the rows from the query's results
         """
         self.cursor.execute(sql, args)
         rows = self.cursor.fetchall()
@@ -38,7 +38,7 @@ class WMTDatabase():
 
     def get_row(self, sql, args=()):
         """
-        Returns the first row from the query's results. Returns None if no result
+        Returns the first row from the query's results, as a sqlite3.Row object. Returns None if no result
         """
         self.cursor.execute(sql, args)
         row = self.cursor.fetchone()

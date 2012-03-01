@@ -4,9 +4,6 @@ String utilities, including fuzzy string matching
 """
 import difflib
 import re
-from pprint import pprint
-
-# String utils
 
 def capwords(phrase):
     """

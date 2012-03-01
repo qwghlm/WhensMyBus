@@ -6,7 +6,7 @@ import logging
 
 class WhensMyTransportException(Exception):
     """
-    Exception we use to signal send an error to the user
+    Exception we use to signal send a WhensMyTransport-specific error to the user
     """
     # Possible id => message pairings, so we can use a shortcode to summon a much more explanatory message
     # Why do we not just send the full string as a parameter to the Exception? Mainly so we can unit test (see testing.py)

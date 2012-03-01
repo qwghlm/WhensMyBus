@@ -5,8 +5,9 @@ List & Iterable Utilities for WhensMyTransport
 """
 def unique_values(seq):
     """
-    Return unique values of sequence seq, according to ID function idfun. From http://www.peterbe.com/plog/uniqifiers-benchmark
-    and modified. Values in seq must be hashable for this to work
+    Return unique values of sequence seq, according to ID function idfun.
+
+    From http://www.peterbe.com/plog/uniqifiers-benchmark and modified. Values in seq must be hashable for this to work
     """
     seen = {} 
     result = [] 

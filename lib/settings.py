@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """
-Settings read/write handler (for remembering data between sessions" for When's My Transport
+Application settings handling for When's My Transport
 """
 import pickle
 from lib.database import WMTDatabase
 
 class WMTSettings():
     """
-    Class representing settings database
+    Class representing a settings read/write handler (for remembering data between sessions" for When's My Transport
+
     """
     def __init__(self, instance_name):
         self.instance_name = instance_name

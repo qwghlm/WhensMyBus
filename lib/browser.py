@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-A data browser for When's My Transport
+Data browser for When's My Transport
 """
 import json
 import logging
@@ -28,7 +28,7 @@ class WMTBrowser:
         
     def fetch_url(self, url, exception_code):
         """
-        Fetches a URL and returns the raw data as a string
+        Fetch a URL and returns the raw data as a string
         """
         if url in self.cache and (time.time() - self.cache[url]['time']) < 30:
             logging.debug("Using cached URL %s", url)
@@ -52,7 +52,7 @@ class WMTBrowser:
 
     def fetch_json(self, url, exception_code='tfl_server_down'):
         """
-        Fetches a JSON URL and returns Python object representation of it
+        Fetch a JSON URL and returns Python object representation of it
         """
         json_data = self.fetch_url(url, exception_code)
     
@@ -69,7 +69,7 @@ class WMTBrowser:
 
     def fetch_xml_tree(self, url, exception_code='tfl_server_down'):
         """
-        Fetches an XML URL and returns Python object representation of the DOM
+        Fetch an XML URL and returns Python object representation of it as an ElementTree
         """
         xml_data = self.fetch_url(url, exception_code)
         # Try to parse this as XML
