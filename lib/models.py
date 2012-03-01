@@ -10,11 +10,13 @@ class RailStation():
     """
     Class representing a railway station
     """
-    def __init__(self, Name='', Code='', Location_Easting=0, Location_Northing=0, **kwargs):
+    def __init__(self, Name='', Code='', Location_Easting=0, Location_Northing=0, Inner='', Outer='', **kwargs):
         self.name = Name
         self.code = Code
         self.location_easting = Location_Easting
         self.location_northing = Location_Northing
+        self.inner = Inner
+        self.outer = Outer
 
     def get_abbreviated_name(self):
         """

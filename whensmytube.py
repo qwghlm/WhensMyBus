@@ -133,7 +133,7 @@ class WhensMyTube(WhensMyRailTransport):
             # Some Circle/Central Line platforms called "Inner" and "Outer" Rail, which make no sense to customers, so I've manually
             # entered Inner and Outer attributes in the object (taken from the database) which translate from these into North/South/East/West
             elif rail:
-                direction = station.__dict__[rail.group(1)] + 'bound'
+                direction = station.__dict__[rail.group(1).lower()] + 'bound'
             else:
                 # Some odd cases. Chesham and Chalfont & Latimer don't say anything at all for the platforms on the Chesham branch of the Met Line
                 if station.code == "CHM":
