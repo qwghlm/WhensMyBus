@@ -268,7 +268,7 @@ class TubeTrain(Train):
                             ' loop',
                             '\(circle\)')
             destination = cleanup_name_from_undesirables(destination, undesirables)
-        Train.__init__(self, destination, departure_time)
+        Train.__init__(self, destination, departure_time, direction)
         self.set_number = set_number
         self.line_code = line_code
         self.destination_code = destination_code
