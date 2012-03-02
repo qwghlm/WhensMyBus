@@ -184,7 +184,11 @@ class WhensMyBus(WhensMyTransport):
         and a particular route_number, and returns a dictionary of runs mapping to Bus objects
         """
         relevant_buses = {}
+        stop_directions = {}
         for (run, stop) in relevant_stops.items():
+
+            relevant_buses[run] = []
+            stop_directions[run] = heading_to_direction(stop.heading)
 
             stop_name = stop.get_clean_name()
             tfl_url = "http://countdown.tfl.gov.uk/stopBoard/%s" % stop.number
@@ -199,29 +203,27 @@ class WhensMyBus(WhensMyTransport):
             relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
                                                         and a['isRealTime'] and not a['isCancelled']]
             if relevant_arrivals:
-                arrival = relevant_arrivals[0]  # FIXME
-                scheduled_time = arrival['scheduledTime'].replace(':', '')
-                # Short hack to get BST working
-                if localtime().tm_isdst:
-                    hour = (int(scheduled_time[0:2]) + 1) % 24
-                    scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
+                for arrival in relevant_arrivals[:3]:
+                    scheduled_time = arrival['scheduledTime'].replace(':', '')
+                    # Short hack to get BST working
+                    if localtime().tm_isdst:
+                        hour = (int(scheduled_time[0:2]) + 1) % 24
+                        scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
 
-                logging.debug("Run %s, stop %s produced bus to %s %s", run, stop_name, arrival['destination'], scheduled_time)
-                relevant_buses[run] = [Bus(stop_name, arrival['destination'], scheduled_time)]
+                    logging.debug("Run %s, stop %s produced bus to %s %s", run, stop_name, arrival['destination'], scheduled_time)
+                    relevant_buses[run].append(Bus(stop_name, arrival['destination'], scheduled_time))
             else:
                 logging.debug("Run %s, stop %s produced no buses", run, stop_name)
-                relevant_buses[run] = [NullDeparture(heading_to_direction(stop.heading))]
 
-        # If the number of runs is 3 or 4, get rid of any "None shown"
+        # If the number of runs is 3 or 4, get rid of any without buses shown
         if len(relevant_buses) > 2:
             logging.debug("Number of runs is %s, removing any non-existent entries", len(relevant_buses))
-            for (run, bus) in relevant_buses.items():
-                if isinstance(bus, NullDeparture):
+            for (run, bus_list) in relevant_buses.items():
+                if run > 2 and not bus_list:
                     del relevant_buses[run]
 
-        return relevant_buses
-
-
+        return self.cleanup_departure_data(relevant_buses, lambda a: NullDeparture(stop_directions[a]))
+        
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":
     # Instantiate with no variables (all config is done in the file config.cfg) and then call check_tweets()
