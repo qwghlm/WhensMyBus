@@ -176,7 +176,7 @@ class WhensMyTransport:
         if hasattr(tweet, 'geo') and tweet.geo and tweet.geo.has_key('coordinates'):
             logging.debug("Detect geolocation on Tweet")
             position = tweet.geo['coordinates']
-            easting, northing = convertWGS84toOSEastingNorthing(position)
+            easting, northing = convertWGS84toOSEastingNorthing(*position)
             gridref = gridrefNumToLet(easting, northing)
             # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
             if not gridref:

@@ -315,14 +315,15 @@ def convert(lat, lon, height, e1, t, e2):
     Lambda = math.atan2(y2, x2)
     H = p/math.cos(phi) - nu
     
-    return (math.degrees(phi), math.degrees(Lambda), H)
+    # Rounding to 7 decimal places in a degree gives us about +/- 0.01m accuracy
+    return (round(math.degrees(phi), 7), round(math.degrees(Lambda), 7), H)
     
-def convertWGS84toOSEastingNorthing(position):
+def convertWGS84toOSEastingNorthing(latitude, longitude):
     """
-    Convert a WGS84 (latitude, longitude) tuple into a (easting, northing) tuple
+    Convert a WGS84 (latitude, longitude) position, returns a (easting, northing) tuple
     """
-    position = convertWGS84toOSGB36(*position)
-    easting, northing = LatLongToOSGrid(position[0], position[1])
+    (new_latitude, new_longitude, _ignore) = convertWGS84toOSGB36(latitude, longitude)
+    easting, northing = LatLongToOSGrid(new_latitude, new_longitude)
     return (easting, northing)
 
 # Final function to make headings more user-friendly
