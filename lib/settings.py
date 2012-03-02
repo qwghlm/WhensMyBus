@@ -5,6 +5,7 @@ Application settings handling for When's My Transport
 import pickle
 from lib.database import WMTDatabase
 
+
 class WMTSettings():
     """
     Class representing a settings read/write handler (for remembering data between sessions" for When's My Transport
@@ -26,7 +27,7 @@ class WMTSettings():
         if setting_value is not None:
             try:
                 setting_value = pickle.loads(setting_value.encode('utf-8'))
-            except Exception: # Pickle can throw loads of weird exceptions, gotta catch them all!
+            except Exception:  # Pickle can throw loads of weird exceptions, gotta catch them all!
                 pass
         return setting_value
 

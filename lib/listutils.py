@@ -8,12 +8,11 @@ def unique_values(seq):
 
     From http://www.peterbe.com/plog/uniqifiers-benchmark and modified. Values in seq must be hashable for this to work
     """
-    seen = {} 
-    result = [] 
-    for item in seq: 
+    seen = {}
+    result = []
+    for item in seq:
         if item in seen:
-            continue 
-        seen[item] = 1 
-        result.append(item) 
+            continue
+        seen[item] = 1
+        result.append(item)
     return result
-

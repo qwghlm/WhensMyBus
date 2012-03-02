@@ -19,13 +19,14 @@ buses and routes, checking the TfL bus API and formatting an appropriate reply t
 import logging
 import re
 from time import localtime
-from pprint import pprint # For debugging
+from pprint import pprint  # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyTransport
 from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
 from lib.models import BusStop
+
 
 class WhensMyBus(WhensMyTransport):
     """
@@ -73,9 +74,9 @@ class WhensMyBus(WhensMyTransport):
             try:
                 possible_destinations = self.get_stops_by_stop_name(route_number, destination)
                 if possible_destinations:
-                    # Filter by possible destinations. For each Run, see if there is a stop matching the destination on the same 
-                    # run; if that stop has a sequence number greater than this stop then it's a valid route, so include this run 
-                    relevant_stops = dict([(run, stop) for (run, stop) in relevant_stops.items() 
+                    # Filter by possible destinations. For each Run, see if there is a stop matching the destination on the same
+                    # run; if that stop has a sequence number greater than this stop then it's a valid route, so include this run
+                    relevant_stops = dict([(run, stop) for (run, stop) in relevant_stops.items()
                                             if run in possible_destinations and possible_destinations[run].sequence > stop.sequence])
                     logging.debug("Successfully found a match for destination %s, filtering down to runs: %s", destination, relevant_stops.keys())
 
@@ -89,34 +90,34 @@ class WhensMyBus(WhensMyTransport):
             if departure_data:
                 reply = "%s %s" % (route_number, "; ".join(departure_data))
                 return reply
-            else: 
+            else:
                 raise WhensMyTransportException('no_bus_arrival_data', route_number)
         else:
             if re.match('^[0-9]{5}$', origin):
                 raise WhensMyTransportException('stop_id_not_found', route_number, origin)
             else:
                 raise WhensMyTransportException('stop_name_not_found', route_number, origin)
-        
+
     def get_stops_by_geolocation(self, route_number, position):
         """
         Take a route number and a tuple specifying latitude & longitude, and works out closest bus stops in each direction
-        
+
         Returns a dictionary:
             Keys are numbers of the Run (usually 1 or 2, sometimes 3 or 4).
             Values are BusStop objects
         """
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
-        max_runs = self.geodata.get_max_value('Run', {'Route' : route_number})
+        max_runs = self.geodata.get_max_value('Run', {'Route': route_number})
 
         relevant_stops = {}
 
-        for run in range(1, max_runs+1):
-            stop = self.geodata.find_closest(position, {'Route' : route_number, 'Run' : run}, BusStop)
+        for run in range(1, max_runs + 1):
+            stop = self.geodata.find_closest(position, {'Route': route_number, 'Run': run}, BusStop)
             if stop:
                 relevant_stops[run] = stop
         logging.debug("Have found stop numbers: %s", ', '.join([stop.number for stop in relevant_stops.values()]))
         return relevant_stops
-            
+
     def get_stops_by_stop_number(self, route_number, stop_number):
         """
         Take a route_number and a stop with ID stop_number, returns a dictionary with a single value. Key is the Run this stop sits on,
@@ -128,16 +129,16 @@ class WhensMyBus(WhensMyTransport):
 
         # Try and get a match on it
         logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
-        stop = self.geodata.find_exact_match({'Bus_Stop_Code' : stop_number, 'Route' : route_number}, BusStop)
+        stop = self.geodata.find_exact_match({'Bus_Stop_Code': stop_number, 'Route': route_number}, BusStop)
         if stop:
-            return { stop.run : stop }
+            return {stop.run: stop}
         else:
             return {}
-            
+
     def get_stops_by_stop_name(self, route_number, origin):
         """
         Take a route number and name of the origin, and work out closest bus stops in each direction
-        
+
         Returns a dictionary. Keys are numbers of the Run (usually 1 or 2, sometimes 3 and 4). Values are BusStop objects
         """
         # First check to see if the name is actually an ID number - if so, then use the more precise numeric method above
@@ -149,11 +150,11 @@ class WhensMyBus(WhensMyTransport):
         # Users may not give exact details, so we try to match fuzzily
         logging.debug("Attempting to get a match on placename %s", origin)
         relevant_stops = {}
-                     
+
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
-        max_runs = self.geodata.get_max_value('Run', {'Route' : route_number})
-        for run in range(1, max_runs+1):
-            best_match = self.geodata.find_fuzzy_match({'Route' : route_number, 'Run' : run}, origin, BusStop)
+        max_runs = self.geodata.get_max_value('Run', {'Route': route_number})
+        for run in range(1, max_runs + 1):
+            best_match = self.geodata.find_fuzzy_match({'Route': route_number, 'Run': run}, origin, BusStop)
             if best_match:
                 logging.info("Found stop name %s for Run %s via fuzzy matching", best_match.name, best_match.run)
                 relevant_stops[run] = best_match
@@ -177,9 +178,9 @@ class WhensMyBus(WhensMyTransport):
                     logging.debug("Have found stop named: %s", relevant_stops[run].name)
                 else:
                     logging.debug("Found a location, but could not find a nearby stop for %s", origin)
-            
+
         return relevant_stops
-            
+
     def get_departure_data(self, relevant_stops, route_number):
         """
         Fetch the JSON data from the TfL website, for a list of relevant_stops (each a BusStop object)
@@ -193,7 +194,7 @@ class WhensMyBus(WhensMyTransport):
             tfl_url = "http://countdown.tfl.gov.uk/stopBoard/%s" % stop.number
             bus_data = self.browser.fetch_json(tfl_url)
             arrivals = bus_data.get('arrivals', [])
-            
+
             # Handle TfL's JSON-encoded error message
             if not arrivals and bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
                 raise WhensMyTransportException('tfl_server_down')
@@ -208,7 +209,7 @@ class WhensMyBus(WhensMyTransport):
                 if localtime().tm_isdst:
                     hour = (int(scheduled_time[0:2]) + 1) % 24
                     scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
-                    
+
                 logging.debug("Run %s, stop %s produced bus to %s %s", run, stop_name, arrival['destination'], scheduled_time)
                 time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
             else:

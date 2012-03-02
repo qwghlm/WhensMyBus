@@ -13,6 +13,7 @@ import time
 import tweepy
 from lib.settings import WMTSettings
 
+
 class WMTTwitterClient():
     """
     A Twitter Client that fetches Tweets and manages follows for When's My Transport
@@ -20,7 +21,7 @@ class WMTTwitterClient():
     def __init__(self, instance_name, consumer_key, consumer_secret, access_token, access_token_secret, testing=False):
         logging.debug("Authenticating with Twitter")
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        auth.set_access_token(access_token, access_token_secret)        
+        auth.set_access_token(access_token, access_token_secret)
         self.api = tweepy.API(auth)
         self.settings = WMTSettings(instance_name)
         self.testing = testing
@@ -39,24 +40,24 @@ class WMTTwitterClient():
         # Get IDs of our friends (people we already follow), and our followers
         followers_ids = self.api.followers_ids()
         friends_ids = self.api.friends_ids()
-        
-        # Annoyingly, different versions of Tweepy implement the above; older versions return followers_ids() as a tuple and the list of 
+
+        # Annoyingly, different versions of Tweepy implement the above; older versions return followers_ids() as a tuple and the list of
         # followers IDs is the first element of that tuple. Newer versions return just the followers' IDs (which is much more sensible)
         if isinstance(followers_ids, tuple):
             followers_ids = followers_ids[0]
             friends_ids = friends_ids[0]
-        
+
         # Some users are protected and have been requested but not accepted - we need not continually ping them
         protected_users_to_ignore = self.settings.get_setting("protected_users_to_ignore") or []
-        
+
         # Work out the difference between the two, and also ignore protected users we have already requested
         # Twitter gives us these in reverse order, so we pick the final twenty (i.e the earliest to follow)
         # reverse these to give them in normal order, and follow each one back!
-        twitter_ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:] 
+        twitter_ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:]
         for twitter_id in twitter_ids_to_follow[::-1]:
             try:
                 person = self.api.create_friendship(twitter_id)
-                logging.info("Following user %s", person.screen_name )
+                logging.info("Following user %s", person.screen_name)
             except tweepy.error.TweepError:
                 protected_users_to_ignore.append(twitter_id)
                 logging.info("Error following user %s, most likely the account is protected", twitter_id)
@@ -72,7 +73,7 @@ class WMTTwitterClient():
         # Get the IDs of the Tweets and Direct Message we last answered
         last_answered_tweet = self.settings.get_setting('last_answered_tweet')
         last_answered_direct_message = self.settings.get_setting('last_answered_direct_message')
-        
+
         # Fetch those Tweets and DMs. This is most likely to fail if OAuth is not correctly set up
         try:
             tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
@@ -80,21 +81,21 @@ class WMTTwitterClient():
         except tweepy.error.TweepError:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
             sys.exit(1)
-        
+
         # Convert iterators to lists & reverse
         tweets = list(tweets)[::-1]
         direct_messages = list(direct_messages)[::-1]
-        
+
         # No need to bother if no replies
         if not tweets and not direct_messages:
             logging.info("No new Tweets, exiting...")
         else:
-            logging.info("%s replies and %s direct messages received!" , len(tweets), len(direct_messages))
-            
+            logging.info("%s replies and %s direct messages received!", len(tweets), len(direct_messages))
+
         # Keep an eye on our rate limit, for science
         self.report_twitter_limit_status()
         return direct_messages + tweets
-    
+
     def report_twitter_limit_status(self):
         """
         Log what our Twitter API hit count & limit is
@@ -122,7 +123,7 @@ class WMTTwitterClient():
                     messages[-1] = messages[-1].strip() + u"…"
                     messages.append(u"…" + word)
             messages[-1] = messages[-1][:-1]
-            
+
         else:
             messages = [reply]
 
@@ -156,25 +157,26 @@ def is_direct_message(tweet):
     """
     return isinstance(tweet, tweepy.models.DirectMessage)
 
+
 def make_oauth_key(instance_name):
     """
     Adapted from
     http://talkfast.org/2010/05/31/twitter-from-the-command-line-in-python-using-oauth
-    
+
     Helper script to produce an OAuth user key & secret for a Twitter app, given the consumer key & secret
     Log in as the user you want to authorise, visit the URL this script produces, then type in the PIN
     Twitter's OAuth servers provide you to get a key/secret pair
     """
     config = ConfigParser.SafeConfigParser()
     config.read('whensmytransport.cfg')
-    
-    consumer_key = config.get(instance_name,'consumer_key')
-    consumer_secret = config.get(instance_name,'consumer_secret')
-    
+
+    consumer_key = config.get(instance_name, 'consumer_key')
+    consumer_secret = config.get(instance_name, 'consumer_secret')
+
     if not consumer_key or not consumer_secret:
         print "Could not find consumer key or secret, exiting"
         sys.exit(0)
-    
+
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth_url = auth.get_authorization_url()
     print 'Please authorize: ' + auth_url

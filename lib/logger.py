@@ -26,7 +26,7 @@ def setup_logging(instance_name, silent_mode, debug_level):
 
         # Set up some proper logging to file that catches debugs
         logfile = os.path.abspath('%s/%s.log' % (LOG_PATH, instance_name))
-        rotator = logging.handlers.RotatingFileHandler(logfile, maxBytes=256*1024, backupCount=99)
+        rotator = logging.handlers.RotatingFileHandler(logfile, maxBytes=256 * 1024, backupCount=99)
         rotator.setLevel(logging.DEBUG)
         rotator.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(message)s'))
         logging.getLogger('').addHandler(console)

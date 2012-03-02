@@ -11,6 +11,7 @@ from xml.etree.ElementTree import fromstring
 
 from lib.exceptions import WhensMyTransportException
 
+
 class WMTBrowser:
     """
     A simple JSON/XML fetcher with caching. Not designed to be used for many thousands of URLs, or for concurrent access
@@ -21,11 +22,11 @@ class WMTBrowser:
         """
         self.opener = urllib2.build_opener()
         self.opener.addheaders = [('User-agent', 'When\'s My Transport?'),
-                                  ('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
+                                  ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
         logging.debug("Starting up browser")
-        
+
         self.cache = {}
-        
+
     def fetch_url(self, url, exception_code):
         """
         Fetch a URL and returns the raw data as a string
@@ -33,13 +34,13 @@ class WMTBrowser:
         if url in self.cache and (time.time() - self.cache[url]['time']) < 30:
             logging.debug("Using cached URL %s", url)
             url_data = self.cache[url]['data']
-            
+
         else:
             logging.debug("Fetching URL %s", url)
             try:
                 response = self.opener.open(url)
                 url_data = response.read()
-                self.cache[url] = { 'data' : url_data, 'time' : time.time() }
+                self.cache[url] = {'data': url_data, 'time': time.time()}
             # Handle browsing error
             except urllib2.HTTPError, exc:
                 logging.error("HTTP Error %s reading %s, aborting", exc.code, url)
@@ -47,7 +48,7 @@ class WMTBrowser:
             except Exception, exc:
                 logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, url)
                 raise WhensMyTransportException(exception_code)
-                
+
         return url_data
 
     def fetch_json(self, url, exception_code='tfl_server_down'):
@@ -55,7 +56,7 @@ class WMTBrowser:
         Fetch a JSON URL and returns Python object representation of it
         """
         json_data = self.fetch_url(url, exception_code)
-    
+
         # Try to parse this as JSON
         if json_data:
             try:
@@ -65,7 +66,7 @@ class WMTBrowser:
             except ValueError, exc:
                 # FIXME Delete this from the cache
                 logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
-                raise WhensMyTransportException(exception_code)  
+                raise WhensMyTransportException(exception_code)
 
     def fetch_xml_tree(self, url, exception_code='tfl_server_down'):
         """
@@ -76,7 +77,7 @@ class WMTBrowser:
         if xml_data:
             try:
                 tree = fromstring(xml_data)
-                namespace = '{%s}' % parseString(xml_data).firstChild.getAttribute('xmlns')               
+                namespace = '{%s}' % parseString(xml_data).firstChild.getAttribute('xmlns')
                 # Remove horrible namespace functionality
                 if namespace:
                     for elem in tree.getiterator():

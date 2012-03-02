@@ -9,6 +9,7 @@ import urllib
 
 # Geocoders Define the URL and how to parse the resulting JSON object
 
+
 class BaseGeocoder():
     """
     Base Geocoder which others inherit from
@@ -20,7 +21,7 @@ class BaseGeocoder():
         self.url = ''
         self.params = {}
         return
-    
+
     def get_query_url(self):
         """
         Fetch a URL to fetch geodata
@@ -28,10 +29,11 @@ class BaseGeocoder():
         for (key, value) in self.params.items():
             if isinstance(value, unicode):
                 self.params[key] = value.encode('utf-8')
-            
+
         query_url = self.url % urllib.urlencode(self.params)
         return query_url
-        
+
+
 class BingGeocoder(BaseGeocoder):
     """
     Geocoder for Bing Maps
@@ -42,7 +44,7 @@ class BingGeocoder(BaseGeocoder):
         """
         self.url = 'http://dev.virtualearth.net/REST/v1/Locations?%s'
         self.params = {
-                'key' : api_key
+                'key': api_key
             }
 
     def get_geocode_url(self, placename):
@@ -52,7 +54,7 @@ class BingGeocoder(BaseGeocoder):
         self.params['query'] = placename + ', London'
         return self.get_query_url()
 
-    def parse_geodata(self, obj):        
+    def parse_geodata(self, obj):
         """
         Given a JSON object of geodata for a query, return list of matching place(s), each represented by a (latitude, longitude) tuple
         """
@@ -62,7 +64,8 @@ class BingGeocoder(BaseGeocoder):
         resources = [o for o in obj['resourceSets'][0]['resources'] if o['address']['countryRegion'] == 'United Kingdom']
         points = [tuple(r['point']['coordinates']) for r in resources]
         return points
-        
+
+
 class YahooGeocoder(BaseGeocoder):
     """
     Geocoder for Yahoo! Maps
@@ -73,9 +76,9 @@ class YahooGeocoder(BaseGeocoder):
         """
         self.url = 'http://where.yahooapis.com/geocode?%s'
         self.params = {
-                'appid' : appid,
-                'flags' : 'JL',
-                'locale' : 'en_GB'
+                'appid': appid,
+                'flags': 'JL',
+                'locale': 'en_GB'
               }
 
     def get_geocode_url(self, placename):
@@ -85,7 +88,7 @@ class YahooGeocoder(BaseGeocoder):
         self.params['q'] = placename + ', London, UK'
         return self.get_query_url()
 
-    def parse_geodata(self, obj):        
+    def parse_geodata(self, obj):
         """
         Given a JSON object of geodata for a query, return list of matching place(s), each represented by a (latitude, longitude) tuple
         """
@@ -95,9 +98,8 @@ class YahooGeocoder(BaseGeocoder):
         # Filter out non-UK results and the default object representing London
         resources = [o for o in obj['ResultSet']['Results'] if o['country'] == "United Kingdom" and o['woeid'] != 44418]
         points = [(float(r['latitude']), float(r['longitude'])) for r in resources]
+        return points
 
-
-        return points            
 
 class GoogleGeocoder(BaseGeocoder):
     """
@@ -109,8 +111,8 @@ class GoogleGeocoder(BaseGeocoder):
         """
         self.url = 'http://maps.googleapis.com/maps/api/geocode/json?%s'
         self.params = {
-                'region' : 'uk',
-                'sensor' : 'false'
+                'region': 'uk',
+                'sensor': 'false'
             }
 
     def get_geocode_url(self, placename):
@@ -120,13 +122,13 @@ class GoogleGeocoder(BaseGeocoder):
         self.params['address'] = placename + ', London'
         return self.get_query_url()
 
-    def parse_geodata(self, obj):        
+    def parse_geodata(self, obj):
         """
         Given a JSON object of geodata for a query, return list of matching place(s), each represented by a (latitude, longitude) tuple
         """
         if not obj['results'] or obj['status'] == 'ZERO_RESULTS':
             return []
-            
+
         results = obj['results']
         points = [(r['geometry']['location']['lat'], r['geometry']['location']['lng']) for r in results]
         return points
@@ -150,7 +152,7 @@ def LatLongToOSGrid(lat, lon):
     """
     lat = math.radians(lat)
     lon = math.radians(lon)
-    
+
     a = 6377563.396
     b = 6356256.910          # Airy 1830 major & minor semi-axes
     F0 = 0.9996012717                         # NatGrid scale factor on central meridian
@@ -206,28 +208,28 @@ def gridrefNumToLet(e, n, digits=10):
     """
     e100k = math.floor(e/100000.0)
     n100k = math.floor(n/100000.0)
-    
+
     if (e100k<0 or e100k>6 or n100k<0 or n100k>12):
         return ''
-    
+
     # translate those into numeric equivalents of the grid letters
     l1 = (19-n100k) - (19-n100k)%5 + math.floor((e100k+10)/5)
     l2 = (19-n100k)*5%25 + e100k%5
-    
+
     # compensate for skipped 'I' and build grid letter-pairs
     if (l1 > 7):
         l1 += 1
     if (l2 > 7):
         l2 += 1
-        
+
     letPair = chr(int(l1) + ord('A')) + chr(int(l2) + ord('A'))
-    
+
     # strip 100km-grid indices from easting & northing, and reduce precision
     e = math.floor((e%100000)/math.pow(10, 5-digits/2))
     n = math.floor((n%100000)/math.pow(10, 5-digits/2))
-    
+
     gridRef = letPair + str(int(e)).zfill(digits/2) + str(int(n)).zfill(digits/2)
-    
+
     return gridRef
 
 
@@ -236,13 +238,13 @@ def convertWGS84toOSGB36(lat, lon, height=0):
     Convert a latitude & longitude from WGS84 (used by GPS) and return a (latitude, longitude)
     tuple of its equivalent in the OSGB36 system (used by OS maps)
 
-    This allows us to convert from one model of the earth's spherality to another and make our 
+    This allows us to convert from one model of the earth's spherality to another and make our
     geolocations *really* accurate
     """
     # ellipse parameters
     e = { 'WGS84':    { 'a': 6378137.0,   'b': 6356752.3142, 'f': 1/298.257223563 },
               'Airy1830': { 'a': 6377563.396, 'b': 6356256.910,  'f': 1/299.3249646   } }
-    
+
     # helmert transform parameters
     h = { 'WGS84toOSGB36': { 'tx': -446.448,  'ty':  125.157,   'tz': -542.060,   # m
                                'rx':   -0.1502, 'ry':   -0.2470,  'rz':   -0.8421,  # sec
@@ -250,7 +252,7 @@ def convertWGS84toOSGB36(lat, lon, height=0):
           'OSGB36toWGS84': { 'tx':  446.448,  'ty': -125.157,   'tz':  542.060,
                                'rx':    0.1502, 'ry':    0.2470,  'rz':    0.8421,
                                's':   -20.4894 } }
-                               
+
     return convert(lat, lon, height, e['WGS84'], h['WGS84toOSGB36'], e['Airy1830'])
 
 
@@ -261,26 +263,23 @@ def convert(lat, lon, height, e1, t, e2):
     # -- convert polar to cartesian coordinates (using ellipse 1)
     lat = math.radians(lat)
     lon = math.radians(lon)
-    
+
     a = e1['a']
     b = e1['b']
-    
+
     sinPhi = math.sin(lat)
     cosPhi = math.cos(lat)
     sinLambda = math.sin(lon)
     cosLambda = math.cos(lon)
     H = height
-    
+
     eSq = (a*a - b*b) / (a*a)
     nu = a / math.sqrt(1 - eSq*sinPhi*sinPhi)
-    
+
     x1 = (nu+H) * cosPhi * cosLambda
     y1 = (nu+H) * cosPhi * sinLambda
     z1 = ((1-eSq)*nu + H) * sinPhi
-    
-    
     # -- apply helmert transform using appropriate params
-    
     tx = t['tx']
     ty = t['ty']
     tz = t['tz']
@@ -289,20 +288,20 @@ def convert(lat, lon, height, e1, t, e2):
     ry = t['ry']/3600 * math.pi/180
     rz = t['rz']/3600 * math.pi/180
     s1 = t['s']/1e6 + 1 # normalise ppm to (s+1)
-    
+
     # apply transform
     x2 = tx + x1*s1 - y1*rz + z1*ry
     y2 = ty + x1*rz + y1*s1 - z1*rx
     z2 = tz - x1*ry + y1*rx + z1*s1
-    
-    
+
+
     # -- convert cartesian to polar coordinates (using ellipse 2)
-    
+
     a = e2['a']
     b = e2['b']
     precision = 4 / a
     # results accurate to around 4 metres
-    
+
     eSq = (a*a - b*b) / (a*a)
     p = math.sqrt(x2*x2 + y2*y2)
     phi = math.atan2(z2, p*(1-eSq))
@@ -311,13 +310,14 @@ def convert(lat, lon, height, e1, t, e2):
         nu = a / math.sqrt(1 - eSq*math.sin(phi)*math.sin(phi))
         phiP = phi
         phi = math.atan2(z2 + eSq*nu*math.sin(phi), p)
-    
+
     Lambda = math.atan2(y2, x2)
     H = p/math.cos(phi) - nu
-    
+
     # Rounding to 7 decimal places in a degree gives us about +/- 0.01m accuracy
     return (round(math.degrees(phi), 7), round(math.degrees(Lambda), 7), H)
-    
+
+
 def convertWGS84toOSEastingNorthing(latitude, longitude):
     """
     Convert a WGS84 (latitude, longitude) position, returns a (easting, northing) tuple
@@ -327,12 +327,13 @@ def convertWGS84toOSEastingNorthing(latitude, longitude):
     return (easting, northing)
 
 # Final function to make headings more user-friendly
-    
+
+
 def heading_to_direction(heading):
     """
     Helper function to convert a heading (in degrees), returns a human-readable direction as a string
     """
     dirs = ('North', 'NE', 'East', 'SE', 'South', 'SW', 'West', 'NW')
-    # North lies between -22 and +22, NE between 23 and 67, East between 68 and 112, etc 
-    i = ((int(heading)+22)%360)/45
+    # North lies between -22 and +22, NE between 23 and 67, East between 68 and 112, etc
+    i = ((int(heading) + 22) % 360) / 45
     return dirs[i]

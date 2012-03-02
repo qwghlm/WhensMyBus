@@ -27,7 +27,7 @@ General:
  - Better Natural Language parsing
  - Knowledge of network layouts for Tube & bus
  - Checking of TfL APIs for weekend & long-term closures
- 
+
 """
 # Standard libraries of Python 2.6
 import ConfigParser
@@ -50,26 +50,27 @@ from lib.twitterclient import WMTTwitterClient, is_direct_message
 VERSION_NUMBER = 0.60
 HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 class WhensMyTransport:
     """
     Parent class for all WhensMy* bots, with common functions shared by all
     """
     def __init__(self, instance_name, testing=None, silent_mode=False):
         """
-        Read config and set up logging, settings database, geocoding and Twitter OAuth       
+        Read config and set up logging, settings database, geocoding and Twitter OAuth
         """
-        # Instance name is something like 'whensmybus', 'whensmytube' 
+        # Instance name is something like 'whensmybus', 'whensmytube'
         self.instance_name = instance_name
-        
+
         # Try opening the file first just to see if it exists, exception caught below
         try:
             config_file = 'config.cfg'
             open(HOME_DIR + '/' + config_file)
-            config = ConfigParser.SafeConfigParser({ 'test_mode' : False,
-                                                     'debug_level' : 'INFO',
-                                                     'yahoo_app_id' : None})
+            config = ConfigParser.SafeConfigParser({'test_mode': False,
+                                                    'debug_level': 'INFO',
+                                                    'yahoo_app_id': None})
             config.read(HOME_DIR + '/' + config_file)
-            config.get(self.instance_name, 'debug_level')            
+            config.get(self.instance_name, 'debug_level')
         except (ConfigParser.Error, IOError):
             print """Fatal error: can't find a valid config file with options for %s.""" % self.instance_name
             print """Please make sure there is a %s file in this directory""" % config_file
@@ -81,19 +82,19 @@ class WhensMyTransport:
         # Setup debugging
         debug_level = config.get(self.instance_name, 'debug_level')
         setup_logging(self.instance_name, silent_mode, debug_level)
-        
+
         # Setup database of stops/stations and their locations
         self.geodata = WMTLocations(self.instance_name)
-        
+
         # Setup browser for JSON & XML
         self.browser = WMTBrowser()
-        
+
         # Setup geocoder for looking up place names
         yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')
         self.geocoder = yahoo_app_id and YahooGeocoder(yahoo_app_id)
-        
+
         # Setup Twitter client
-        self.username = config.get(self.instance_name,'username')
+        self.username = config.get(self.instance_name, 'username')
         consumer_key = config.get(self.instance_name, 'consumer_key')
         consumer_secret = config.get(self.instance_name, 'consumer_secret')
         access_token = config.get(self.instance_name, 'key')
@@ -106,7 +107,7 @@ class WhensMyTransport:
 
         # This can be overridden by child classes
         self.allow_blank_tweets = False
-        
+
     def check_tweets(self):
         """
         Check incoming Tweets, and reply to them
@@ -127,21 +128,21 @@ class WhensMyTransport:
             except Exception as exc:
                 self.alert_admin_about_exception(tweet, exc.__class__.__name__)
                 replies = (self.process_wmt_exception(WhensMyTransportException('unknown_error')),)
-                
+
             # If the reply is blank, probably didn't contain a bus number or Tube line, so check to see if there was a thank-you
             if not replies:
                 replies = self.check_politeness(tweet)
-                
+
             # Send a reply back, if we have one
             for reply in replies:
                 # DMs and @ replies have different structures and different handlers
-                if is_direct_message(tweet):            
+                if is_direct_message(tweet):
                     self.twitter_client.send_reply_back(reply, tweet.sender.screen_name, True, tweet.id)
                 else:
                     self.twitter_client.send_reply_back(reply, tweet.user.screen_name, False, tweet.id)
-    
+
         self.twitter_client.check_followers()
-    
+
     def validate_tweet(self, tweet):
         """
         Check to see if a Tweet is valid (i.e. we want to reply to it). Tweets from ourselves, and mentions that
@@ -173,7 +174,7 @@ class WhensMyTransport:
         """
         Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a (latitude, longitude) tuple
         """
-        if hasattr(tweet, 'geo') and tweet.geo and tweet.geo.has_key('coordinates'):
+        if hasattr(tweet, 'geo') and tweet.geo and 'coordinates' in tweet.geo:
             logging.debug("Detect geolocation on Tweet")
             position = tweet.geo['coordinates']
             easting, northing = convertWGS84toOSEastingNorthing(*position)
@@ -205,27 +206,27 @@ class WhensMyTransport:
         if message.startswith('thanks') or message.startswith('thank you'):
             return ("No problem :)",)
         return ()
-            
+
     def process_tweet(self, tweet):
         """
         Process a single Tweet object and return a list of replies, one per route or line
         e.g.:
             '@whensmybus 341 from Clerkenwell' produces
             '341 Clerkenwell Road to Waterloo 1241; Rosebery Avenue to Angel Road 1247'
-        
+
         Each reply might be more than 140 characters
         """
         # Don't do anything if this is a thank-you
         if self.check_politeness(tweet):
             return []
-            
+
         # Get route number, from and to from the message
         message = tweet.text
         (requested_routes, origin, destination) = self.parse_message(message)
-        
+
         if requested_routes == None:
             return []
-        
+
         # If no origin specified, let's see if we have co-ordinates on the Tweet
         if origin == None:
             position = self.get_tweet_geolocation(tweet, ' '.join(requested_routes))
@@ -233,7 +234,7 @@ class WhensMyTransport:
             position = None
 
         replies = []
-        
+
         for requested_route in requested_routes:
             # Exceptions produced for an individual request are particular to a route/stop combination - e.g. the bus
             # given does not stop at the stop given, so we just provide an error message for that circumstance, treat as
@@ -246,14 +247,14 @@ class WhensMyTransport:
                     raise
                 else:
                     replies.append(self.process_wmt_exception(exc))
-                
+
         return replies
 
     def process_wmt_exception(self, exc):
         """
         Turns a WhensMyTransportException into a message for the user
         """
-        logging.debug("Exception encountered: %s" , exc.value)
+        logging.debug("Exception encountered: %s", exc.value)
         return "Sorry! %s" % exc.value
 
     def alert_admin_about_exception(self, tweet, exception_name):
@@ -263,7 +264,7 @@ class WhensMyTransport:
         if is_direct_message(tweet):
             tweet_time = tweet.created_at.strftime('%d-%m-%y %H:%M:%S')
             error_message = "Hey! A DM from @%s at %s GMT caused me to crash with a %s" % (tweet.sender.screen_name, tweet_time, exception_name)
-        else:            
+        else:
             twitter_permalink = "https://twitter.com/#!/%s/status/%s" % (tweet.user.screen_name, tweet.id)
             error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
         self.twitter_client.send_reply_back(error_message, self.admin_name, True)
@@ -285,7 +286,7 @@ class WhensMyTransport:
             if non_request_token_indexes:
                 first_non_request_token_index = non_request_token_indexes[0]
                 if tokens[first_non_request_token_index] != "to":
-                    if first_non_request_token_index > 0 or request_token_optional:  
+                    if first_non_request_token_index > 0 or request_token_optional:
                         tokens.insert(first_non_request_token_index, "from")
 
         # Work out what boundaries "from" and "to" exist at
@@ -297,19 +298,19 @@ class WhensMyTransport:
         if "to" in tokens:
             to_index = tokens.index("to")
         elif "towards" in tokens:
-            to_index = tokens.index("towards")        
+            to_index = tokens.index("towards")
         else:
             to_index = len(tokens)
 
         if from_index < to_index:
             request = ' '.join(tokens[:from_index]) or None
-            origin = ' '.join(tokens[from_index+1:to_index]) or None
-            destination = ' '.join(tokens[to_index+1:]) or None
+            origin = ' '.join(tokens[from_index + 1:to_index]) or None
+            destination = ' '.join(tokens[to_index + 1:]) or None
         else:
             request = ' '.join(tokens[:to_index]) or None
-            origin = ' '.join(tokens[from_index+1:]) or None
-            destination = ' '.join(tokens[to_index+1:from_index]) or None
-            
+            origin = ' '.join(tokens[from_index + 1:]) or None
+            destination = ' '.join(tokens[to_index + 1:from_index]) or None
+
         return (request, origin, destination)
 
     def sanitize_message(self, message):
@@ -322,13 +323,13 @@ class WhensMyTransport:
             message = message[len('@%s ' % self.username):].lstrip()
         else:
             message = message.strip()
-            
+
         # Exception if the Tweet contains nothing useful
         if not message and not self.allow_blank_tweets:
             raise WhensMyTransportException('blank_%s_tweet' % self.instance_name.replace('whensmy', ''))
 
         return message
-        
+
     def parse_message(self, message):
         """
         Placeholder function. This must be overridden by a child class to do anything useful
@@ -343,6 +344,7 @@ class WhensMyTransport:
         #pylint: disable=W0613
         return ""
 
+
 class WhensMyRailTransport(WhensMyTransport):
     """
     Parent class for the WhensMyDLR and WhensMyTube bots. This deals with common functionality between the two -
@@ -354,20 +356,20 @@ class WhensMyRailTransport(WhensMyTransport):
         Constructor, called by child functions
         """
         WhensMyTransport.__init__(self, instance_name, testing, silent)
- 
+
     def get_station_by_geolocation(self, line_code, position):
         """
-        Take a line and a tuple specifying latitude & longitude, and works out closest station        
+        Take a line and a tuple specifying latitude & longitude, and works out closest station
         """
         logging.debug("Attempting to get closest to position: %s", position)
-        return self.geodata.find_closest(position, { 'Line' : line_code }, RailStation)
+        return self.geodata.find_closest(position, {'Line': line_code}, RailStation)
 
     def get_station_by_station_name(self, line_code, origin):
         """
-        Take a line and a string specifying origin, and work out matching for that name      
+        Take a line and a string specifying origin, and work out matching for that name
         """
         logging.debug("Attempting to get a fuzzy match on placename %s", origin)
-        return self.geodata.find_fuzzy_match({'Line' : line_code}, origin, RailStation)
+        return self.geodata.find_fuzzy_match({'Line': line_code}, origin, RailStation)
 
 if __name__ == "__main__":
     print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytube.py"

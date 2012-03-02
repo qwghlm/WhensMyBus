@@ -24,9 +24,9 @@ class WMTLocations():
         """
         # GPSes use WGS84 model of Globe, but Easting/Northing based on OSGB36, so convert to an easting/northing
         logging.debug("Position in WGS84 determined as lat/long: %s %s", position[0], position[1])
-        easting, northing = convertWGS84toOSEastingNorthing(position)
+        easting, northing = convertWGS84toOSEastingNorthing(*position)
         logging.debug("Translated into OS Easting %s, Northing %s", easting, northing)
-        
+
         # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
         # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
         # and find the first row
@@ -85,7 +85,7 @@ class WMTLocations():
         """
         (where_statement, where_values) = self.make_where_statement({ column : value })
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
-        return bool(rows) 
+        return bool(rows)
 
     def get_max_value(self, column, params):
         """

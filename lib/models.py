@@ -6,6 +6,7 @@ Models/abstractions of concepts such as stations, trains, bus stops etc.
 from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
 import re
 
+
 class RailStation():
     #pylint: disable=C0103,R0903,W0613
     """
@@ -25,17 +26,17 @@ class RailStation():
         """
         # Stations we just have to cut down by hand
         translations = {
-            "High Street Kensington" : "High St Ken",
-            "King's Cross St. Pancras" : "Kings X St P",
-            "Kensington (Olympia)" : "Olympia",
-            "W'wich Arsenal" : "Woolwich A",
+            "High Street Kensington": "High St Ken",
+            "King's Cross St. Pancras": "Kings X St P",
+            "Kensington (Olympia)": "Olympia",
+            "W'wich Arsenal": "Woolwich A",
         }
         station_name = translations.get(self.name, self.name)
-    
-        # Punctuation marks can be cut down  
+
+        # Punctuation marks can be cut down
         punctuation_to_remove = (r'\.', ', ', r'\(', r'\)', "'",)
         station_name = cleanup_name_from_undesirables(station_name, punctuation_to_remove)
-    
+
         # Words like Road and Park can be slimmed down as well
         abbreviations = {
             'Bridge' : 'Br',
@@ -59,12 +60,12 @@ class RailStation():
             'Terminal' : 'T',
             'Terminals' : 'T',
             'West' : 'W',
-        }   
+        }
         station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
-        
+
         # Any station with & in it gets only the initial of the second word - e.g. Elephant & C
         if station_name.find('&') > -1:
-            station_name = station_name[:station_name.find('&')+2]
+            station_name = station_name[:station_name.find('&') + 2]
         return station_name
 
     def get_similarity(self, test_string=''):
@@ -78,8 +79,9 @@ class RailStation():
             abbreviated_score = get_name_similarity(test_string, self.name[:len(test_string)])
             if abbreviated_score >= 90:
                 return abbreviated_score
-    
+
         return score
+
 
 class BusStop():
     #pylint: disable=C0103,R0903,W0613
@@ -99,13 +101,13 @@ class BusStop():
         Comparator function - measure by distance away from the point the user is
         """
         return cmp(self.distance_away, other.distance_away)
-        
+
     def __repr__(self):
         """
         Representation function for debugging
         """
         return self.get_normalised_name()
-    
+
     def get_clean_name(self):
         """
         Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from this stop's name
@@ -120,11 +122,11 @@ class BusStop():
         normalised_name = self.get_clean_name().upper()
         for (word, abbreviation) in (('SQUARE', 'SQ'), ('AVENUE', 'AVE'), ('STREET', 'ST'), ('ROAD', 'RD'), ('STATION', 'STN'), ('PUBLIC HOUSE', 'PUB')):
             normalised_name = re.sub(r'\b' + word + r'\b', abbreviation, normalised_name)
-    
+
         # Get rid of common words like 'The'
         for common_word in ('THE',):
             normalised_name = re.sub(r'\b' + common_word + r'\b', '', normalised_name)
-        
+
         # Remove spaces and punctuation and return
         normalised_name = re.sub('[\W]', '', normalised_name)
         return normalised_name
@@ -136,11 +138,11 @@ class BusStop():
         # Use the above function to normalise our names and facilitate easier comparison
         my_name = self.get_normalised_name()
         their_name = BusStop(test_string).get_normalised_name()
-        
+
         # Exact match is obviously best
         if my_name == their_name:
             return 100
-            
+
         # If user has specified a station or bus station, then a partial match at start or end of string works for us
         # We prioritise, just slightly, names that have the match at the beginning
         if re.search("(BUS)?STN", their_name):
@@ -148,15 +150,16 @@ class BusStop():
                 return 95
             if my_name.endswith(their_name):
                 return 94
-                
+
         # If on the other hand, we add station or bus station to their name and it matches, that's also pretty good
         if re.search("^%s(BUS)?STN" % their_name, my_name):
             return 91
         if re.search("%s(BUS)?STN$" % their_name, my_name):
-            return 90 
-        
+            return 90
+
         # Else fall back on name similarity
         return get_name_similarity(my_name, their_name)
+
 
 class Train():
     """
@@ -166,7 +169,7 @@ class Train():
         self.destination = destination
         self.departure_time = departure_time
         self.direction = direction
-        
+
     def __cmp__(self, other):
         """
         Return comparison value to enable sort by departure time
@@ -201,7 +204,8 @@ class Train():
         it match easier to a canonical station name
         """
         return re.sub(" \(?via .*$", "", self.destination, flags=re.I)
-        
+
+
 class TubeTrain(Train):
     """
     Class representing a Tube train
@@ -212,7 +216,7 @@ class TubeTrain(Train):
         # Get rid of TfL's odd designations in the Destination field to make it compatible with our list of stations in the database
         # Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this is currently pending
         # an FoI request. Once I get that, this code will be a lot neater :)
-    
+
         destination = re.sub(r"\band\b", "&", destination, flags=re.I)
         # Destinations that are line names or Unknown get boiled down to Unknown
         if destination in ("Unknown", "Circle & Hammersmith & City") or destination.startswith("Circle Line") \
@@ -244,6 +248,7 @@ class TubeTrain(Train):
         Return hash value to enable ability to use as dictionary key
         """
         return hash('-'.join([self.set_number, self.destination_code, str(self.departure_time)]))
+
 
 class DLRTrain(Train):
     """

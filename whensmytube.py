@@ -28,6 +28,7 @@ from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.stringutils import capwords, get_best_fuzzy_match
 
+
 class WhensMyTube(WhensMyRailTransport):
     """
     Main class devoted to checking for Tube-related Tweets and replying to them. Instantiate with no variables
@@ -35,7 +36,7 @@ class WhensMyTube(WhensMyRailTransport):
     """
     def __init__(self, testing=None, silent=False):
         WhensMyRailTransport.__init__(self, 'whensmytube', testing, silent)
-        
+
         # Build internal lookup table of possible line name -> "official" line name
         line_names = (
             'Bakerloo',
@@ -69,8 +70,8 @@ class WhensMyTube(WhensMyRailTransport):
         line_name = line_name and re.sub(" Line", "", line_name, flags=re.I)
         origin = origin and re.sub(" Station", "", origin, flags=re.I)
         destination = destination and re.sub(" Station", "", destination, flags=re.I)
-        return ((line_name,), origin, destination) 
-        
+        return ((line_name,), origin, destination)
+
     def process_individual_request(self, line_name, origin, destination, position):
         """
         Take an individual line, with either origin or position, and work out which station the user is
@@ -83,22 +84,21 @@ class WhensMyTube(WhensMyRailTransport):
         else:
             line = self.line_lookup[line_name]
         line_code = line[0]
-        
+
         # Dig out relevant station for this line from the geotag, if provided
+        # Else there will be an origin (either a number or a placename), so try parsing it properly
         if position:
             station = self.get_station_by_geolocation(line_code, position)
-        # Else there will be an origin (either a number or a placename), so try parsing it properly
         else:
             station = self.get_station_by_station_name(line_code, origin)
-        
+
         # Dummy code - what do we do with destination data (?)
         if destination:
             pass
-            
+
         # If we have a station code, go get the data for it
         if station:
-            # XXX is the code for a station that does not have data given to it
-            if station.code == "XXX":
+            if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
                 raise WhensMyTransportException('tube_station_not_in_system', station.name)
 
             time_info = self.get_departure_data(line_code, station)
@@ -108,7 +108,7 @@ class WhensMyTube(WhensMyRailTransport):
                 raise WhensMyTransportException('no_rail_arrival_data', line_name + ' Line', station.name)
         else:
             raise WhensMyTransportException('rail_station_name_not_found', origin, line_name + ' Line')
-        
+
     def get_departure_data(self, line_code, station):
         """
         Take a station ID and a line ID, and get departure data for that station
@@ -126,7 +126,7 @@ class WhensMyTube(WhensMyRailTransport):
             platform_name = platform.attrib['N']
             direction = re.search("(North|East|South|West)bound", platform_name, re.I)
             rail = re.search("(Inner|Outer) Rail", platform_name, re.I)
-            
+
             # Most stations tell us whether they are -bound in a certain direction
             if direction:
                 direction = capwords(direction.group(0))
@@ -149,7 +149,7 @@ class WhensMyTube(WhensMyRailTransport):
             # Use the filter function to filter out trains that are out of service, specials or National Rail first
             platform_trains = [t for t in platform.findall("T[@LN='%s']" % line_code) if filter_tube_trains(t)]
             for train in platform_trains:
-            
+
                 # Create a TubeTrain object
                 destination = train.attrib['Destination']
                 departure_delta = timedelta(seconds=int(train.attrib['SecondsTo']))
@@ -163,7 +163,7 @@ class WhensMyTube(WhensMyRailTransport):
                 if self.get_station_by_station_name(line_code, train_obj.destination):
                     if self.get_station_by_station_name(line_code, train_obj.destination).name == station.name:
                         continue
-                
+
                 # Try and work out direction from destination. By luck, all the stations that have bidirectional
                 # platforms are on an East-West line, so we just inspect the position of the destination's easting
                 # and compare it to this station's
@@ -211,6 +211,7 @@ class WhensMyTube(WhensMyRailTransport):
                 raise WhensMyTransportException('tube_station_closed', station.name, station_status.attrib['StatusDetails'].strip().lower())
         return True
 
+
 def filter_tube_trains(tube_xml_element):
     """
     Filter function for TrackerNet's XML elements, to get rid of misleading, out of service or downright bogus trains
@@ -218,7 +219,7 @@ def filter_tube_trains(tube_xml_element):
     destination = tube_xml_element.attrib['Destination']
     destination_code = tube_xml_element.attrib['DestCode']
     location = tube_xml_element.attrib.get('Location', '')
-    
+
     # 546 and 749 appear to be codes for Out of Service http://wiki.opentfl.co.uk/TrackerNet_predictions_detailed
     if destination_code in ('546', '749'):
         return False
@@ -232,7 +233,7 @@ def filter_tube_trains(tube_xml_element):
     if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC'):
         return False
     return True
-    
+
 if __name__ == "__main__":
     WMT = WhensMyTube()
     WMT.check_tweets()
