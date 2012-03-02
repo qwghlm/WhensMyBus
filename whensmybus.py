@@ -108,9 +108,7 @@ class WhensMyBus(WhensMyTransport):
         """
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         max_runs = self.geodata.get_max_value('Run', {'Route': route_number})
-
         relevant_stops = {}
-
         for run in range(1, max_runs + 1):
             stop = self.geodata.find_closest(position, {'Route': route_number, 'Run': run}, BusStop)
             if stop:
