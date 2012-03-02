@@ -23,7 +23,7 @@ from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyRailTransport
-from lib.models import DLRTrain
+from lib.models import Train as DLRTrain, NullDeparture
 #from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.stringutils import capwords
@@ -87,10 +87,13 @@ class WhensMyDLR(WhensMyRailTransport):
                         continue
                     departure_delta = timedelta(minutes=(result.group(3) and int(result.group(3)) or 0))
                     departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
-                    trains_by_platform[platform_name] = trains_by_platform[platform_name] + [DLRTrain(destination, departure_time)]
+                    trains_by_platform[platform_name].append(DLRTrain(destination, departure_time))
                     logging.debug("Found a train going to %s at %s", destination, departure_time)
                 else:
                     logging.debug("Error - could not parse this line: %s", train)
+
+            if not trains_by_platform[platform_name]:
+                trains_by_platform[platform_name] = [NullDeparture("from P" + platform_name)]
 
         # Some platforms run trains the same way (e.g. at termini). DLR doesn't tell us if this is the case, so we look at the destinations
         # on each pair of platforms and see if there is any overlap, using the set object and its intersection function. Any such
@@ -100,24 +103,11 @@ class WhensMyDLR(WhensMyRailTransport):
                              if set([t.destination for t in trains_by_platform[plat1]]).intersection([t.destination for t in trains_by_platform[plat2]])]
         for (plat1, plat2) in common_platforms[:1]:
             logging.debug("Merging platforms %s and %s", plat1, plat2)
-            trains_by_platform[plat1 + plat2] = trains_by_platform[plat1] + trains_by_platform[plat2]
+            trains_by_platform[plat1 + ' & ' + plat2] = unique_values(trains_by_platform[plat1] + trains_by_platform[plat2])
             del trains_by_platform[plat1]
             del trains_by_platform[plat2]
 
-        # For each platform, display the first three unique trains, sorted in time order
-        # Dictionaries alone do not preserve order, hence a list of the correct order for destinations as well
-        destinations_correct_order = []
-        train_times = {}
-        for trains in trains_by_platform.values():
-            for train in unique_values(sorted(trains))[:3]:
-                destination = train.get_destination()
-                if destination in destinations_correct_order:
-                    train_times[destination].append(train.get_departure_time())
-                else:
-                    train_times[destination] = [train.get_departure_time()]
-                    destinations_correct_order.append(destination)
-
-        return '; '.join([destination + ' ' + ', '.join(train_times[destination]) for destination in destinations_correct_order])
+        return trains_by_platform
 
 if __name__ == "__main__":
     WMD = WhensMyDLR()

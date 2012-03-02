@@ -39,27 +39,27 @@ class RailStation():
 
         # Words like Road and Park can be slimmed down as well
         abbreviations = {
-            'Bridge' : 'Br',
-            'Broadway' : 'Bdwy',
-            'Central' : 'Ctrl',
-            'Court' : 'Ct',
-            'Cross' : 'X',
-            'Crescent' : 'Cresc',
-            'East' : 'E',
-            'Gardens' : 'Gdns',
-            'Green' : 'Grn',
-            'Heathway' : 'Hthwy',
-            'Junction' : 'Jct',
-            'Market' : 'Mkt',
-            'North' : 'N',
-            'Park' : 'Pk',
-            'Road' : 'Rd',
-            'South' : 'S',
-            'Square' : 'Sq',
-            'Street' : 'St',
-            'Terminal' : 'T',
-            'Terminals' : 'T',
-            'West' : 'W',
+            'Bridge': 'Br',
+            'Broadway': 'Bdwy',
+            'Central': 'Ctrl',
+            'Court': 'Ct',
+            'Cross': 'X',
+            'Crescent': 'Cresc',
+            'East': 'E',
+            'Gardens': 'Gdns',
+            'Green': 'Grn',
+            'Heathway': 'Hthwy',
+            'Junction': 'Jct',
+            'Market': 'Mkt',
+            'North': 'N',
+            'Park': 'Pk',
+            'Road': 'Rd',
+            'South': 'S',
+            'Square': 'Sq',
+            'Street': 'St',
+            'Terminal': 'T',
+            'Terminals': 'T',
+            'West': 'W',
         }
         station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
 
@@ -161,14 +161,13 @@ class BusStop():
         return get_name_similarity(my_name, their_name)
 
 
-class Train():
+class Departure():
     """
-    Class representing a train of any kind (Tube, DLR)
+    Class representing a train or bus
     """
-    def __init__(self, destination=None, departure_time=None, direction=None):
+    def __init__(self, destination="", departure_time=""):
         self.destination = destination
         self.departure_time = departure_time
-        self.direction = direction
 
     def __cmp__(self, other):
         """
@@ -182,11 +181,44 @@ class Train():
         """
         return hash('-'.join([self.destination, str(self.departure_time)]))
 
-    def get_departure_time(self):
+
+class NullDeparture(Departure):
+    """
+    Class representing a non-existent train or bus (i.e. when none is showing)
+    """
+    def __init__(self, direction=""):
+        Departure.__init__()
+        self.direction = direction
+
+    def get_destination(self):
+        return "None shown going %s" % self.direction
+
+class Bus(Departure):
+    """
+    Class representing a bus of any kind
+
+    Unlike Trains, bus stop names for the same place can vary depending on which direction, so this takes this into account
+    """
+    def __init__(self, departure_point="", destination="", departure_time=""):
+        Departure.__init__(self, destination, departure_time)
+        self.departure_point = departure_point
+
+    def get_destination(self):
         """
-        Return this train's departure time in human format
+        Return this bus's destination
         """
-        return str(self.departure_time)
+        return "%s to %s" % (self.departure_point, self.destination)
+
+
+class Train(Departure):
+    """
+    Class representing a train of any kind
+
+    Unlike Buses, trains can have unknown destinations or complicated destination names
+    """
+    def __init__(self, destination, departure_time, direction=""):
+        Departure.__init__(self, destination, departure_time)
+        self.direction = direction
 
     def get_destination(self):
         """
@@ -216,8 +248,8 @@ class TubeTrain(Train):
         # Get rid of TfL's odd designations in the Destination field to make it compatible with our list of stations in the database
         # Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this is currently pending
         # an FoI request. Once I get that, this code will be a lot neater :)
-
         destination = re.sub(r"\band\b", "&", destination, flags=re.I)
+
         # Destinations that are line names or Unknown get boiled down to Unknown
         if destination in ("Unknown", "Circle & Hammersmith & City") or destination.startswith("Circle Line") \
             or destination.endswith("Train") or destination.endswith("Line"):
@@ -235,10 +267,7 @@ class TubeTrain(Train):
                             ' loop',
                             '\(circle\)')
             destination = cleanup_name_from_undesirables(destination, undesirables)
-
-        self.destination = destination
-        self.direction = direction
-        self.departure_time = departure_time
+        Train.__init__(self, destination, departure_time)
         self.set_number = set_number
         self.line_code = line_code
         self.destination_code = destination_code
@@ -248,12 +277,3 @@ class TubeTrain(Train):
         Return hash value to enable ability to use as dictionary key
         """
         return hash('-'.join([self.set_number, self.destination_code, str(self.departure_time)]))
-
-
-class DLRTrain(Train):
-    """
-    Class representing a DLR train
-    """
-    #pylint: disable=W0231
-    def __init__(self, destination, departure_time):
-        Train.__init__(self, destination, departure_time)

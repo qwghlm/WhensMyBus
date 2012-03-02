@@ -25,7 +25,7 @@ from pprint import pprint  # For debugging
 from whensmytransport import WhensMyTransport
 from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
-from lib.models import BusStop
+from lib.models import BusStop, Bus, NullDeparture
 
 
 class WhensMyBus(WhensMyTransport):
@@ -88,8 +88,7 @@ class WhensMyBus(WhensMyTransport):
         if relevant_stops:
             departure_data = self.get_departure_data(relevant_stops, route_number)
             if departure_data:
-                reply = "%s %s" % (route_number, "; ".join(departure_data))
-                return reply
+                return "%s %s" % (route_number, self.format_departure_data(departure_data))
             else:
                 raise WhensMyTransportException('no_bus_arrival_data', route_number)
         else:
@@ -181,11 +180,10 @@ class WhensMyBus(WhensMyTransport):
 
     def get_departure_data(self, relevant_stops, route_number):
         """
-        Fetch the JSON data from the TfL website, for a list of relevant_stops (each a BusStop object)
-        and a particular route_number, and returns the time(s) of buses on that route serving
-        that stop(s)
+        Fetch the JSON data from the TfL website, for a dictionary of relevant_stops (each a BusStop object)
+        and a particular route_number, and returns a dictionary of runs mapping to Bus objects
         """
-        time_info = []
+        relevant_buses = {}
         for (run, stop) in relevant_stops.items():
 
             stop_name = stop.get_clean_name()
@@ -201,7 +199,7 @@ class WhensMyBus(WhensMyTransport):
             relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
                                                         and a['isRealTime'] and not a['isCancelled']]
             if relevant_arrivals:
-                arrival = relevant_arrivals[0]
+                arrival = relevant_arrivals[0]  # FIXME
                 scheduled_time = arrival['scheduledTime'].replace(':', '')
                 # Short hack to get BST working
                 if localtime().tm_isdst:
@@ -209,17 +207,20 @@ class WhensMyBus(WhensMyTransport):
                     scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
 
                 logging.debug("Run %s, stop %s produced bus to %s %s", run, stop_name, arrival['destination'], scheduled_time)
-                time_info.append("%s to %s %s" % (stop_name, arrival['destination'], scheduled_time))
+                relevant_buses[run] = [Bus(stop_name, arrival['destination'], scheduled_time)]
             else:
                 logging.debug("Run %s, stop %s produced no buses", run, stop_name)
-                time_info.append("%s: None shown going %s" % (stop_name, heading_to_direction(stop.heading)))
+                relevant_buses[run] = [NullDeparture(heading_to_direction(stop.heading))]
 
         # If the number of runs is 3 or 4, get rid of any "None shown"
-        if len(time_info) > 2:
-            logging.debug("Number of runs is %s, removing any non-existent entries", len(time_info))
-            time_info = [t for t in time_info if t.find("None shown") == -1]
+        if len(relevant_buses) > 2:
+            logging.debug("Number of runs is %s, removing any non-existent entries", len(relevant_buses))
+            for (run, bus) in relevant_buses.items():
+                if isinstance(bus, NullDeparture):
+                    del relevant_buses[run]
 
-        return time_info
+        return relevant_buses
+
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":

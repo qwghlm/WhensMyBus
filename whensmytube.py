@@ -23,7 +23,7 @@ from pprint import pprint # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyRailTransport
-from lib.models import TubeTrain
+from lib.models import TubeTrain, NullDeparture
 from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.stringutils import capwords
@@ -109,6 +109,9 @@ class WhensMyTube(WhensMyRailTransport):
                     direction = "Unknown"
                     logging.debug("Have encountered a platform without direction specified (%s)", platform_name)
 
+            if direction != "Unknown":
+                trains_by_direction[direction] = []
+
             # Use the filter function to filter out trains that are out of service, specials or National Rail first
             platform_trains = [t for t in platform.findall("T[@LN='%s']" % line_code) if filter_tube_trains(t)]
             for train in platform_trains:
@@ -144,22 +147,11 @@ class WhensMyTube(WhensMyRailTransport):
 
                 trains_by_direction[direction] = trains_by_direction.get(direction, []) + [train_obj]
 
-        # For each direction, display the first three unique trains, sorted in time order
-        # Dictionaries alone do not preserve order, hence a list of the correct order for destinations as well
-        destinations_correct_order = []
-        train_times = {}
-        for trains in trains_by_direction.values():
-            for train in unique_values(sorted(trains))[:3]:
-                destination = train.get_destination()
-                logging.debug("Adding a train to %s at %s to the output", train.destination, train.departure_time)
-                if destination in destinations_correct_order:
-                    train_times[destination].append(train.get_departure_time())
-                else:
-                    train_times[destination] = [train.get_departure_time()]
-                    destinations_correct_order.append(destination)
+        for direction in trains_by_direction.keys():
+            if not trains_by_direction[direction]:
+                trains_by_direction[direction] = [NullDeparture(direction)]
 
-        # This returns an empty string if no trains are due, btw
-        return '; '.join([destination + ' ' + ', '.join(train_times[destination]) for destination in destinations_correct_order])
+        return trains_by_direction
 
     def check_station_is_open(self, station):
         """

@@ -314,6 +314,31 @@ class WhensMyTransport:
 
         return (request, origin, destination)
 
+    def format_departure_data(self, departures_by_platform):
+        """
+        Take departure data (which is a dictionary of { platform_id : [Departure list], ... } values), and turn into a formatted
+        string. Departures are sorted into earliest first and roughly clustered around common platforms
+
+        Note that "platform" is a generic term and can refer to a platform (DLR), direction (Tube), or bus stop (Bus) depending
+        on how the particular mode of transport is best organised
+        """
+        # Dictionaries alone do not preserve order, hence a list of the correct order for destinations as well
+        destinations_correct_order = []
+        departures_by_destination = {}
+        # Go through each platform, and each platform's departures, sorted in time order
+        for platform in sorted(departures_by_platform.keys()):
+            for departure in sorted(departures_by_platform[platform]):
+                destination = departure.get_destination()
+                # Create a slot for this departure if none exists
+                if destination not in departures_by_destination:
+                    departures_by_destination[destination] = []
+                # Add in the time for this departure
+                if departure.departure_time and len(departures_by_destination[destination]) < 3:
+                    departures_by_destination[destination].append(departure.departure_time)
+
+        departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
+        return '; '.join(departures_list)
+
     def sanitize_message(self, message):
         """
         Takes a message and scrubs out any @username or #hashtags
@@ -392,9 +417,9 @@ class WhensMyRailTransport(WhensMyTransport):
             if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
                 raise WhensMyTransportException('rail_station_not_in_system', station.name)
 
-            time_info = self.get_departure_data(line_code, station)
-            if time_info:
-                return "%s to %s" % (station.get_abbreviated_name(), time_info)
+            departure_data = self.get_departure_data(line_code, station)
+            if departure_data:
+                return "%s to %s" % (station.get_abbreviated_name(), self.format_departure_data(departure_data))
             else:
                 raise WhensMyTransportException('no_rail_arrival_data', line_name, station.name)
         else:
