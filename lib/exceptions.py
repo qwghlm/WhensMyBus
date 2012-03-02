@@ -46,7 +46,7 @@ class WhensMyTransportException(Exception):
         # WhensMyTube-only errors
         'blank_tube_tweet':           "I need to have a Tube line in order to find the times for it",
         'nonexistent_line':           "I couldn't recognise that line (%s) as a Tube line",
-        'tube_station_not_in_system': "TfL don't provide live departure data for %s station :(",
+        'rail_station_not_in_system': "TfL don't provide live departure data for %s station :(",
         'tube_station_closed':        "%s station is currently closed %s",
     }
 

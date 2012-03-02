@@ -24,7 +24,7 @@ from pprint import pprint # For debugging
 # From other modules in this package
 from whensmytransport import WhensMyRailTransport
 from lib.models import DLRTrain
-from lib.exceptions import WhensMyTransportException
+#from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.stringutils import capwords
 
@@ -38,6 +38,7 @@ class WhensMyDLR(WhensMyRailTransport):
         WhensMyRailTransport.__init__(self, 'whensmydlr', testing, silent)
         # As there is only one DLR, we can theoretically have blank tweets sent to this
         self.allow_blank_tweets = True
+        self.line_lookup = {'DLR': 'DLR', }
 
     def parse_message(self, message):
         """
@@ -48,32 +49,6 @@ class WhensMyDLR(WhensMyRailTransport):
         origin = origin and re.sub(" Station", "", origin, flags=re.I)
         destination = destination and re.sub(" Station", "", destination, flags=re.I)
         return (('DLR',), origin, destination)
-
-    def process_individual_request(self, line_code, origin, destination, position):
-        """
-        Take an individual line, with either origin or position, and work out which station the user is
-        referring to, and then get times for it
-        """
-        # Dig out relevant station for this line from the geotag, if provided
-        # Else there will be an origin (either a number or a placename), so try parsing it properly
-        if position:
-            station = self.get_station_by_geolocation(line_code, position)
-        else:
-            station = self.get_station_by_station_name(line_code, origin)
-
-        # Dummy code - what do we do with destination data (?)
-        if destination:
-            pass
-
-        # If we have a station code, go get the data for it
-        if station:
-            time_info = self.get_departure_data(line_code, station)
-            if time_info:
-                return "%s to %s" % (station.get_abbreviated_name(), time_info)
-            else:
-                raise WhensMyTransportException('no_rail_arrival_data', 'DLR', station.name)
-        else:
-            raise WhensMyTransportException('rail_station_name_not_found', origin, 'DLR')
 
     def get_departure_data(self, _line_code, station):
         """

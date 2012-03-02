@@ -26,7 +26,7 @@ from whensmytransport import WhensMyRailTransport
 from lib.models import TubeTrain
 from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
-from lib.stringutils import capwords, get_best_fuzzy_match
+from lib.stringutils import capwords
 
 
 class WhensMyTube(WhensMyRailTransport):
@@ -71,43 +71,6 @@ class WhensMyTube(WhensMyRailTransport):
         origin = origin and re.sub(" Station", "", origin, flags=re.I)
         destination = destination and re.sub(" Station", "", destination, flags=re.I)
         return ((line_name,), origin, destination)
-
-    def process_individual_request(self, line_name, origin, destination, position):
-        """
-        Take an individual line, with either origin or position, and work out which station the user is
-        referring to, and then get times for it
-        """
-        if line_name not in self.line_lookup:
-            line = get_best_fuzzy_match(line_name, self.line_lookup.values())
-            if line is None:
-                raise WhensMyTransportException('nonexistent_line', line_name)
-        else:
-            line = self.line_lookup[line_name]
-        line_code = line[0]
-
-        # Dig out relevant station for this line from the geotag, if provided
-        # Else there will be an origin (either a number or a placename), so try parsing it properly
-        if position:
-            station = self.get_station_by_geolocation(line_code, position)
-        else:
-            station = self.get_station_by_station_name(line_code, origin)
-
-        # Dummy code - what do we do with destination data (?)
-        if destination:
-            pass
-
-        # If we have a station code, go get the data for it
-        if station:
-            if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
-                raise WhensMyTransportException('tube_station_not_in_system', station.name)
-
-            time_info = self.get_departure_data(line_code, station)
-            if time_info:
-                return "%s to %s" % (station.get_abbreviated_name(), time_info)
-            else:
-                raise WhensMyTransportException('no_rail_arrival_data', line_name + ' Line', station.name)
-        else:
-            raise WhensMyTransportException('rail_station_name_not_found', origin, line_name + ' Line')
 
     def get_departure_data(self, line_code, station):
         """

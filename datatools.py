@@ -150,7 +150,7 @@ def import_dlr_xml_to_db():
         name = line[1]
         if name.lower() in stations:
             stations[name.lower()]['Code'] = code
-            stations[name.lower()]['Line'] = 'DLR'
+            stations[name.lower()]['Line'] = 'D'  # Sort for Docklands
         else:
             print "Cannot find %s from dlr-references in geodata!" % name
 
@@ -335,9 +335,9 @@ def scrape_odd_platform_designations(write_file=False):
     outputfile.close()
 
 if __name__ == "__main__":
-    import_bus_csv_to_db()
+    #import_bus_csv_to_db()
     #import_tube_xml_to_db()
-    #import_dlr_xml_to_db()
+    import_dlr_xml_to_db()
     #scrape_tfl_destination_codes()
     #scrape_odd_platform_designations()
     pass

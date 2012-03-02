@@ -44,6 +44,7 @@ from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeoco
 from lib.locations import WMTLocations
 from lib.logger import setup_logging
 from lib.models import RailStation
+from lib.stringutils import get_best_fuzzy_match
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
 # Some constants we use
@@ -337,12 +338,19 @@ class WhensMyTransport:
         #pylint: disable=W0613
         return (None, None, None)
 
-    def process_individual_request(self, route_number, origin, destination, position):
+    def process_individual_request(self, code, origin, destination, position):
         """
         Placeholder function. This must be overridden by a child class to do anything useful
         """
         #pylint: disable=W0613
         return ""
+
+    def get_departure_data(self, stops, line):  # FIXME Variable ordering
+        """
+        Placeholder function. This must be overridden by a child class to do anything useful
+        """
+        #pylint: disable=W0613
+        return []
 
 
 class WhensMyRailTransport(WhensMyTransport):
@@ -356,6 +364,41 @@ class WhensMyRailTransport(WhensMyTransport):
         Constructor, called by child functions
         """
         WhensMyTransport.__init__(self, instance_name, testing, silent)
+        self.line_lookup = {}
+
+    def process_individual_request(self, line_name, origin, destination, position):
+        """
+        Take an individual line, with either origin or position, and work out which station the user is
+        referring to, and then get times for it
+        """
+        line = self.line_lookup.get(line_name, "") or get_best_fuzzy_match(line_name, self.line_lookup.values())
+        if not line:
+            raise WhensMyTransportException('nonexistent_line', line_name)
+        line_code = line[0]
+
+        # Dig out relevant station for this line from the geotag, if provided
+        # Else there will be an origin (either a number or a placename), so try parsing it properly
+        if position:
+            station = self.get_station_by_geolocation(line_code, position)
+        else:
+            station = self.get_station_by_station_name(line_code, origin)
+
+        # Dummy code - what do we do with destination data (?)
+        if destination:
+            pass
+
+        # If we have a station code, go get the data for it
+        if station:
+            if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
+                raise WhensMyTransportException('rail_station_not_in_system', station.name)
+
+            time_info = self.get_departure_data(line_code, station)
+            if time_info:
+                return "%s to %s" % (station.get_abbreviated_name(), time_info)
+            else:
+                raise WhensMyTransportException('no_rail_arrival_data', line_name, station.name)
+        else:
+            raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
 
     def get_station_by_geolocation(self, line_code, position):
         """
