@@ -147,6 +147,9 @@ class WhensMyTube(WhensMyRailTransport):
 
                 trains_by_direction[direction] = trains_by_direction.get(direction, []) + [train_obj]
 
+        # Make sure there is a train in at least one platform, and if not then fill empty platforms with NullDeparture objects
+        if not [train_list for train_list in trains_by_direction.values() if train_list]:
+            return {}
         for direction in trains_by_direction.keys():
             if not trains_by_direction[direction]:
                 trains_by_direction[direction] = [NullDeparture(direction)]

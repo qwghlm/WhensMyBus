@@ -187,11 +187,12 @@ class NullDeparture(Departure):
     Class representing a non-existent train or bus (i.e. when none is showing)
     """
     def __init__(self, direction=""):
-        Departure.__init__()
+        Departure.__init__(self)
         self.direction = direction
 
     def get_destination(self):
         return "None shown going %s" % self.direction
+
 
 class Bus(Departure):
     """

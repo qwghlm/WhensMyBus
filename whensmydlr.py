@@ -92,9 +92,6 @@ class WhensMyDLR(WhensMyRailTransport):
                 else:
                     logging.debug("Error - could not parse this line: %s", train)
 
-            if not trains_by_platform[platform_name]:
-                trains_by_platform[platform_name] = [NullDeparture("from P" + platform_name)]
-
         # Some platforms run trains the same way (e.g. at termini). DLR doesn't tell us if this is the case, so we look at the destinations
         # on each pair of platforms and see if there is any overlap, using the set object and its intersection function. Any such
         # overlapping platforms, we merge their data together (only for the first pair though, to be safe)
@@ -106,6 +103,13 @@ class WhensMyDLR(WhensMyRailTransport):
             trains_by_platform[plat1 + ' & ' + plat2] = unique_values(trains_by_platform[plat1] + trains_by_platform[plat2])
             del trains_by_platform[plat1]
             del trains_by_platform[plat2]
+
+        # Make sure there is a train in at least one platform, and if not then fill empty platforms with NullDeparture objects
+        if not [train_list for train_list in trains_by_platform.values() if train_list]:
+            return {}
+        for platform_name in trains_by_platform.keys():
+            if not trains_by_platform[platform_name]:
+                trains_by_platform[platform_name] = [NullDeparture("from " + platform_name.upper())]
 
         return trains_by_platform
 

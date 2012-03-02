@@ -523,7 +523,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         message = 'Metropolitan Line from Preston Road'
         tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'tube_station_not_in_system', 'Preston Road')
+        self._test_correct_exception_produced(tweet, 'rail_station_not_in_system', 'Preston Road')
 
     def test_station_line_mismatch(self):
         """
@@ -670,7 +670,7 @@ def run_tests():
     elif test_case_name == "WhensMyDLR":
         dlr_errors = ()
         station_errors = ('bad_station_name',)
-        failures = format_errors[:-1] + geotag_errors + dlr_errors + station_errors # Exclude blank tweet test
+        failures = format_errors[:-1] + geotag_errors + dlr_errors + station_errors  # Exclude blank tweet test
         successes = ('standard_messages',)
     else:
         print "Error - %s is not a valid Test Case Name" % test_case_name

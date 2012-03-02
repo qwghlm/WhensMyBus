@@ -332,12 +332,13 @@ class WhensMyTransport:
                 # Create a slot for this departure if none exists
                 if destination not in departures_by_destination:
                     departures_by_destination[destination] = []
+                    destinations_correct_order.append(destination)
                 # Add in the time for this departure
                 if departure.departure_time and len(departures_by_destination[destination]) < 3:
                     departures_by_destination[destination].append(departure.departure_time)
 
         departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
-        return '; '.join(departures_list)
+        return '; '.join([departure.strip() for departure in departures_list])
 
     def sanitize_message(self, message):
         """
@@ -400,6 +401,8 @@ class WhensMyRailTransport(WhensMyTransport):
         if not line:
             raise WhensMyTransportException('nonexistent_line', line_name)
         line_code = line[0]
+        if line != 'DLR':
+            line_name += " Line"
 
         # Dig out relevant station for this line from the geotag, if provided
         # Else there will be an origin (either a number or a placename), so try parsing it properly
