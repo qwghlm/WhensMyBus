@@ -10,3 +10,5 @@ whensmy*.settings.db
 
 html/*
 
+*.sublime-workspace
+*.sublime-project
