@@ -674,7 +674,7 @@ def run_tests():
         sys.exit(1)    
 
     if parser.parse_args().dologin:
-        test_names = libraries # init  + failures + successes
+        test_names = libraries # init  + failures + successes FIXME
     else:
         test_names = failures + successes
             
