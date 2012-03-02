@@ -10,7 +10,7 @@ def capwords(phrase):
     """
     Capitalize each word in a string. A word is defined as anything with a space separating it from the next word.
     """
-    not_to_be_capitalized = ('via', 'CX') # FIXME Needs to be case-insensitive matching - split into lower/upper?
+    not_to_be_capitalized = ('via', 'CX')  # FIXME Needs to be case-insensitive matching - split into lower/upper?
     capitalized = ' '.join([s in not_to_be_capitalized and s or s.capitalize() for s in phrase.split(' ')])
     return capitalized
 
