@@ -135,8 +135,8 @@ class WhensMyTransportTestCase(unittest.TestCase):
         capitalised_strings = ("Bank", "Morden East", "King's Cross St. Pancras", "Kennington Oval via CX")
         for test_string in capitalised_strings:
             self.assertEqual(test_string, capwords(test_string))
-            #self.assertEqual(test_string, capwords(test_string.lower())) FIXME
-            #self.assertEqual(test_string, capwords(test_string.upper()))
+            self.assertEqual(test_string, capwords(test_string.lower()))
+            self.assertEqual(test_string, capwords(test_string.upper()))
             self.assertNotEqual(test_string.lower(), capwords(test_string))
             self.assertNotEqual(test_string.upper(), capwords(test_string))
 

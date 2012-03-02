@@ -64,7 +64,7 @@ class WMTBrowser:
                 return obj
             # If the JSON parser is choking, probably a 503 Error message in HTML so raise a ValueError
             except ValueError, exc:
-                # FIXME Delete this from the cache
+                del self.cache[url]
                 logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
                 raise WhensMyTransportException(exception_code)
 
@@ -85,6 +85,6 @@ class WMTBrowser:
                             elem.tag = elem.tag[len(namespace):]
                 return tree
             except Exception, exc:
-                # FIXME Delete this from the cache
+                del self.cache[url]
                 logging.error("%s encountered when parsing %s - likely not XML!", exc, url)
                 raise WhensMyTransportException(exception_code)

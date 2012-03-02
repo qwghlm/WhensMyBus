@@ -8,11 +8,14 @@ import re
 
 def capwords(phrase):
     """
-    Capitalize each word in a string. A word is defined as anything with a space separating it from the next word.
+    Capitalize each word in a string. A word is defined as anything with a space separating it from the next word
     """
-    not_to_be_capitalized = ('via', 'CX')  # FIXME Needs to be case-insensitive matching - split into lower/upper?
-    capitalized = ' '.join([s in not_to_be_capitalized and s or s.capitalize() for s in phrase.split(' ')])
-    return capitalized
+    lowercase_only = ('via',)
+    uppercase_only = ('CX',)
+    capitalized = [word.capitalize() for word in phrase.split(' ')]
+    capitalized = [word.lower() in lowercase_only and word.lower() or word for word in capitalized]
+    capitalized = [word.upper() in uppercase_only and word.upper() or word for word in capitalized]
+    return ' '.join(capitalized)
 
 
 def cleanup_name_from_undesirables(name, undesirables):
