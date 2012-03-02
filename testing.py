@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#pylint: disable=C0103
+#pylint: disable=C0103,W0141,R0904,W0142
 """
 A set of unit tests for When's My Bus?
 
@@ -17,7 +17,13 @@ from whensmydlr import WhensMyDLR
 from whensmytube import WhensMyTube
 from lib.exceptions import WhensMyTransportException
 
+from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
+from lib.listutils import unique_values
+from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables
+from lib.models import RailStation, BusStop, Train, TubeTrain
+
 import argparse
+import random
 import re
 import unittest
 from pprint import pprint
@@ -45,7 +51,7 @@ class FakeDirectMessage:
         self.user = lambda:1
         self.user.screen_name = username
         self.text = text
-        
+
 class WhensMyTransportTestCase(unittest.TestCase):
     """
     Parent Test case for all When's My * bots
@@ -83,35 +89,148 @@ class WhensMyTransportTestCase(unittest.TestCase):
         else:
             for message in messages:
                 self.assertRegexpMatches(message, expected_error)    
+    
+    # Fundamental unit tests. These test libraries and essential methods and classes. These do not need a bot set up
+    # and are thus independent of config and setup
+    def test_geo(self):
+        """
+        Unit test for geo conversion methods 
+        """
+        # Test co-ordinate conversions on the location of St James's Park Station
+        wgs84 =  (51.4995893, -0.1342974)
+        osgb36 = (51.4990781, -0.1326920)
+        easting_northing = (529600, 179500)
+        gridref = "TQ2960079500"
 
-    #
-    # Fundamental functionality tests
-    #
+        self.assertEqual(convertWGS84toOSGB36(*wgs84)[:2], osgb36)
+        self.assertEqual(LatLongToOSGrid(*osgb36), easting_northing)
+        self.assertEqual(convertWGS84toOSEastingNorthing(*wgs84), easting_northing)
+        self.assertEqual(gridrefNumToLet(*easting_northing), gridref)
 
+        # Test heading_to_direction with a series of preset values
+        for (heading, direction) in ((0, "North"), (90, "East"), (180, "South"), (270, "West"),):
+            self.assertEqual(heading_to_direction(heading), direction)
+
+    def test_listutils(self):
+        """
+        Unit test for listutils methods 
+        """
+        test_list = [random.Random().randint(0, 10) for _i in range(0, 100)]
+        unique_list = unique_values(test_list)
+        # Make sure every value in new list was in old list
+        for value in unique_list:
+            self.assertTrue(value in test_list)
+        # And that every value in the old list is now exactly once in new list
+        for value in test_list:
+            self.assertEqual(unique_list.count(value), 1)
+            
+    def test_stringutils(self):
+        """
+        Unit test for stringutils' methods
+        """
+        # Check capwords
+        capitalised_strings = ("Bank", "Morden East", "King's Cross St. Pancras", "Kennington Oval via CX")
+        for test_string in capitalised_strings:
+            self.assertEqual(test_string, capwords(test_string))
+            #self.assertEqual(test_string, capwords(test_string.lower())) FIXME
+            #self.assertEqual(test_string, capwords(test_string.upper()))
+            self.assertNotEqual(test_string.lower(), capwords(test_string))
+            self.assertNotEqual(test_string.upper(), capwords(test_string))
+
+        # Check to see cleanup string is working
+        random_string = lambda a, b: "".join([chr(random.Random().randint(a, b)) for _i in range(0, 10)])
+        dirty_strings =  [random_string(48, 122) for _i in range(0, 10)]
+        undesirables = ("a", "b+", "[0-9]", "^x")
+        for dirty_string in dirty_strings:
+            cleaned_string = cleanup_name_from_undesirables(dirty_string, undesirables)
+            for undesirable in undesirables:
+                self.assertIsNone(re.search(undesirable, cleaned_string, flags=re.I))
+
+        # Check string similarities - 100 for identical strings, 90 or more for one character change
+        # and nothing at all for a totally unidentical string
+        similarity_string = random_string(65, 122)
+        self.assertEqual(get_name_similarity(similarity_string, similarity_string), 100)
+        self.assertGreaterEqual(get_name_similarity(similarity_string, similarity_string[:-1]), 90)
+        self.assertEqual(get_name_similarity(similarity_string, random_string(48, 57)), 0)
+        
+        # Check to see most similar string gets picked out of an array of similar-looking strings, and that
+        # with very dissimilar strings, there is no candidate at all
+        similarity_candidates = (similarity_string[:3], similarity_string[:5], similarity_string[:9], "z"*10)
+        self.assertEqual(get_best_fuzzy_match(similarity_string, similarity_candidates), similarity_candidates[-2])
+        dissimilarity_candidates = [random_string(48, 57) for _i in range(0, 10)]
+        self.assertIsNone(get_best_fuzzy_match(similarity_string, dissimilarity_candidates))
+
+    def test_models(self):
+        """
+        Unit tests for train, bus, station and bus stop objects
+        """
+        station = RailStation("Walford East", "WAL", 535630, 182141)
+        # Test abbreviated name
+        # Test fuzzy matching with other names
+        self.assertEqual(station.get_similarity(station.name), 100)
+        
+        bus_stop = BusStop("WALFORD EAST STATION # [DLR]")
+        # Sort a list and work out
+        # Check clean name
+        # Check normalised name
+        # Check similarity
+        
+        train = Train
+        # Test comparison of two trains
+        # Test destination
+        # Test clean destination
+        
+        tube_train = TubeTrain
+        # Test undesirable text is removed
+        # Test is hashable
+        
+    # Fundamental non-unit functionality tests. These need a WMT bot set up and are thus contingent on a
+    # config.cfg files to test things such as a particular instance's databases, geocoder and browser 
     def test_init(self):
         """
         Test to see if we can load the class in the first place
         """
         self.assertTrue(True)
-
+        
+    def test_browser(self):
+        """
+        Unit tests for WMTBrowser object
+        """
+        pass
+        
     def test_database(self):
         """
-        Test to see if databases have loaded correctly and files exist
+        Unit tests for WMTDatabase object and to see if files exist
         """
-        self.bot.settings.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='%s_settings'" % self.bot.instance_name)
-        row = self.bot.settings.fetchone()
-        self.assertIsNotNone(row, 'Settings table does not exist')
-
         for name in self.geodata_table_names:
-            self.bot.geodata.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'" % name)
-            row = self.bot.geodata.fetchone()
+            row = self.bot.geodata.get_row("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'" % name)
             self.assertIsNotNone(row, '%s table does not exist' % name)        
 
-    def test_oauth(self):
+    def test_geocoder(self):
+        """
+        Unit tests for Geocoder objects
+        """
+        pass
+        
+    def test_logger(self):
+        """
+        Unit tests for system logging
+        """
+        pass
+        
+    def test_settings(self):
+        """
+        Test to see if settings database does not exist
+        """
+        query = "SELECT name FROM sqlite_master WHERE type='table' AND name='%s_settings'" % self.bot.instance_name
+        row = self.bot.twitter_client.settings.settingsdb.get_row(query)
+        self.assertIsNotNone(row, 'Settings table does not exist')
+        
+    def test_twitter_client(self):
         """
         Test to see if our OAuth login details are correct
         """
-        self.assertTrue(self.bot.api.verify_credentials())
+        self.assertTrue(self.bot.twitter_client.api.verify_credentials())
 
     #
     # Tests that Tweets are in the right format
@@ -526,8 +645,10 @@ def run_tests():
     
     test_case_name = parser.parse_args().test_case_name
 
+    
     # Init tests (same for all)    
-    init = ('init', 'oauth', 'database',)
+    init = ('init', 'databases_exist', 'oauth_works')
+    libraries = ('geo', 'listutils', 'stringutils', )
 
     # Common errors for all
     format_errors = ('politeness', 'talking_to_myself', 'mention', 'blank_tweet',)
@@ -553,7 +674,7 @@ def run_tests():
         sys.exit(1)    
 
     if parser.parse_args().dologin:
-        test_names = init + failures + successes
+        test_names = libraries # init  + failures + successes
     else:
         test_names = failures + successes
             
