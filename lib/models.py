@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#pylint: disable=R0913
 """
 Models/abstractions of concepts such as stations, trains, bus stops etc.
 """

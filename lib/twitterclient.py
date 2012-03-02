@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#pylint: disable=R0913
 """
 Twitter handling for When's My Transport
 """

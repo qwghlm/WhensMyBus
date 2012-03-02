@@ -19,7 +19,8 @@ class WMTSettings():
         """
         Fetch value of setting from settings database
         """
-        #pylint: disable=W0703
+        # Generic Exception handling
+        # pylint: disable=W0703
         setting_value = self.settingsdb.get_value("select setting_value from %s_settings where setting_name = ?" % self.instance_name, (setting_name,))
         # Try unpickling, if this doesn't work then return the raw value (to deal with legacy databases)
         if setting_value is not None:

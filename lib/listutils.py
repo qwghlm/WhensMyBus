@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#pylint: disable=W0107
 """
 List & Iterable Utilities for WhensMyTransport
 """
