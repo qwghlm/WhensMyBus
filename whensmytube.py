@@ -72,7 +72,7 @@ class WhensMyTube(WhensMyRailTransport):
         destination = destination and re.sub(" Station", "", destination, flags=re.I)
         return ((line_name,), origin, destination)
 
-    def get_departure_data(self, line_code, station):
+    def get_departure_data(self, station, line_code):
         """
         Take a station ID and a line ID, and get departure data for that station
         """
@@ -147,14 +147,7 @@ class WhensMyTube(WhensMyRailTransport):
 
                 trains_by_direction[direction] = trains_by_direction.get(direction, []) + [train_obj]
 
-        # Make sure there is a train in at least one platform, and if not then fill empty platforms with NullDeparture objects
-        if not [train_list for train_list in trains_by_direction.values() if train_list]:
-            return {}
-        for direction in trains_by_direction.keys():
-            if not trains_by_direction[direction]:
-                trains_by_direction[direction] = [NullDeparture(direction)]
-
-        return trains_by_direction
+        return self.cleanup_departure_data(trains_by_direction, lambda a: NullDeparture(a))
 
     def check_station_is_open(self, station):
         """

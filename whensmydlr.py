@@ -50,7 +50,7 @@ class WhensMyDLR(WhensMyRailTransport):
         destination = destination and re.sub(" Station", "", destination, flags=re.I)
         return (('DLR',), origin, destination)
 
-    def get_departure_data(self, _line_code, station):
+    def get_departure_data(self, station, _line_code):
         """
         Take a station ID and a line ID, and get departure data for that station
         """
@@ -104,14 +104,7 @@ class WhensMyDLR(WhensMyRailTransport):
             del trains_by_platform[plat1]
             del trains_by_platform[plat2]
 
-        # Make sure there is a train in at least one platform, and if not then fill empty platforms with NullDeparture objects
-        if not [train_list for train_list in trains_by_platform.values() if train_list]:
-            return {}
-        for platform_name in trains_by_platform.keys():
-            if not trains_by_platform[platform_name]:
-                trains_by_platform[platform_name] = [NullDeparture("from " + platform_name.upper())]
-
-        return trains_by_platform
+        return self.cleanup_departure_data(trains_by_platform, lambda a: NullDeparture("from " + a.upper()))
 
 if __name__ == "__main__":
     WMD = WhensMyDLR()

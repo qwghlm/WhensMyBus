@@ -314,6 +314,15 @@ class WhensMyTransport:
 
         return (request, origin, destination)
 
+    def cleanup_departure_data(self, departure_data, null_object_constructor):
+        # Make sure there is a bus in at least one stop, and if not then fill empty runs with NullDeparture objects
+        if not [departures for departures in departure_data.values() if departures]:
+            return {}
+        for key in departure_data.keys():
+            if not departure_data[key]:
+                departure_data[key] = [null_object_constructor(key)]
+        return departure_data
+
     def format_departure_data(self, departures_by_platform):
         """
         Take departure data (which is a dictionary of { platform_id : [Departure list], ... } values), and turn into a formatted
@@ -371,7 +380,7 @@ class WhensMyTransport:
         #pylint: disable=W0613
         return ""
 
-    def get_departure_data(self, stops, line):  # FIXME Variable ordering
+    def get_departure_data(self, station_or_stops, line_or_route):
         """
         Placeholder function. This must be overridden by a child class to do anything useful
         """
@@ -420,7 +429,7 @@ class WhensMyRailTransport(WhensMyTransport):
             if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
                 raise WhensMyTransportException('rail_station_not_in_system', station.name)
 
-            departure_data = self.get_departure_data(line_code, station)
+            departure_data = self.get_departure_data(station, line_code)
             if departure_data:
                 return "%s to %s" % (station.get_abbreviated_name(), self.format_departure_data(departure_data))
             else:
