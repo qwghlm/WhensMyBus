@@ -315,6 +315,13 @@ class WhensMyTransport:
         return (request, origin, destination)
 
     def cleanup_departure_data(self, departure_data, null_object_constructor):
+        """
+        Takes a dictionary produced by get_departure_data and cleans it up. If no departures listed at all,
+        then return an empty dictionary, else fill any slot with a null object, represented by null_object_constructor
+
+        null_object_constructor is either a classname constructor, or a function that returns a created object
+        e.g. lambda a: Constructor(a.lower())
+        """
         # Make sure there is a bus in at least one stop, and if not then fill empty runs with NullDeparture objects
         if not [departures for departures in departure_data.values() if departures]:
             return {}
@@ -369,6 +376,8 @@ class WhensMyTransport:
     def parse_message(self, message):
         """
         Placeholder function. This must be overridden by a child class to do anything useful
+
+        Takes message, the message from the user. Returns a tuple of (line_or_routes_specified, origin, destination)
         """
         #pylint: disable=W0613
         return (None, None, None)
@@ -376,6 +385,9 @@ class WhensMyTransport:
     def process_individual_request(self, code, origin, destination, position):
         """
         Placeholder function. This must be overridden by a child class to do anything useful
+
+        Takes a code (e.g. a bus route or line name), origin, destination and (latitude, longitude) tuple
+        Returns a string repesenting the message sent back to the user. This can be more than 140 characters
         """
         #pylint: disable=W0613
         return ""
@@ -383,9 +395,13 @@ class WhensMyTransport:
     def get_departure_data(self, station_or_stops, line_or_route):
         """
         Placeholder function. This must be overridden by a child class to do anything useful
+
+        Takes a string or list of strings representing a station or stop, and a string representing the line or route
+        Returns a dictionary; items are lists of Departure objects, keys are however we have grouped those Departures
+        e.g. buses are grouped by Run and the keys are thus the Run numbers
         """
         #pylint: disable=W0613
-        return []
+        return {}
 
 
 class WhensMyRailTransport(WhensMyTransport):
