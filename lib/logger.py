@@ -8,6 +8,8 @@ import os
 import sys
 
 LOG_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../logs/')
+
+
 def setup_logging(instance_name, silent_mode, debug_level):
     """
     Set up some logging for this instance

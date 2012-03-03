@@ -9,6 +9,7 @@ from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
 
+
 class WMTLocations():
     """
     Service object used to find stops or stations (locations) - given a position, exact match or fuzzy match,
@@ -83,7 +84,7 @@ class WMTLocations():
         """
         Check to see if any row in the database has a value in column; returns True if exists, False if not
         """
-        (where_statement, where_values) = self.make_where_statement({ column : value })
+        (where_statement, where_values) = self.make_where_statement({column: value})
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
         return bool(rows)
 

@@ -165,7 +165,7 @@ class Departure():
     """
     Class representing a train or bus
     """
-    def __init__(self, destination="", departure_time=""):
+    def __init__(self, destination, departure_time):
         self.destination = destination
         self.departure_time = departure_time
 
@@ -173,7 +173,7 @@ class Departure():
         """
         Return comparison value to enable sort by departure time
         """
-        return cmp(self.departure_time, other.departure_time)
+        return cmp(self.departure_time, other.departure_time)  # FIXME Deal with times like 2359 and 0001
 
     def __hash__(self):
         """
@@ -200,7 +200,7 @@ class Bus(Departure):
 
     Unlike Trains, bus stop names for the same place can vary depending on which direction, so this takes this into account
     """
-    def __init__(self, departure_point="", destination="", departure_time=""):
+    def __init__(self, departure_point, destination, departure_time):
         Departure.__init__(self, destination, departure_time)
         self.departure_point = departure_point
 
