@@ -3,8 +3,9 @@
 """
 Models/abstractions of concepts such as stations, trains, bus stops etc.
 """
-from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
+from datetime import datetime
 import re
+from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
 
 
 class RailStation():
@@ -165,6 +166,7 @@ class Departure():
     """
     Class representing a train or bus
     """
+    #pylint: disable=R0903
     def __init__(self, destination, departure_time):
         self.destination = destination
         self.departure_time = departure_time
@@ -181,16 +183,26 @@ class Departure():
         """
         return hash('-'.join([self.destination, str(self.departure_time)]))
 
+    def get_destination(self):
+        """
+        Returns destination (this usually get overridden)
+        """
+        return self.destination
+
 
 class NullDeparture(Departure):
     """
     Class representing a non-existent train or bus (i.e. when none is showing)
     """
+    #pylint: disable=R0903
     def __init__(self, direction=""):
-        Departure.__init__(self)
+        Departure.__init__(self, "None", datetime.now().strftime("%H%M"))
         self.direction = direction
 
     def get_destination(self):
+        """
+        Returns destination (which in this case is an error message of sorts)
+        """
         return "None shown going %s" % self.direction
 
 
@@ -200,6 +212,7 @@ class Bus(Departure):
 
     Unlike Trains, bus stop names for the same place can vary depending on which direction, so this takes this into account
     """
+    #pylint: disable=R0903
     def __init__(self, departure_point, destination, departure_time):
         Departure.__init__(self, destination, departure_time)
         self.departure_point = departure_point
