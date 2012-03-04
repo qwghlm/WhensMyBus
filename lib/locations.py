@@ -5,6 +5,7 @@ Location-finding service for WhensMyTransport
 """
 import logging
 from math import sqrt
+
 from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
@@ -99,6 +100,9 @@ class WMTLocations():
         """
         Convert a dictionary of params and return a statement that can go after a WHERE
         """
+        if not params:
+            return (" 1 ", ())
+
         column_names = [row[1] for row in self.database.get_rows("PRAGMA table_info(locations)")]
         for column in params.keys():
             if column not in column_names:
