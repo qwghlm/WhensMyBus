@@ -326,8 +326,6 @@ def convertWGS84toOSEastingNorthing(latitude, longitude):
     easting, northing = LatLongToOSGrid(new_latitude, new_longitude)
     return (easting, northing)
 
-# Final function to make headings more user-friendly
-
 
 def heading_to_direction(heading):
     """
