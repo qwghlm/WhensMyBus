@@ -13,8 +13,6 @@ class WhensMyTransportException(Exception):
     # Why do we not just send the full string as a parameter to the Exception? Mainly so we can unit test (see testing.py)
     # but also as it saves duplicating string for similar errors (e.g. when TfL service is down)
     #
-    # Error message should be no longer than 115 chars so we can put a username and the word Sorry and still be under 140
-    #
     # A fatal error is one that ends the entire query (i.e. it is not possible to find any bus given the user's
     # query). A non-fatal error is one for a particular route, but if the user has asked for other routes then they may
     # still work)
@@ -60,10 +58,17 @@ class WhensMyTransportException(Exception):
         super(WhensMyTransportException, self).__init__(value)
         logging.debug("Application exception encountered: %s", value)
         self.msgid = msgid
-        self.value = value[:115]
+        self.value = value
 
     def __str__(self):
         """
         Return a string representation of this Exception
         """
         return repr(self.value)
+
+    def get_value(self):
+        """
+        Return a Twitter-friendly string representation of this Exception
+        """
+        # Error message should be no longer than 115 chars so we can put a username and the word Sorry and still be under 140
+        return self.value[:115]
