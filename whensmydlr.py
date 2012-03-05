@@ -62,11 +62,16 @@ class WhensMyDLR(WhensMyRailTransport):
 
         # Go through each platform and get data about every train arriving, including which direction it's headed
         trains_by_platform = {}
+        platforms_to_ignore = {'ban': 'P10',
+                               'tog': 'P1',
+                               'wiq': 'P1',
+                               'str': 'P4B',
+                               'lew': 'P5'}
         for platform in dlr_data.findall("div[@id='ttbox']"):
 
             # Get the platform number from image attached and the time published
             img = platform.find("div[@id='platformleft']/img")
-            platform_name = img.attrib['src'].split('.')[0][:-1]
+            platform_name = img.attrib['src'].split('.')[0][:-1].upper()
             trains_by_platform[platform_name] = []
 
             # Get trains for this platform
@@ -92,6 +97,9 @@ class WhensMyDLR(WhensMyRailTransport):
                 else:
                     logging.debug("Error - could not parse this line: %s", train)
 
+            if not trains_by_platform[platform_name] and platform_name == platforms_to_ignore.get(station.code, ""):
+                del trains_by_platform[platform_name]
+
         # Some platforms run trains the same way (e.g. at termini). DLR doesn't tell us if this is the case, so we look at the destinations
         # on each pair of platforms and see if there is any overlap, using the set object and its intersection function. Any such
         # overlapping platforms, we merge their data together (only for the first pair though, to be safe)
@@ -104,7 +112,7 @@ class WhensMyDLR(WhensMyRailTransport):
             del trains_by_platform[plat1]
             del trains_by_platform[plat2]
 
-        return self.cleanup_departure_data(trains_by_platform, lambda a: NullDeparture("from " + a.upper()))
+        return self.cleanup_departure_data(trains_by_platform, lambda a: NullDeparture("from " + a))
 
 if __name__ == "__main__":
     WMD = WhensMyDLR()
