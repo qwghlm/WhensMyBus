@@ -353,8 +353,8 @@ class WhensMyTransport:
                     departures_by_destination[destination] = []
                     destinations_correct_order.append(destination)
                 # Add in the time for this departure
-                if departure.departure_time and len(departures_by_destination[destination]) < 3:
-                    departures_by_destination[destination].append(departure.departure_time)
+                if departure.get_departure_time() and len(departures_by_destination[destination]) < 3:
+                    departures_by_destination[destination].append(departure.get_departure_time())
 
         departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
         return '; '.join([departure.strip() for departure in departures_list])
