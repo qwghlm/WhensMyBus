@@ -41,8 +41,9 @@ class WhensMyTube(WhensMyRailTransport):
         line_names = (
             'Bakerloo',
             'Central',
+            'Circle',
             'District',
-            'Hammersmith & Circle',
+            'Hammersmith & City',
             'Jubilee',
             'Metropolitan',
             'Northern',
@@ -50,11 +51,11 @@ class WhensMyTube(WhensMyRailTransport):
             'Victoria',
             'Waterloo & City',
         )
-        line_tuples = [(name, name) for name in line_names] + [('Circle', 'Hammersmith & Circle'), ('Hammersmith & City', 'Hammersmith & Circle')]
+        line_tuples = [(name, name) for name in line_names]
         # Handle abbreviated three-letter versions and sort out ampersands
         line_tuples += [(name[:3], name) for name in line_names]
         line_tuples += [(name.replace("&", "and"), name) for name in line_names]
-        line_tuples += [('W&C', 'Waterloo & City'), ('H&C', 'Hammersmith & Circle',)]
+        line_tuples += [('W&C', 'Waterloo & City'), ('H&C', 'Hammersmith & City',)]
         self.line_lookup = dict(line_tuples)
 
         # Regex used by tokenize_message to work out what is the bit of a Tweet specifying a line - all the words used in the above
@@ -78,6 +79,10 @@ class WhensMyTube(WhensMyRailTransport):
         """
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         self.check_station_is_open(station)
+        # Circle line these days is coded H as it shares with the Hammersmith & City
+        if line_code = 'O':
+            line_code = 'H'
+
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station.code)
         tube_data = self.browser.fetch_xml_tree(tfl_url)
 
@@ -184,6 +189,8 @@ def filter_tube_trains(tube_xml_element):
     if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC'):
         return False
     return True
+
+
 
 if __name__ == "__main__":
     WMT = WhensMyTube()

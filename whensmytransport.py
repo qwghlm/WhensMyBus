@@ -409,7 +409,7 @@ class WhensMyRailTransport(WhensMyTransport):
         line = self.line_lookup.get(line_name, "") or get_best_fuzzy_match(line_name, self.line_lookup.values())
         if not line:
             raise WhensMyTransportException('nonexistent_line', line_name)
-        line_code = line[0]
+        line_code = get_line_code(line)
         if line != 'DLR':
             line_name += " Line"
 
@@ -450,6 +450,13 @@ class WhensMyRailTransport(WhensMyTransport):
         """
         logging.debug("Attempting to get a fuzzy match on placename %s", origin)
         return self.geodata.find_fuzzy_match({'Line': line_code}, origin, RailStation)
+
+
+def get_line_code(line_name):
+    """
+    Return the TfL line code for the line requested, which is always the first letter except the Circle, whose code is 'O'
+    """
+    return (line_name == 'Circle') and 'O' or line_name[0]
 
 if __name__ == "__main__":
     print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytube.py"
