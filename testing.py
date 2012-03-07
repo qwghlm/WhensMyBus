@@ -15,18 +15,23 @@ if sys.version_info < (2, 7):
 from whensmybus import WhensMyBus
 from whensmydlr import WhensMyDLR
 from whensmytube import WhensMyTube
-from lib.exceptions import WhensMyTransportException
 
+from lib.exceptions import WhensMyTransportException
 from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
 from lib.listutils import unique_values
 from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables
-from lib.models import RailStation, BusStop, Train, TubeTrain
+from lib.models import RailStation, BusStop, NullDeparture, Train, TubeTrain, Bus
 
 import argparse
+import logging
+import os.path
 import random
 import re
+import time
 import unittest
 from pprint import pprint
+
+HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class FakeTweet:
@@ -95,6 +100,14 @@ class WhensMyTransportTestCase(unittest.TestCase):
 
     # Fundamental unit tests. These test libraries and essential methods and classes. These do not need a bot set up
     # and are thus independent of config and setup
+    def test_exceptions(self):
+        """
+        Unit tests for WhensMyTransportException objects
+        """
+        exc = WhensMyTransportException()
+        self.assertEqual(exc.value, str(exc))
+        self.assertLessEqual(len(exc.get_value()), 115)
+
     def test_geo(self):
         """
         Unit test for geo conversion methods
@@ -167,25 +180,48 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Unit tests for train, bus, station and bus stop objects
         """
-        station = RailStation("Walford East", "WAL", 535630, 182141)
-        # Test abbreviated name
-        # Test fuzzy matching with other names
+        station = RailStation("King's Cross St. Pancras", "KXX", 530237, 182944)
+        self.assertLess(len(station.get_abbreviated_name()), len(station.name))
         self.assertEqual(station.get_similarity(station.name), 100)
+        self.assertGreaterEqual(station.get_similarity("Kings Cross St Pancras"), 95)
+        self.assertGreaterEqual(station.get_similarity("Kings Cross St Pancreas"), 90)
+        self.assertGreaterEqual(station.get_similarity("Kings Cross"), 90)
 
-        bus_stop = BusStop("WALFORD EAST STATION # [DLR]")
-        # Sort a list and work out
-        # Check clean name
-        # Check normalised name
-        # Check similarity
+        bus_stop = BusStop("WALFORD EAST BUS STATION # [DLR] / TOWN CENTRE", Bus_Stop_Code='10000', Distance=2.0)
+        bus_stop2 = BusStop("TOWN CENTRE / WALFORD EAST BUS STATION # [DLR]", Bus_Stop_Code='10001', Distance=1.0)
+        self.assertEqual(sorted([bus_stop, bus_stop2])[0].number, '10001')
+        for undesirable in ('<>', '#', r'\[DLR\]', '>T<'):
+            self.assertNotRegexpMatches(bus_stop.get_clean_name(), undesirable)
+        self.assertEqual(bus_stop.get_normalised_name(), "WALFORDEASTBUSSTNTOWNCENTRE")
+        self.assertEqual(bus_stop.get_similarity(bus_stop.name), 100)
+        self.assertEqual(bus_stop.get_similarity("Walford East Bus Station"), 95)
+        self.assertEqual(bus_stop2.get_similarity("Walford East Bus Station"), 94)
+        self.assertEqual(bus_stop.get_similarity("Walford East"), 91)
+        self.assertEqual(bus_stop2.get_similarity("Walford East"), 90)
 
-        train = Train
-        # Test comparison of two trains
-        # Test destination
-        # Test clean destination
+        null_departure = NullDeparture("East")
+        self.assertEqual(null_departure.get_destination(), "None shown going East")
 
-        tube_train = TubeTrain
-        # Test undesirable text is removed
-        # Test is hashable
+        bus = Bus("Trafalgar Square", "Blackwall", "2359")
+        bus2 = Bus("Trafalgar Square", "Blackwall", "2359")
+        bus3 = Bus("Trafalgar Square", "Blackwall", "0001")
+        self.assertEqual(hash(bus), hash(bus2))
+        self.assertLess(bus, bus3)
+        self.assertEqual(bus.get_destination(), "Trafalgar Square to Blackwall")
+
+        train = Train("Charing Cross via Bank", "2359")
+        train2 = Train("Charing Cross via Bank", "0001")
+        self.assertLess(train, train2)
+        self.assertEqual(train.get_destination(), "Charing X via Bank")
+        self.assertEqual(train.get_clean_destination_name(), "Charing Cross")
+
+        tube_train = TubeTrain("Charing Cross via Bank", "Northbound", "2359", "001", "", "")
+        tube_train2 = TubeTrain("Charing Cross via Bank then depot", "Northbound", "2359", "001", "", "")
+        tube_train3 = TubeTrain("Charing Cross via Bank", "Northbound", "2359", "006", "", "")
+        self.assertEqual(hash(tube_train), hash(tube_train2))
+        self.assertNotEqual(hash(tube_train), hash(tube_train3))
+        self.assertEqual(tube_train.get_destination(), "Charing X via Bank")
+        self.assertEqual(tube_train.get_clean_destination_name(), "Charing Cross")
 
     # Fundamental non-unit functionality tests. These need a WMT bot set up and are thus contingent on a
     # config.cfg files to test things such as a particular instance's databases, geocoder and browser
@@ -193,33 +229,96 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Test to see if we can load the class in the first place
         """
-        self.assertTrue(True)
+        self.assertIsNotNone(self.bot)
 
     def test_browser(self):
         """
         Unit tests for WMTBrowser object
         """
-        pass
+        for filename in ("test.xml", "test.json"):
+            url = "file://" + HOME_DIR + "/testdata/" + filename
+            if filename.endswith('json'):
+                data = self.bot.browser.fetch_json(url)
+                self.assertEqual(data['answer_to_life_universe_everything'], 42)
+            elif filename.endswith('xml'):
+                data = self.bot.browser.fetch_xml_tree(url)
+                self.assertEqual(data.find("answer[@key='to_life_universe_everything']").attrib['value'], '42')
+            self.assertIn(url, self.bot.browser.cache)
+
+        for filename in ("test_broken.json", "test_broken.xml"):
+            url = "file://" + HOME_DIR + "/testdata/" + filename
+            try:
+                if filename.endswith('json'):
+                    data = self.bot.browser.fetch_json(url)
+                elif filename.endswith('xml'):
+                    data = self.bot.browser.fetch_xml_tree(url)
+            except WhensMyTransportException:
+                continue
+            finally:
+                self.assertNotIn(url, self.bot.browser.cache)
 
     def test_database(self):
         """
-        Unit tests for WMTDatabase object and to see if files exist
+        Unit tests for WMTDatabase object and to see if requisite database tables exist
         """
+        self.bot.geodata.database.write_query("CREATE TEMPORARY TABLE test_data (key, value INT)")
+
+        for key_value in (('a', 1), ('b', 2), ('b', 3)):
+            self.bot.geodata.database.write_query("INSERT INTO test_data VALUES (?, ?)", key_value)
+        row = self.bot.geodata.database.get_row("SELECT * FROM test_data WHERE key = 'a'")
+        self.assertIsNotNone(row)
+        self.assertEqual(row[1], 1)
+        rows = self.bot.geodata.database.get_rows("SELECT * FROM test_data WHERE key = 'b' ORDER BY value")
+        self.assertIsNotNone(rows)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1][1], 3)
+        value = self.bot.geodata.database.get_value("SELECT value FROM test_data WHERE key = 'a'")
+        self.assertIsNotNone(value)
+        self.assertEqual(value, 1)
+        value = self.bot.geodata.database.get_value("SELECT value FROM test_data WHERE key = 'c'")
+        self.assertIsNone(value)
+
+        self.bot.geodata.database.write_query("DROP TABLE test_data")
+
         for name in self.geodata_table_names:
-            row = self.bot.geodata.get_row("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'" % name)
+            row = self.bot.geodata.database.get_row("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'" % name)
             self.assertIsNotNone(row, '%s table does not exist' % name)
 
     def test_geocoder(self):
         """
         Unit tests for Geocoder objects
         """
-        pass
+        if not self.bot.geocoder:
+            return
+
+        test_locations = {"Blackfriars station": (51.5116, -0.1036),
+                          "Buckingham Palace": (51.5012, -0.1425),
+                          "Wembley Stadium": (51.5558, -0.2797),
+                          "qwerty": None}
+        for (name, value) in test_locations.items():
+            geocode_url = self.bot.geocoder.get_geocode_url(name)
+            geodata = self.bot.browser.fetch_json(geocode_url)
+            points = self.bot.geocoder.parse_geodata(geodata)
+            if value is None:
+                self.assertFalse(points)
+            else:
+                self.assertAlmostEqual(points[0][0], value[0], places=3)
+                self.assertAlmostEqual(points[0][1], value[1], places=3)
+
+    def test_location(self):
+        """
+        Unit tests for WMTLocation objects
+        """
+        self.assertEqual(self.bot.geodata.make_where_statement({}), (" 1 ", ()))
+        self.assertEqual(self.bot.geodata.make_where_statement({'Location_Easting': 0}),
+                                                               ('"Location_Easting" = ?', (0,)))
+        self.assertRaises(KeyError, self.bot.geodata.make_where_statement, {'XXX': 1})
 
     def test_logger(self):
         """
         Unit tests for system logging
         """
-        pass
+        self.assertGreater(len(logging.getLogger('').handlers), 0)
 
     def test_settings(self):
         """
@@ -228,6 +327,9 @@ class WhensMyTransportTestCase(unittest.TestCase):
         query = "SELECT name FROM sqlite_master WHERE type='table' AND name='%s_settings'" % self.bot.instance_name
         row = self.bot.twitter_client.settings.settingsdb.get_row(query)
         self.assertIsNotNone(row, 'Settings table does not exist')
+        test_time = int(time.time())
+        self.bot.twitter_client.settings.update_setting("_test_time", test_time)
+        self.assertEqual(test_time, self.bot.twitter_client.settings.get_setting("_test_time"))
 
     def test_twitter_client(self):
         """
@@ -303,7 +405,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         for test_data in self.test_standard_data:
             request = test_data[0]
-            tweet = FakeTweet(self.at_reply + request, (40.748433, -73.985656)) # Empire State Building, New York
+            tweet = FakeTweet(self.at_reply + request, (40.748433, -73.985656))  # Empire State Building, New York
             self._test_correct_exception_produced(tweet, 'not_in_uk')
 
     def test_not_in_london(self):
@@ -312,7 +414,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         for test_data in self.test_standard_data:
             request = test_data[0]
-            tweet = FakeTweet(self.at_reply + request, (55.948611, -3.200833)) # Edinburgh Castle, Edinburgh
+            tweet = FakeTweet(self.at_reply + request, (55.948611, -3.200833))  # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
 
 
@@ -327,7 +429,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         self.bot = WhensMyBus(testing=True, silent=True)
         self.at_reply = '@%s ' % self.bot.username
-        self.geodata_table_names = ('routes', )
+        self.geodata_table_names = ('locations', )
 
         # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin
         self.test_standard_data = (
@@ -368,6 +470,18 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
     # Bus-specific tests
     #
 
+    def test_location(self):
+        """
+        Unit tests for WMTLocation object and the bus database
+        """
+        super(WhensMyBusTestCase, self).test_location()
+        self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'Run': '1', 'Route': '15'}, BusStop).number, "53410")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match({'Run': '1', 'Route': '15'}, "Limehouse Sta", BusStop).number, "53410")
+        self.assertEqual(self.bot.geodata.find_exact_match({'Run': '1', 'Route': '15', 'Stop_Name': 'LIMEHOUSE TOWN HALL'}, BusStop).number, "48264")
+        self.assertTrue(self.bot.geodata.check_existence_of('Bus_Stop_Code', '47001'))
+        self.assertFalse(self.bot.geodata.check_existence_of('Bus_Stop_Code', '47000'))
+        self.assertEqual(self.bot.geodata.get_max_value('Run', {}), 4)
+
     def test_no_bus_number(self):
         """
         Test to confirm we are ignoring Tweets that do not have bus numbers in them
@@ -398,9 +512,9 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         message = '15 from 00000'
         tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'bad_stop_id', '00000') # Stop IDs begin at 47000
+        self._test_correct_exception_produced(tweet, 'bad_stop_id', '00000')  # Stop IDs begin at 47000
         direct_message = FakeDirectMessage(message)
-        self._test_correct_exception_produced(direct_message, 'bad_stop_id', '00000') # Stop IDs begin at 47000
+        self._test_correct_exception_produced(direct_message, 'bad_stop_id', '00000')  # Stop IDs begin at 47000
 
     def test_stop_id_mismatch(self):
         """
@@ -408,7 +522,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         message = '15 from 52240'
         tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'stop_id_not_found', '15', '52240') # The 15 does not go from Canary Wharf
+        self._test_correct_exception_produced(tweet, 'stop_id_not_found', '15', '52240')  # The 15 does not go from Canary Wharf
         direct_message = FakeDirectMessage(message)
         self._test_correct_exception_produced(direct_message, 'stop_id_not_found', '15', '52240')
 
@@ -432,7 +546,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
 
             # 5 types of origin (geotag, ID, name, ID without 'from', name without 'from') and 3 types of destination (none, ID, name)
             from_fragments = [value % test_variables for value in ("", " from %(origin_name)s",    " from %(origin_id)s", " %(origin_name)s", " %(origin_id)s")]
-            to_fragments =   [value % test_variables for value in ("", " to %(destination_name)s", " to %(destination_id)s")]
+            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s", " to %(destination_id)s")]
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
@@ -472,6 +586,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                 for result in results:
                     self._test_correct_successes(result, route, stop_name, (message.find(' to ') == -1))
 
+
 class WhensMyTubeTestCase(WhensMyTransportTestCase):
     """
     Main Test Case for When's My Tube
@@ -486,10 +601,6 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
         self.test_standard_data = (
                                    ('Central', "White City", 51.5121, -0.2246, "Ruislip Gardens", "White City"),
-                                   ('Central', 'Epping', 51.693, 0.1138, "Bank", 'Epping'), # Second-most northern after Chesham
-                                   ('District', 'Upminster', 51.559, 0.2511, "Tower Hill", 'Upminster'), # Most eastern
-                                   ('Northern', 'Morden', 51.402222, -0.195, "Bank", 'Morden'), # Most southern
-                                   ('Metropolitan', 'Amersham', 51.674108, -0.6074, "Baker Street", 'Amersham'), # Second-most western after Chesham
                                    ('District', "Earl's Court", 51.4913, -0.1947, "Edgware Road", "Earls Ct"),
                                    ('Piccadilly', "Acton Town", 51.5028, -0.28, "Arsenal", "Acton Town"),
                                    ('Northern', "Camden Town", 51.5394, -0.1427, "Morden", "Camden Town"),
@@ -506,8 +617,16 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertNotEqual(result, result.upper())
         self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There aren't any %s Line trains)" % (expected_origin, routes_specified))
         if destination_not_specified:
-            pass # TODO Tests for when a destination is specified
+            pass  # TODO Tests for when a destination is specified
         print result
+
+    def test_location(self):
+        """
+        Unit tests for WMTLocation object and the bus database
+        """
+        super(WhensMyTubeTestCase, self).test_location()
+        self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'Line': 'M'}, RailStation).code, "KXX")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match({'Line': 'M'}, "Kings Cross", RailStation).code, "KXX")
 
     def test_bad_line_name(self):
         """
@@ -545,7 +664,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
-            to_fragments =   [value % test_variables for value in ("", " to %(destination_name)s")]
+            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
             line_fragments = [value % test_variables for value in ("%(line)s", "%(line)s Line")]
 
             for from_fragment in from_fragments:
@@ -565,6 +684,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                         results = self.bot.process_tweet(tweet)
                         for result in results:
                             self._test_correct_successes(result, line, expected_origin, not to_fragment)
+
 
 class WhensMyDLRTestCase(WhensMyTransportTestCase):
     """
@@ -587,8 +707,8 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
                                    ('DLR', 'W India Quay', 51.506667, -0.022222, 'Canary Wharf', 'W India Quay'),
                                    ('DLR', 'Canning Town', 51.514, 0.0083, 'Westferry', 'Canning Town'),
                                    ('DLR', 'Poplar', 51.5077, -0.0174, 'Westferry', 'Poplar'),
-                                   ('DLR', 'Limehouse', 51.5124, -0.0397, 'Canary Wharf', 'Limehouse'),
-                                   ('DLR', 'Heron Quay', 51.5028, -0.0213, 'Canary Wharf', 'Heron Quays'),
+                                   ('DLR', 'Stratford', 51.5422, -0.0033, 'Canary Wharf', 'Stratford'),
+                                   ('DLR', 'Beckton', 51.5142, 0.0616, 'Limehouse', 'Beckton'),
                                   )
         self.test_nonstandard_data = ()
 
@@ -599,8 +719,16 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         self.assertNotEqual(result, result.upper())
         self.assertRegexpMatches(result, r"(%s to .* ([0-9]{1,4})|There aren't any %s trains)" % (expected_origin, routes_specified))
         if destination_not_specified:
-            pass # TODO Tests for when a destination is specified
+            pass  # TODO Tests for when a destination is specified
         print result
+
+    def test_location(self):
+        """
+        Unit tests for WMTLocation object and the bus database
+        """
+        super(WhensMyDLRTestCase, self).test_location()
+        self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {}, RailStation).code, "lim")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Limehouse", RailStation).code, "lim")
 
     def test_bad_station_name(self):
         """
@@ -622,13 +750,14 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
 
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
-            to_fragments =   [value % test_variables for value in ("", " to %(destination_name)s")]
+            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
             line_fragments = [value % test_variables for value in ("", "%(line)s",)]
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
                     for line_fragment in line_fragments:
                         message = (self.at_reply + line_fragment + from_fragment + to_fragment)
+                        print message
                         if not from_fragment:
                             tweet = FakeTweet(message, (lat, lon))
                         else:
@@ -637,6 +766,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
                         results = self.bot.process_tweet(tweet)
                         for result in results:
                             self._test_correct_successes(result, 'DLR', expected_origin, not to_fragment)
+
 
 def run_tests():
     """
@@ -648,10 +778,10 @@ def run_tests():
 
     test_case_name = parser.parse_args().test_case_name
 
-
     # Init tests (same for all)
-    init = ('init', 'databases_exist', 'oauth_works')
-    libraries = ('geo', 'listutils', 'stringutils', )
+    unit_tests = ('geo', 'listutils', 'stringutils', 'models',)
+    local_tests = ('init', 'database', 'location', 'logger', 'settings',)
+    remote_tests = ('browser', 'geocoder', 'twitter_client',)
 
     # Common errors for all
     format_errors = ('politeness', 'talking_to_myself', 'mention', 'blank_tweet',)
@@ -677,9 +807,9 @@ def run_tests():
         sys.exit(1)
 
     if parser.parse_args().dologin:
-        test_names = libraries # init  + failures + successes FIXME
+        test_names = unit_tests + local_tests + remote_tests + failures + successes
     else:
-        test_names = failures + successes
+        test_names = unit_tests + local_tests + failures + successes
 
     suite = unittest.TestSuite(map(eval(test_case_name + 'TestCase'), ['test_%s' % t for t in test_names]))
     runner = unittest.TextTestRunner(verbosity=1, failfast=1, buffer=True)
@@ -687,4 +817,3 @@ def run_tests():
 
 if __name__ == "__main__":
     run_tests()
-

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#pylint: disable=W0703,W0107,C0103
+#pylint: disable=W0703,W0107,C0103,W0142
 """
 Data importing tools for WhensMyTransport - import TfL's data into an easier format for us to use
 """

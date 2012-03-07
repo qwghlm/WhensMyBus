@@ -161,7 +161,12 @@ class WhensMyBus(WhensMyTransport):
             if run not in relevant_stops and self.geocoder:
                 logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
                 geocode_url = self.geocoder.get_geocode_url(origin)
-                geodata = self.browser.fetch_json(geocode_url)
+                try:
+                    geodata = self.browser.fetch_json(geocode_url)
+                except WhensMyTransportException:
+                    logging.debug("Error connecting to geocoder, skipping")
+                    continue
+
                 points = self.geocoder.parse_geodata(geodata)
                 if not points:
                     logging.debug("Could not find any matching location for %s", origin)

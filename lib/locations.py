@@ -5,11 +5,13 @@ Location-finding service for WhensMyTransport
 """
 import logging
 from math import sqrt
+
 from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
 
 from pygraph.algorithms.minmax import shortest_path
+
 
 class WMTLocations():
     """
@@ -85,7 +87,7 @@ class WMTLocations():
         """
         Check to see if any row in the database has a value in column; returns True if exists, False if not
         """
-        (where_statement, where_values) = self.make_where_statement({ column : value })
+        (where_statement, where_values) = self.make_where_statement({column: value})
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
         return bool(rows)
 
@@ -100,6 +102,9 @@ class WMTLocations():
         """
         Convert a dictionary of params and return a statement that can go after a WHERE
         """
+        if not params:
+            return (" 1 ", ())
+
         column_names = [row[1] for row in self.database.get_rows("PRAGMA table_info(locations)")]
         for column in params.keys():
             if column not in column_names:

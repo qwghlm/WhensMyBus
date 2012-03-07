@@ -30,6 +30,7 @@ General:
 
 """
 # Standard libraries of Python 2.6
+from abc import abstractmethod, ABCMeta
 import ConfigParser
 import logging
 import os
@@ -56,6 +57,8 @@ class WhensMyTransport:
     """
     Parent class for all WhensMy* bots, with common functions shared by all
     """
+    __metaclass__ = ABCMeta
+
     def __init__(self, instance_name, testing=None, silent_mode=False):
         """
         Read config and set up logging, settings database, geocoding and Twitter OAuth
@@ -255,8 +258,8 @@ class WhensMyTransport:
         """
         Turns a WhensMyTransportException into a message for the user
         """
-        logging.debug("Exception encountered: %s", exc.value)
-        return "Sorry! %s" % exc.value
+        logging.debug("Exception encountered: %s", exc.get_value())
+        return "Sorry! %s" % exc.get_value()
 
     def alert_admin_about_exception(self, tweet, exception_name):
         """
@@ -315,6 +318,13 @@ class WhensMyTransport:
         return (request, origin, destination)
 
     def cleanup_departure_data(self, departure_data, null_object_constructor):
+        """
+        Takes a dictionary produced by get_departure_data and cleans it up. If no departures listed at all,
+        then return an empty dictionary, else fill any slot with a null object, represented by null_object_constructor
+
+        null_object_constructor is either a classname constructor, or a function that returns a created object
+        e.g. lambda a: Constructor(a.lower())
+        """
         # Make sure there is a bus in at least one stop, and if not then fill empty runs with NullDeparture objects
         if not [departures for departures in departure_data.values() if departures]:
             return {}
@@ -343,8 +353,8 @@ class WhensMyTransport:
                     departures_by_destination[destination] = []
                     destinations_correct_order.append(destination)
                 # Add in the time for this departure
-                if departure.departure_time and len(departures_by_destination[destination]) < 3:
-                    departures_by_destination[destination].append(departure.departure_time)
+                if departure.get_departure_time() and len(departures_by_destination[destination]) < 3:
+                    departures_by_destination[destination].append(departure.get_departure_time())
 
         departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
         return '; '.join([departure.strip() for departure in departures_list])
@@ -366,26 +376,35 @@ class WhensMyTransport:
 
         return message
 
+    @abstractmethod
     def parse_message(self, message):
         """
-        Placeholder function. This must be overridden by a child class to do anything useful
+        Abstract method. This must be overridden by a child class to do anything useful
+        Takes message, the message from the user. Returns a tuple of (line_or_routes_specified, origin, destination)
         """
         #pylint: disable=W0613
         return (None, None, None)
 
+    @abstractmethod
     def process_individual_request(self, code, origin, destination, position):
         """
-        Placeholder function. This must be overridden by a child class to do anything useful
+        Abstract method. This must be overridden by a child class to do anything useful
+        Takes a code (e.g. a bus route or line name), origin, destination and (latitude, longitude) tuple
+        Returns a string repesenting the message sent back to the user. This can be more than 140 characters
         """
         #pylint: disable=W0613
         return ""
 
+    @abstractmethod
     def get_departure_data(self, station_or_stops, line_or_route):
         """
-        Placeholder function. This must be overridden by a child class to do anything useful
+        Abstract method. This must be overridden by a child class to do anything useful
+        Takes a string or list of strings representing a station or stop, and a string representing the line or route
+        Returns a dictionary; items are lists of Departure objects, keys are however we have grouped those Departures
+        e.g. buses are grouped by Run and the keys are thus the Run numbers
         """
         #pylint: disable=W0613
-        return []
+        return {}
 
 
 class WhensMyRailTransport(WhensMyTransport):
@@ -394,6 +413,8 @@ class WhensMyRailTransport(WhensMyTransport):
     namely looking up stations from a database given a position or name. This works best when there is a limited number of
     stations and they have well-known, universally agreed names, which is normally railways and not buses.
     """
+    __metaclass__ = ABCMeta
+
     def __init__(self, instance_name, testing=False, silent=False):
         """
         Constructor, called by child functions

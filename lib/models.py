@@ -3,85 +3,14 @@
 """
 Models/abstractions of concepts such as stations, trains, bus stops etc.
 """
-from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
+from datetime import datetime, timedelta
 import re
+from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
 
 
-class RailStation():
-    #pylint: disable=C0103,R0903,W0613
-    """
-    Class representing a railway station
-    """
-    def __init__(self, Name='', Code='', Location_Easting=0, Location_Northing=0, Inner='', Outer='', **kwargs):
-        self.name = Name
-        self.code = Code
-        self.location_easting = Location_Easting
-        self.location_northing = Location_Northing
-        self.inner = Inner
-        self.outer = Outer
-
-    def get_abbreviated_name(self):
-        """
-        Take this station's name and abbreviate it to make it fit on Twitter better
-        """
-        # Stations we just have to cut down by hand
-        translations = {
-            "High Street Kensington": "High St Ken",
-            "King's Cross St. Pancras": "Kings X St P",
-            "Kensington (Olympia)": "Olympia",
-            "W'wich Arsenal": "Woolwich A",
-        }
-        station_name = translations.get(self.name, self.name)
-
-        # Punctuation marks can be cut down
-        punctuation_to_remove = (r'\.', ', ', r'\(', r'\)', "'",)
-        station_name = cleanup_name_from_undesirables(station_name, punctuation_to_remove)
-
-        # Words like Road and Park can be slimmed down as well
-        abbreviations = {
-            'Bridge': 'Br',
-            'Broadway': 'Bdwy',
-            'Central': 'Ctrl',
-            'Court': 'Ct',
-            'Cross': 'X',
-            'Crescent': 'Cresc',
-            'East': 'E',
-            'Gardens': 'Gdns',
-            'Green': 'Grn',
-            'Heathway': 'Hthwy',
-            'Junction': 'Jct',
-            'Market': 'Mkt',
-            'North': 'N',
-            'Park': 'Pk',
-            'Road': 'Rd',
-            'South': 'S',
-            'Square': 'Sq',
-            'Street': 'St',
-            'Terminal': 'T',
-            'Terminals': 'T',
-            'West': 'W',
-        }
-        station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
-
-        # Any station with & in it gets only the initial of the second word - e.g. Elephant & C
-        if station_name.find('&') > -1:
-            station_name = station_name[:station_name.find('&') + 2]
-        return station_name
-
-    def get_similarity(self, test_string=''):
-        """
-        Custom similarity for train stations - takes into account fact many people use abbreviated names
-        """
-        score = get_name_similarity(self.name, test_string)
-        # For low-scoring matches, we try matching between a string the same size as the user query, if its shorter than the name
-        # being tested against, so this works for e.g. Kings Cross matching King's Cross St Pancras
-        if score < 70 and len(test_string) < len(self.name):
-            abbreviated_score = get_name_similarity(test_string, self.name[:len(test_string)])
-            if abbreviated_score >= 90:
-                return abbreviated_score
-
-        return score
-
+#
+# Representations of stations, stops etc
+#
 
 class BusStop():
     #pylint: disable=C0103,R0903,W0613
@@ -161,13 +90,97 @@ class BusStop():
         return get_name_similarity(my_name, their_name)
 
 
+class RailStation():
+    #pylint: disable=C0103,R0903,W0613
+    """
+    Class representing a railway station
+    """
+    def __init__(self, Name='', Code='', Location_Easting=0, Location_Northing=0, Inner='', Outer='', **kwargs):
+        self.name = Name
+        self.code = Code
+        self.location_easting = Location_Easting
+        self.location_northing = Location_Northing
+        self.inner = Inner
+        self.outer = Outer
+
+    def get_abbreviated_name(self):
+        """
+        Take this station's name and abbreviate it to make it fit on Twitter better
+        """
+        # Stations we just have to cut down by hand
+        translations = {
+            "High Street Kensington": "High St Ken",
+            "King's Cross St. Pancras": "Kings X St P",
+            "Kensington (Olympia)": "Olympia",
+            "W'wich Arsenal": "Woolwich A",
+        }
+        station_name = translations.get(self.name, self.name)
+
+        # Punctuation marks can be cut down
+        punctuation_to_remove = (r'\.', ', ', r'\(', r'\)', "'",)
+        station_name = cleanup_name_from_undesirables(station_name, punctuation_to_remove)
+
+        # Words like Road and Park can be slimmed down as well
+        abbreviations = {
+            'Bridge': 'Br',
+            'Broadway': 'Bdwy',
+            'Central': 'Ctrl',
+            'Court': 'Ct',
+            'Cross': 'X',
+            'Crescent': 'Cresc',
+            'East': 'E',
+            'Gardens': 'Gdns',
+            'Green': 'Grn',
+            'Heathway': 'Hthwy',
+            'Junction': 'Jct',
+            'Market': 'Mkt',
+            'North': 'N',
+            'Park': 'Pk',
+            'Road': 'Rd',
+            'South': 'S',
+            'Square': 'Sq',
+            'Street': 'St',
+            'Terminal': 'T',
+            'Terminals': 'T',
+            'West': 'W',
+        }
+        station_name = ' '.join([abbreviations.get(word, word) for word in station_name.split(' ')])
+
+        # Any station with & in it gets only the initial of the second word - e.g. Elephant & C
+        if station_name.find('&') > -1:
+            station_name = station_name[:station_name.find('&') + 2]
+        return station_name
+
+    def get_similarity(self, test_string=''):
+        """
+        Custom similarity for train stations - takes into account fact many people use abbreviated names
+        """
+        score = get_name_similarity(self.name, test_string)
+        # For low-scoring matches, we try matching between a string the same size as the user query, if its shorter than the name
+        # being tested against, so this works for e.g. Kings Cross matching King's Cross St Pancras
+        if score < 70 and len(test_string) < len(self.name):
+            abbreviated_score = get_name_similarity(test_string, self.name[:len(test_string)])
+            if abbreviated_score >= 90:
+                score = min(abbreviated_score, 99)  # Never 100, in case it overrides an exact match
+        return score
+
+
+#
+# Representations of departures
+#
+
+
 class Departure():
     """
     Class representing a train or bus
     """
-    def __init__(self, destination="", departure_time=""):
+    #pylint: disable=R0903
+    def __init__(self, destination, departure_time):
         self.destination = destination
-        self.departure_time = departure_time
+        self.departure_time = datetime.strptime(departure_time, "%H%M")
+        # Deal with us being one side of midnight from the prescribed times
+        if datetime.now().hour >= 18 and self.departure_time.hour < 6:
+            self.departure_time += timedelta(days=1)
 
     def __cmp__(self, other):
         """
@@ -179,18 +192,34 @@ class Departure():
         """
         Return hash value to enable ability to use as dictionary key
         """
-        return hash('-'.join([self.destination, str(self.departure_time)]))
+        return hash('-'.join([self.destination, self.get_departure_time()]))
+
+    def get_destination(self):
+        """
+        Returns destination (this usually get overridden)
+        """
+        return self.destination
+
+    def get_departure_time(self):
+        """
+        Returns human-readable version of departure time, in the 24-hour clock
+        """
+        return self.departure_time.strftime("%H%M")
 
 
 class NullDeparture(Departure):
     """
     Class representing a non-existent train or bus (i.e. when none is showing)
     """
+    #pylint: disable=R0903
     def __init__(self, direction=""):
-        Departure.__init__(self)
+        Departure.__init__(self, "None", datetime.now().strftime("%H%M"))
         self.direction = direction
 
     def get_destination(self):
+        """
+        Returns destination (which in this case is an error message of sorts)
+        """
         return "None shown going %s" % self.direction
 
 
@@ -200,7 +229,8 @@ class Bus(Departure):
 
     Unlike Trains, bus stop names for the same place can vary depending on which direction, so this takes this into account
     """
-    def __init__(self, departure_point="", destination="", departure_time=""):
+    #pylint: disable=R0903
+    def __init__(self, departure_point, destination, departure_time):
         Departure.__init__(self, destination, departure_time)
         self.departure_point = departure_point
 
@@ -277,4 +307,4 @@ class TubeTrain(Train):
         """
         Return hash value to enable ability to use as dictionary key
         """
-        return hash('-'.join([self.set_number, self.destination_code, str(self.departure_time)]))
+        return hash(' '.join([self.set_number, self.destination_code, self.get_departure_time()]))
