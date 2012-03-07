@@ -9,6 +9,8 @@ from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
 
+from pygraph.algorithms.minmax import shortest_path
+
 class WMTLocations():
     """
     Service object used to find stops or stations (locations) - given a position, exact match or fuzzy match,
@@ -106,3 +108,39 @@ class WMTLocations():
         where_statement = ' AND '.join(['"%s" = ?' % column for (column, value) in params.items()])
         where_values = tuple([value for (column, value) in params.items()])
         return (where_statement, where_values)
+
+
+def describe_route(origin, destination, graph):
+    """
+    Takes a directed graph and works out the shortest route to take
+    """
+    origin += ":entrance"
+    destination += ":exit"
+
+    shortest_path_dictionary = shortest_path(graph, origin)[0]
+    if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
+        raise ValueError("Not found - no such path exists")
+
+    # Shortest path dictionary consists of a dictionary of node names as keys, with the values
+    # being the name of the node that preceded it in the shortest path
+    # Count back from our destinaton, to the origin point
+    path_taken = []
+    while destination:
+        path_taken.append(destination.split(":"))
+        destination = shortest_path_dictionary[destination]
+
+    # Trim off the entrance & exit nodes and reverse the list to get it in the right order
+    path_taken = path_taken[1:-1][::-1]
+    current_line = path_taken[0][1]
+    #print "Get on at %s and take the %s line" % tuple(path_taken[0])
+    #for (station, line) in path_taken:
+    #    if line != current_line:
+    #        if line == "exit":
+    #            print "Get off at %s" % station
+    #        elif line == "entrance":
+    #            print "Walk to %s" % station
+    #        else:
+    #            print "Change at %s to the %s line" % (station, line)
+    #        current_line = line
+    #print "Get off at %s" % path_taken[-1][0]
+    return path_taken
