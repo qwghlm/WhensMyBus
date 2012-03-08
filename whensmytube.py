@@ -80,7 +80,7 @@ class WhensMyTube(WhensMyRailTransport):
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         self.check_station_is_open(station)
         # Circle line these days is coded H as it shares with the Hammersmith & City
-        if line_code = 'O':
+        if line_code == 'O':
             line_code = 'H'
 
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station.code)
