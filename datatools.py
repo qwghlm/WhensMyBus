@@ -6,11 +6,12 @@ Data importing tools for WhensMyTransport - import TfL's data into an easier for
 # Standard Python libraries
 import csv
 import os
+import pickle
 import re
 import sys
 import subprocess
 import tempfile
-
+from math import sqrt
 from pprint import pprint
 
 # Library available from http://code.google.com/p/python-graph/
@@ -238,11 +239,15 @@ def import_tube_xml_to_db():
     export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('Name',))
 
 
-def import_network_data_to_graph():
+def import_network_data_to_graph(is_dlr=False):
     """
     Import data from a file describing the edges of the Tube network and turn it into a graph object which we pickle and save
     """
-    database = WMTDatabase("whensmytube.geodata.db")
+    if is_dlr:
+        database = WMTDatabase("whensmydlr.geodata.db")
+    else:
+        database = WMTDatabase("whensmytube.geodata.db")
+
     # Adapted from https://github.com/smly/hubigraph/blob/fa23adc07c87dd2a310a20d04f428f819d43cbdb/test/LondonUnderground.txt
     # which is a CSV of all edges in the network
     reader = csv.reader(open('./sourcedata/tube-connections.csv'))
@@ -253,20 +258,29 @@ def import_network_data_to_graph():
     stations_by_line = {}
     interchanges_by_foot = []
     for (station1, station2, line) in reader:
-        if line in ("National Rail", "East London", "Docklands Light Railway"): # TODO Maybe make these "Overground"?
+        if line in ("National Rail", "East London"): # TODO Maybe make these "Overground"?
+            continue
+        if is_dlr ^ (line == "Docklands Light Railway"):
             continue
         if line == "Walk":
             interchanges_by_foot.append((station1, station2))
         else:
+            # When a line splits into two branches, we don't want people being able to travel from one branch to another without
+            # changing. So for these special cases, we mark the transitions as being in a particular direction in the CSV, with the
+            # direction coming after a colon (e.g. "Leytonstone:Northbound","Wanstead","Central" and "Snaresbrook","Leytonstone:Southbound","Central"
+            # Effectively the station has become two nodes, and now you cannot go directly from Snaresbrook to Wanstead.
+            direction  = station1.partition(':')[2]        # Blank for most
+            station1 = station1.partition(':')[0]          # So station name becomes just e.g. Leytonstone
+
             station_data = stations.get(station1, {'lines': [], 'neighbours': []})
-            if line not in station_data['lines']:
-                station_data['lines'] += [line]
-            if (station2, line) not in station_data['neighbours']:
-                station_data['neighbours'] += [(station2, line)]
+            if (direction, line) not in station_data['lines']:
+                station_data['lines'] += [(direction, line)]
+            if (station2, direction, line) not in station_data['neighbours']:
+                station_data['neighbours'] += [(station2, direction, line)]
             stations[station1] = station_data
 
-            if "%s:%s" % (station1, line) not in stations_by_line.get(line, []):
-                stations_by_line[line] = stations_by_line.get(line, []) + ["%s:%s" % (station1, line)]
+            if "%s:%s:%s" % (station1, direction, line) not in stations_by_line.get(line, []):
+                stations_by_line[line] = stations_by_line.get(line, []) + ["%s:%s:%s" % (station1, direction, line)]
 
     # Sanity-check our data and make sure it matches database
     canonical_data = database.get_rows("SELECT * FROM locations")
@@ -274,46 +288,60 @@ def import_network_data_to_graph():
     for station in sorted(stations.keys()):
         if station not in canonical_station_names:
             print "Error! %s is not in the canonical database of station names" % station
-        for line in stations[station]['lines']:
+        for (direction, line) in stations[station]['lines']:
             line_code = get_line_code(line)
             if not database.get_value("SELECT Name FROM locations WHERE Name=? AND Line=?", (station, line_code)):
                 print "Error! %s is mistakenly labelled as being on the %s line in list of nodes" % (station, line)
-
     for station in sorted(canonical_station_names):
         if station not in stations.keys():
             print "Error! %s is not in the list of station nodes" % station
+            continue
         database_lines = database.get_rows("SELECT Line FROM locations WHERE Name=?", (station,))
         for row in database_lines:
-            line_codes = [get_line_code(line) for line in stations[station]['lines']]
+            line_codes = [get_line_code(line) for (direction, line) in stations[station]['lines']]
             if row['Line'] not in line_codes:
                 print "Error! %s is not shown as being on the %s line in the list of nodes" % (station, row['Line']) 
 
     # Start creating our directed graph - first by adding all the nodes. Each station is represented by multiple nodes: one to represent
-    # the entrance, and one the exit, and then one for every line the station serves (i.e. the platforms). This seems complicated, but is 
+    # the entrance, and one the exit, and then at least one for every line the station serves (i.e. the platforms). This seems complicated, but is 
     # designed so that we can accurately simulate the extra delay an interchange takes by adding weighted edges between the platforms
+    #
+    # If the station needs to have directional info handled (e.g. the line is splitting, or looping on itself), we have one node for each 
+    # direction on each line that needs to be split. Else the direction is an empty string and so both directions are handled by the same node
     gr = digraph()
 
     for (station, station_data) in stations.items():
         gr.add_node("%s:entrance" % station)
         gr.add_node("%s:exit" % station)
-        for line in station_data['lines']:
-            gr.add_node("%s:%s" % (station, line))
+        for (direction, line) in station_data['lines']:
+            gr.add_node(":".join((station, direction, line)))
 
     # Now we add the nodes for each line - connecting each set of platforms for each station to the neighbouring stations
     for (station, station_data) in stations.items():
-        for (neighbour, line) in station_data['neighbours']:
-            gr.add_edge(("%s:%s" % (station, line), "%s:%s" % (neighbour, line)), wt=3)
-            if (station, line) not in stations[neighbour]['neighbours']:
-                # Note, for Heathrow Terminal 4 (the only one-way station on the network, this is fine)
-                print "Warning! Connection from %s to %s but not %s to %s on %s line" % (station, neighbour, neighbour, station, line)
+        for (neighbour, direction, line) in station_data['neighbours']:
+            neighbour_name = neighbour.partition(':')[0]
+            departure = "%s:%s:%s" % (station, direction, line)
+            arrival = "%s:%s:%s" % (neighbour_name, neighbour.partition(':')[2], line)
+
+            sql = "SELECT Location_Easting, Location_Northing FROM locations WHERE Name=?"
+            station_position = database.get_row(sql, (station,))
+            neighbour_position = database.get_row(sql, (neighbour_name,))
+            distance = sqrt((station_position[0]-neighbour_position[0])**2 + (station_position[1]-neighbour_position[1])**2)
+            time = 0.5 + distance/600 # Assume 36km/h for tube trains, which is 36000 m/h or 600 m/min, plus 30 secs for stopping
+
+            gr.add_edge((departure, arrival), wt=time)
+
+            if (station, line) not in [(s.partition(':')[0], l) for (s, d, l) in stations[neighbour_name]['neighbours']]:
+                # Note, for Heathrow Terminal 4 (the only one-way station on the network), this is fine
+                print "Warning! Connection from %s to %s but not %s to %s on %s line" % (station, neighbour_name, neighbour_name, station, line)
 
     # At this point, we perform a sanity check to make sure every station is connected to every other station on the same line
     for line in stations_by_line.keys():
         for station in stations_by_line[line]:
             accessible_stations = shortest_path(gr, station)[0]
             if len(accessible_stations) < len(stations_by_line[line]) - 10:
-                print "Error! %s can only access %s out of %s stations on %s line" % \
-                      (station.split(':')[0], len(accessible_stations), len(stations_by_line[line]), line)
+                print "Warning! %s can only access %s out of %s stations on %s line" % \
+                      (station, len(accessible_stations), len(stations_by_line[line]), line)
 
     # After that, we can add the interchanges between each line at each station, and the movements from entrance and to the exit.
     # Entrances and exits have zero travel time; because the graph is directed, it is not possible for us to change trains by
@@ -321,28 +349,45 @@ def import_network_data_to_graph():
     # which has an expensive travel time of 6 minutes
     for (station, station_data) in stations.items():
         gr.add_edge(("%s:entrance" % station, "%s:exit" % station), wt=0)
-        for line in station_data['lines']:
-            gr.add_edge(("%s:entrance" % station, "%s:%s" % (station, line)), wt=2)
-            gr.add_edge(("%s:%s" % (station, line), "%s:exit" % station), wt=0)
-            for other_line in station_data['lines']:
-                if line != other_line:
-                    gr.add_edge(("%s:%s" % (station, line), "%s:%s" % (station, other_line)), wt=6)
+        for (direction, line) in station_data['lines']:
+            gr.add_edge(("%s:entrance" % station, "%s:%s:%s" % (station, direction, line)), wt=2)
+            gr.add_edge(("%s:%s:%s" % (station, direction, line), "%s:exit" % station), wt=0)
+            for (other_direction, other_line) in station_data['lines']:
+                if line != other_line or direction != other_direction:
+                    gr.add_edge(("%s:%s:%s" % (station, direction, line), "%s:%s:%s" % (station, other_direction, other_line)), wt=6)
 
     # Add in interchanges by foot between different stations
     for (station1, station2) in interchanges_by_foot:
         if station1 in stations.keys() and station2 in stations.keys():
             gr.add_edge(("%s:exit" % station1, "%s:entrance" % station2), wt=10)
 
+    #Remove altogether some expensive changes (Edgware Road, Paddington)
+    expensive_interchanges = (
+        ('Edgware Road', '', 'Bakerloo', None),
+        ('Paddington', 'Hammersmith Branch', 'Hammersmith & City', 10),
+        ('Paddington', 'Hammersmith Branch', 'Circle', 10)
+    )
+    for (station, direction, line, weight) in expensive_interchanges:
+        node = "%s:%s:%s" % (station, direction, line)
+        if not gr.has_node(node):
+            continue
+        outbound_nodes = list(gr.neighbors(node))
+        for outbound_node in outbound_nodes:
+            if outbound_node.startswith(station) and not outbound_node.endswith('exit'):
+                gr.del_edge((node, outbound_node))
+                if weight:
+                    gr.add_edge((node, outbound_node), wt=weight)
+        inbound_nodes = list(gr.incidents(node))
+        for inbound_node in inbound_nodes:
+            if inbound_node.startswith(station) and not inbound_node.endswith('entrance'):
+                gr.del_edge((inbound_node, node))
+                if weight:
+                    gr.add_edge((inbound_node, node), wt=weight)
 
-    # TODO Remove altogether some expensive changes (Edgware Road, Paddington) and add in some cheaper cross-platform changes
-    interchanges_to_remove = {
-        'Edgware Road': 'Bakerloo',
-        'Paddington': 'Hammersmith & City',
-    }
-
-    # TODO Pickle & save this graph
-    print describe_route("Royal Oak", "Regent's Park", gr)
-    return gr
+    if is_dlr:
+        pickle.dump(gr, open("./db/whensmydlr.network.gr", "w"))
+    else:
+        pickle.dump(gr, open("./db/whensmytube.network.gr", "w"))
 
 def scrape_tfl_destination_codes():
     """
@@ -452,5 +497,6 @@ if __name__ == "__main__":
     #import_dlr_xml_to_db()
     #scrape_tfl_destination_codes()
     #scrape_odd_platform_designations()
-    import_network_data_to_graph()
+    import_network_data_to_graph(False)
+    import_network_data_to_graph(True)
     pass
