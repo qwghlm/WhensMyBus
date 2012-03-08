@@ -3,12 +3,21 @@
 """
 Location-finding service for WhensMyTransport
 """
+import copy
 import logging
+import pickle
+import os.path
+import time
 from math import sqrt
 
 from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
+from pprint import pprint
+from pygraph.algorithms.minmax import shortest_path
+
+DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/')
+
 
 
 class WMTLocations():
@@ -18,6 +27,8 @@ class WMTLocations():
     """
     def __init__(self, instance_name):
         self.database = WMTDatabase('%s.geodata.db' % instance_name)
+        network_file = DB_PATH + '/%s.network.gr' % instance_name
+        self.network = os.path.exists(network_file) and pickle.load(open(network_file)) 
 
     def find_closest(self, position, params, returned_object):
         """
@@ -111,3 +122,51 @@ class WMTLocations():
         where_statement = ' AND '.join(['"%s" = ?' % column for (column, value) in params.items()])
         where_values = tuple([value for (column, value) in params.items()])
         return (where_statement, where_values)
+
+    def describe_route(self, origin, destination, via=None, line=None):
+        """
+        Return the shortest route between origin and destination
+        """
+        if via:
+            return self.describe_route(origin, via, line=line) + self.describe_route(via, destination, line=line)[1:]
+
+        origin += ":entrance"
+        destination += ":exit"
+
+        if line:
+            network = self.network[line]
+        else:
+            network = self.network['All']
+        shortest_path_dictionary = shortest_path(network, origin)[0]
+        if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
+            raise ValueError("Not found - no such path exists")
+        # Shortest path dictionary consists of a dictionary of node names as keys, with the values
+        # being the name of the node that preceded it in the shortest path
+        # Count back from our destinaton, to the origin point
+        path_taken = []
+        while destination:
+            path_taken.append(tuple(destination.split(":")))
+            destination = shortest_path_dictionary[destination]
+
+        # Trim off the entrance & exit nodes and reverse the list to get it in the right order
+        path_taken = path_taken[1:-1][::-1]
+        return path_taken
+
+    def direct_route_exists(self, origin, destination, via=None, line=None):
+        """
+        Return whether there is a direct route (i.e. one that does work without changing) on a list of stops
+        """
+        path_taken = self.describe_route(origin, destination, via=via, line=line)
+        for i in range(1, len(path_taken)-1):
+            # If same station twice in a row, then we must have a change
+            if path_taken[i][0] == path_taken[i+1][0]:
+                return False
+        return True
+
+    def stops_at(self, origin, requested_stop, last_stop):
+        """
+        Return whether the we stop at requested_stop on the way from origin to last_stop
+        """
+        path_taken = self.describe_route(origin, last_stop)
+        stations_stopped_at = [stop[0] for stop in path_taken]
+        return requested_stop in stations_stopped_at

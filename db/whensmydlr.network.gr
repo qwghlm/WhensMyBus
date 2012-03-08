@@ -1,0 +1,8414 @@
+(dp0
+S'All'
+p1
+ccopy_reg
+_reconstructor
+p2
+(cpygraph.classes.digraph
+digraph
+p3
+c__builtin__
+object
+p4
+Ntp5
+Rp6
+(dp7
+S'node_incidence'
+p8
+(dp9
+S'Canning Town:entrance'
+p10
+(lp11
+sS'Island Gardens:entrance'
+p12
+(lp13
+sS'Cyprus::Docklands Light Railway'
+p14
+(lp15
+S'Gallions Reach::Docklands Light Railway'
+p16
+aS'Beckton Park::Docklands Light Railway'
+p17
+aS'Cyprus:entrance'
+p18
+asS'Beckton:exit'
+p19
+(lp20
+S'Beckton:entrance'
+p21
+aS'Beckton::Docklands Light Railway'
+p22
+asS'Canning Town:Eastbound:Docklands Light Railway'
+p23
+(lp24
+S'Star Lane::Docklands Light Railway'
+p25
+aS'East India::Docklands Light Railway'
+p26
+aS'Canning Town:Westbound:Docklands Light Railway'
+p27
+aS'Canning Town:entrance'
+p28
+asS'Deptford Bridge:exit'
+p29
+(lp30
+S'Deptford Bridge:entrance'
+p31
+aS'Deptford Bridge::Docklands Light Railway'
+p32
+asS'Elverson Road::Docklands Light Railway'
+p33
+(lp34
+S'Lewisham::Docklands Light Railway'
+p35
+aS'Deptford Bridge::Docklands Light Railway'
+p36
+aS'Elverson Road:entrance'
+p37
+asS'Shadwell:exit'
+p38
+(lp39
+S'Shadwell:entrance'
+p40
+aS'Shadwell:Westbound:Docklands Light Railway'
+p41
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p42
+asS'Beckton:entrance'
+p43
+(lp44
+sS'Lewisham:exit'
+p45
+(lp46
+S'Lewisham:entrance'
+p47
+aS'Lewisham::Docklands Light Railway'
+p48
+asS'Abbey Road:exit'
+p49
+(lp50
+S'Abbey Road:entrance'
+p51
+aS'Abbey Road::Docklands Light Railway'
+p52
+asS'Pontoon Dock::Docklands Light Railway'
+p53
+(lp54
+S'West Silvertown::Docklands Light Railway'
+p55
+aS'London City Airport::Docklands Light Railway'
+p56
+aS'Pontoon Dock:entrance'
+p57
+asS'King George V::Docklands Light Railway'
+p58
+(lp59
+S'Woolwich Arsenal::Docklands Light Railway'
+p60
+aS'London City Airport::Docklands Light Railway'
+p61
+aS'King George V:entrance'
+p62
+asS'Pontoon Dock:entrance'
+p63
+(lp64
+sS'Poplar:Beckton Branch:Docklands Light Railway'
+p65
+(lp66
+S'Westferry:Eastbound:Docklands Light Railway'
+p67
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p68
+aS'Poplar:entrance'
+p69
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p70
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p71
+asS'Beckton Park::Docklands Light Railway'
+p72
+(lp73
+S'Royal Albert::Docklands Light Railway'
+p74
+aS'Cyprus::Docklands Light Railway'
+p75
+aS'Beckton Park:entrance'
+p76
+asS'Shadwell:entrance'
+p77
+(lp78
+sS'East India::Docklands Light Railway'
+p79
+(lp80
+S'Canning Town:Westbound:Docklands Light Railway'
+p81
+aS'Blackwall::Docklands Light Railway'
+p82
+aS'East India:entrance'
+p83
+asS'Gallions Reach:entrance'
+p84
+(lp85
+sS'East India:entrance'
+p86
+(lp87
+sS'Stratford High Street:exit'
+p88
+(lp89
+S'Stratford High Street:entrance'
+p90
+aS'Stratford High Street::Docklands Light Railway'
+p91
+asS'Bank::Docklands Light Railway'
+p92
+(lp93
+S'Shadwell:Westbound:Docklands Light Railway'
+p94
+aS'Bank:entrance'
+p95
+asS'Langdon Park:exit'
+p96
+(lp97
+S'Langdon Park:entrance'
+p98
+aS'Langdon Park::Docklands Light Railway'
+p99
+asS'Limehouse:entrance'
+p100
+(lp101
+sS'Crossharbour:entrance'
+p102
+(lp103
+sS'Star Lane::Docklands Light Railway'
+p104
+(lp105
+S'West Ham::Docklands Light Railway'
+p106
+aS'Canning Town:Westbound:Docklands Light Railway'
+p107
+aS'Star Lane:entrance'
+p108
+asS'Prince Regent:entrance'
+p109
+(lp110
+sS'Langdon Park:entrance'
+p111
+(lp112
+sS'Westferry:Westbound:Docklands Light Railway'
+p113
+(lp114
+S'West India Quay:Northbound:Docklands Light Railway'
+p115
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p116
+aS'Westferry:entrance'
+p117
+aS'Westferry:Eastbound:Docklands Light Railway'
+p118
+asS'West Silvertown::Docklands Light Railway'
+p119
+(lp120
+S'Canning Town:Eastbound:Docklands Light Railway'
+p121
+aS'Pontoon Dock::Docklands Light Railway'
+p122
+aS'West Silvertown:entrance'
+p123
+asS'Cutty Sark:exit'
+p124
+(lp125
+S'Cutty Sark:entrance'
+p126
+aS'Cutty Sark::Docklands Light Railway'
+p127
+asS'West India Quay:exit'
+p128
+(lp129
+S'West India Quay:entrance'
+p130
+aS'West India Quay:Southbound:Docklands Light Railway'
+p131
+aS'West India Quay:Northbound:Docklands Light Railway'
+p132
+asS'Bank:entrance'
+p133
+(lp134
+sS'Tower Gateway::Docklands Light Railway'
+p135
+(lp136
+S'Shadwell:Westbound:Docklands Light Railway'
+p137
+aS'Tower Gateway:entrance'
+p138
+asS'Bow Church::Docklands Light Railway'
+p139
+(lp140
+S'Pudding Mill Lane::Docklands Light Railway'
+p141
+aS'Devons Road::Docklands Light Railway'
+p142
+aS'Bow Church:entrance'
+p143
+asS'Canning Town:Westbound:Docklands Light Railway'
+p144
+(lp145
+S'Royal Victoria::Docklands Light Railway'
+p146
+aS'West Silvertown::Docklands Light Railway'
+p147
+aS'Canning Town:entrance'
+p148
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p149
+asS'Stratford International:exit'
+p150
+(lp151
+S'Stratford International:entrance'
+p152
+aS'Stratford International::Docklands Light Railway'
+p153
+asS'Devons Road::Docklands Light Railway'
+p154
+(lp155
+S'Langdon Park::Docklands Light Railway'
+p156
+aS'Bow Church::Docklands Light Railway'
+p157
+aS'Devons Road:entrance'
+p158
+asS'Mudchute:exit'
+p159
+(lp160
+S'Mudchute:entrance'
+p161
+aS'Mudchute::Docklands Light Railway'
+p162
+asS'Elverson Road:entrance'
+p163
+(lp164
+sS'Devons Road:exit'
+p165
+(lp166
+S'Devons Road:entrance'
+p167
+aS'Devons Road::Docklands Light Railway'
+p168
+asS'London City Airport::Docklands Light Railway'
+p169
+(lp170
+S'King George V::Docklands Light Railway'
+p171
+aS'Pontoon Dock::Docklands Light Railway'
+p172
+aS'London City Airport:entrance'
+p173
+asS'West India Quay:entrance'
+p174
+(lp175
+sS'Woolwich Arsenal:entrance'
+p176
+(lp177
+sS'Royal Victoria:exit'
+p178
+(lp179
+S'Royal Victoria:entrance'
+p180
+aS'Royal Victoria::Docklands Light Railway'
+p181
+asS'Mudchute::Docklands Light Railway'
+p182
+(lp183
+S'Crossharbour::Docklands Light Railway'
+p184
+aS'Island Gardens::Docklands Light Railway'
+p185
+aS'Mudchute:entrance'
+p186
+asS'Devons Road:entrance'
+p187
+(lp188
+sS'Canary Wharf:entrance'
+p189
+(lp190
+sS'Gallions Reach::Docklands Light Railway'
+p191
+(lp192
+S'Beckton::Docklands Light Railway'
+p193
+aS'Cyprus::Docklands Light Railway'
+p194
+aS'Gallions Reach:entrance'
+p195
+asS'Blackwall:entrance'
+p196
+(lp197
+sS'Cyprus:entrance'
+p198
+(lp199
+sS'Deptford Bridge::Docklands Light Railway'
+p200
+(lp201
+S'Greenwich::Docklands Light Railway'
+p202
+aS'Elverson Road::Docklands Light Railway'
+p203
+aS'Deptford Bridge:entrance'
+p204
+asS'Cyprus:exit'
+p205
+(lp206
+S'Cyprus:entrance'
+p207
+aS'Cyprus::Docklands Light Railway'
+p208
+asS'Blackwall:exit'
+p209
+(lp210
+S'Blackwall:entrance'
+p211
+aS'Blackwall::Docklands Light Railway'
+p212
+asS'Poplar:exit'
+p213
+(lp214
+S'Poplar:entrance'
+p215
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p216
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p217
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p218
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p219
+asS'West Silvertown:entrance'
+p220
+(lp221
+sS'Royal Albert::Docklands Light Railway'
+p222
+(lp223
+S'Beckton Park::Docklands Light Railway'
+p224
+aS'Prince Regent::Docklands Light Railway'
+p225
+aS'Royal Albert:entrance'
+p226
+asS'Deptford Bridge:entrance'
+p227
+(lp228
+sS'Abbey Road:entrance'
+p229
+(lp230
+sS'Pudding Mill Lane::Docklands Light Railway'
+p231
+(lp232
+S'Bow Church::Docklands Light Railway'
+p233
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p234
+aS'Pudding Mill Lane:entrance'
+p235
+asS'Island Gardens::Docklands Light Railway'
+p236
+(lp237
+S'Mudchute::Docklands Light Railway'
+p238
+aS'Cutty Sark::Docklands Light Railway'
+p239
+aS'Island Gardens:entrance'
+p240
+asS'Prince Regent::Docklands Light Railway'
+p241
+(lp242
+S'Royal Albert::Docklands Light Railway'
+p243
+aS'Custom House::Docklands Light Railway'
+p244
+aS'Prince Regent:entrance'
+p245
+asS'Heron Quays:entrance'
+p246
+(lp247
+sS'Stratford International::Docklands Light Railway'
+p248
+(lp249
+S'Stratford:Canning Town Branch:Docklands Light Railway'
+p250
+aS'Stratford International:entrance'
+p251
+asS'West Ham:entrance'
+p252
+(lp253
+sS'West India Quay:Southbound:Docklands Light Railway'
+p254
+(lp255
+S'Westferry:Eastbound:Docklands Light Railway'
+p256
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p257
+aS'West India Quay:entrance'
+p258
+aS'West India Quay:Northbound:Docklands Light Railway'
+p259
+asS'Shadwell:Eastbound:Docklands Light Railway'
+p260
+(lp261
+S'Bank::Docklands Light Railway'
+p262
+aS'Tower Gateway::Docklands Light Railway'
+p263
+aS'Shadwell:Westbound:Docklands Light Railway'
+p264
+aS'Shadwell:entrance'
+p265
+asS'Custom House::Docklands Light Railway'
+p266
+(lp267
+S'Royal Victoria::Docklands Light Railway'
+p268
+aS'Prince Regent::Docklands Light Railway'
+p269
+aS'Custom House:entrance'
+p270
+asS'Royal Albert:exit'
+p271
+(lp272
+S'Royal Albert:entrance'
+p273
+aS'Royal Albert::Docklands Light Railway'
+p274
+asS'Stratford International:entrance'
+p275
+(lp276
+sS'Gallions Reach:exit'
+p277
+(lp278
+S'Gallions Reach:entrance'
+p279
+aS'Gallions Reach::Docklands Light Railway'
+p280
+asS'Canary Wharf::Docklands Light Railway'
+p281
+(lp282
+S'West India Quay:Southbound:Docklands Light Railway'
+p283
+aS'Heron Quays::Docklands Light Railway'
+p284
+aS'Canary Wharf:entrance'
+p285
+asS'East India:exit'
+p286
+(lp287
+S'East India:entrance'
+p288
+aS'East India::Docklands Light Railway'
+p289
+asS'Beckton Park:entrance'
+p290
+(lp291
+sS'West Silvertown:exit'
+p292
+(lp293
+S'West Silvertown:entrance'
+p294
+aS'West Silvertown::Docklands Light Railway'
+p295
+asS'Beckton::Docklands Light Railway'
+p296
+(lp297
+S'Gallions Reach::Docklands Light Railway'
+p298
+aS'Beckton:entrance'
+p299
+asS'Heron Quays:exit'
+p300
+(lp301
+S'Heron Quays:entrance'
+p302
+aS'Heron Quays::Docklands Light Railway'
+p303
+asS'Westferry:exit'
+p304
+(lp305
+S'Westferry:entrance'
+p306
+aS'Westferry:Westbound:Docklands Light Railway'
+p307
+aS'Westferry:Eastbound:Docklands Light Railway'
+p308
+asS'Canning Town:exit'
+p309
+(lp310
+S'Canning Town:entrance'
+p311
+aS'Canning Town:Westbound:Docklands Light Railway'
+p312
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p313
+asS'Prince Regent:exit'
+p314
+(lp315
+S'Prince Regent:entrance'
+p316
+aS'Prince Regent::Docklands Light Railway'
+p317
+asS'Langdon Park::Docklands Light Railway'
+p318
+(lp319
+S'Devons Road::Docklands Light Railway'
+p320
+aS'All Saints::Docklands Light Railway'
+p321
+aS'Langdon Park:entrance'
+p322
+asS'West India Quay:Northbound:Docklands Light Railway'
+p323
+(lp324
+S'Canary Wharf::Docklands Light Railway'
+p325
+aS'West India Quay:Southbound:Docklands Light Railway'
+p326
+aS'West India Quay:entrance'
+p327
+asS'Greenwich:exit'
+p328
+(lp329
+S'Greenwich:entrance'
+p330
+aS'Greenwich::Docklands Light Railway'
+p331
+asS'South Quay::Docklands Light Railway'
+p332
+(lp333
+S'Crossharbour::Docklands Light Railway'
+p334
+aS'Heron Quays::Docklands Light Railway'
+p335
+aS'South Quay:entrance'
+p336
+asS'Heron Quays::Docklands Light Railway'
+p337
+(lp338
+S'Canary Wharf::Docklands Light Railway'
+p339
+aS'South Quay::Docklands Light Railway'
+p340
+aS'Heron Quays:entrance'
+p341
+asS'South Quay:entrance'
+p342
+(lp343
+sS'All Saints:exit'
+p344
+(lp345
+S'All Saints:entrance'
+p346
+aS'All Saints::Docklands Light Railway'
+p347
+asS'All Saints:entrance'
+p348
+(lp349
+sS'Stratford:Lewisham Branch:Docklands Light Railway'
+p350
+(lp351
+S'Pudding Mill Lane::Docklands Light Railway'
+p352
+aS'Stratford:entrance'
+p353
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p354
+asS'Pudding Mill Lane:entrance'
+p355
+(lp356
+sS'Poplar:Bank Branch:Docklands Light Railway'
+p357
+(lp358
+S'Blackwall::Docklands Light Railway'
+p359
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p360
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p361
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p362
+aS'Poplar:entrance'
+p363
+asS'Mudchute:entrance'
+p364
+(lp365
+sS'Westferry:entrance'
+p366
+(lp367
+sS'South Quay:exit'
+p368
+(lp369
+S'South Quay:entrance'
+p370
+aS'South Quay::Docklands Light Railway'
+p371
+asS'All Saints::Docklands Light Railway'
+p372
+(lp373
+S'Langdon Park::Docklands Light Railway'
+p374
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p375
+aS'All Saints:entrance'
+p376
+asS'Poplar:Lewisham Branch:Docklands Light Railway'
+p377
+(lp378
+S'All Saints::Docklands Light Railway'
+p379
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p380
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p381
+aS'Poplar:entrance'
+p382
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p383
+asS'Elverson Road:exit'
+p384
+(lp385
+S'Elverson Road:entrance'
+p386
+aS'Elverson Road::Docklands Light Railway'
+p387
+asS'Westferry:Eastbound:Docklands Light Railway'
+p388
+(lp389
+S'Limehouse::Docklands Light Railway'
+p390
+aS'Westferry:Westbound:Docklands Light Railway'
+p391
+aS'Westferry:entrance'
+p392
+asS'Greenwich:entrance'
+p393
+(lp394
+sS'Royal Albert:entrance'
+p395
+(lp396
+sS'King George V:exit'
+p397
+(lp398
+S'King George V:entrance'
+p399
+aS'King George V::Docklands Light Railway'
+p400
+asS'Limehouse:exit'
+p401
+(lp402
+S'Limehouse:entrance'
+p403
+aS'Limehouse::Docklands Light Railway'
+p404
+asS'Custom House:entrance'
+p405
+(lp406
+sS'Abbey Road::Docklands Light Railway'
+p407
+(lp408
+S'Stratford High Street::Docklands Light Railway'
+p409
+aS'West Ham::Docklands Light Railway'
+p410
+aS'Abbey Road:entrance'
+p411
+asS'Blackwall::Docklands Light Railway'
+p412
+(lp413
+S'East India::Docklands Light Railway'
+p414
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p415
+aS'Blackwall:entrance'
+p416
+asS'Custom House:exit'
+p417
+(lp418
+S'Custom House:entrance'
+p419
+aS'Custom House::Docklands Light Railway'
+p420
+asS'Bank:exit'
+p421
+(lp422
+S'Bank:entrance'
+p423
+aS'Bank::Docklands Light Railway'
+p424
+asS'Shadwell:Westbound:Docklands Light Railway'
+p425
+(lp426
+S'Limehouse::Docklands Light Railway'
+p427
+aS'Shadwell:entrance'
+p428
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p429
+asS'Lewisham:entrance'
+p430
+(lp431
+sS'West Ham::Docklands Light Railway'
+p432
+(lp433
+S'Star Lane::Docklands Light Railway'
+p434
+aS'Abbey Road::Docklands Light Railway'
+p435
+aS'West Ham:entrance'
+p436
+asS'Stratford:exit'
+p437
+(lp438
+S'Stratford:entrance'
+p439
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p440
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p441
+asS'Bow Church:entrance'
+p442
+(lp443
+sS'Tower Gateway:exit'
+p444
+(lp445
+S'Tower Gateway:entrance'
+p446
+aS'Tower Gateway::Docklands Light Railway'
+p447
+asS'London City Airport:entrance'
+p448
+(lp449
+sS'Bow Church:exit'
+p450
+(lp451
+S'Bow Church:entrance'
+p452
+aS'Bow Church::Docklands Light Railway'
+p453
+asS'Stratford:entrance'
+p454
+(lp455
+sS'Tower Gateway:entrance'
+p456
+(lp457
+sS'West Ham:exit'
+p458
+(lp459
+S'West Ham:entrance'
+p460
+aS'West Ham::Docklands Light Railway'
+p461
+asS'Star Lane:entrance'
+p462
+(lp463
+sS'Pudding Mill Lane:exit'
+p464
+(lp465
+S'Pudding Mill Lane:entrance'
+p466
+aS'Pudding Mill Lane::Docklands Light Railway'
+p467
+asS'Royal Victoria::Docklands Light Railway'
+p468
+(lp469
+S'Custom House::Docklands Light Railway'
+p470
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p471
+aS'Royal Victoria:entrance'
+p472
+asS'Limehouse::Docklands Light Railway'
+p473
+(lp474
+S'Shadwell:Eastbound:Docklands Light Railway'
+p475
+aS'Westferry:Westbound:Docklands Light Railway'
+p476
+aS'Limehouse:entrance'
+p477
+asS'Island Gardens:exit'
+p478
+(lp479
+S'Island Gardens:entrance'
+p480
+aS'Island Gardens::Docklands Light Railway'
+p481
+asS'Cutty Sark::Docklands Light Railway'
+p482
+(lp483
+S'Greenwich::Docklands Light Railway'
+p484
+aS'Island Gardens::Docklands Light Railway'
+p485
+aS'Cutty Sark:entrance'
+p486
+asS'Stratford:Canning Town Branch:Docklands Light Railway'
+p487
+(lp488
+S'Stratford High Street::Docklands Light Railway'
+p489
+aS'Stratford International::Docklands Light Railway'
+p490
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p491
+aS'Stratford:entrance'
+p492
+asS'Crossharbour::Docklands Light Railway'
+p493
+(lp494
+S'Mudchute::Docklands Light Railway'
+p495
+aS'South Quay::Docklands Light Railway'
+p496
+aS'Crossharbour:entrance'
+p497
+asS'Cutty Sark:entrance'
+p498
+(lp499
+sS'Woolwich Arsenal:exit'
+p500
+(lp501
+S'Woolwich Arsenal:entrance'
+p502
+aS'Woolwich Arsenal::Docklands Light Railway'
+p503
+asS'London City Airport:exit'
+p504
+(lp505
+S'London City Airport:entrance'
+p506
+aS'London City Airport::Docklands Light Railway'
+p507
+asS'Pontoon Dock:exit'
+p508
+(lp509
+S'Pontoon Dock:entrance'
+p510
+aS'Pontoon Dock::Docklands Light Railway'
+p511
+asS'King George V:entrance'
+p512
+(lp513
+sS'Greenwich::Docklands Light Railway'
+p514
+(lp515
+S'Cutty Sark::Docklands Light Railway'
+p516
+aS'Deptford Bridge::Docklands Light Railway'
+p517
+aS'Greenwich:entrance'
+p518
+asS'Beckton Park:exit'
+p519
+(lp520
+S'Beckton Park:entrance'
+p521
+aS'Beckton Park::Docklands Light Railway'
+p522
+asS'Poplar:Stratford Branch:Docklands Light Railway'
+p523
+(lp524
+S'West India Quay:Northbound:Docklands Light Railway'
+p525
+aS'Poplar:entrance'
+p526
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p527
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p528
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p529
+asS'Star Lane:exit'
+p530
+(lp531
+S'Star Lane:entrance'
+p532
+aS'Star Lane::Docklands Light Railway'
+p533
+asS'Crossharbour:exit'
+p534
+(lp535
+S'Crossharbour:entrance'
+p536
+aS'Crossharbour::Docklands Light Railway'
+p537
+asS'Stratford High Street:entrance'
+p538
+(lp539
+sS'Stratford High Street::Docklands Light Railway'
+p540
+(lp541
+S'Abbey Road::Docklands Light Railway'
+p542
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p543
+aS'Stratford High Street:entrance'
+p544
+asS'Canary Wharf:exit'
+p545
+(lp546
+S'Canary Wharf:entrance'
+p547
+aS'Canary Wharf::Docklands Light Railway'
+p548
+asS'Woolwich Arsenal::Docklands Light Railway'
+p549
+(lp550
+S'King George V::Docklands Light Railway'
+p551
+aS'Woolwich Arsenal:entrance'
+p552
+asS'Poplar:entrance'
+p553
+(lp554
+sS'Lewisham::Docklands Light Railway'
+p555
+(lp556
+S'Elverson Road::Docklands Light Railway'
+p557
+aS'Lewisham:entrance'
+p558
+asS'Royal Victoria:entrance'
+p559
+(lp560
+ssS'node_neighbors'
+p561
+(dp562
+g10
+(lp563
+S'Canning Town:exit'
+p564
+aS'Canning Town:Westbound:Docklands Light Railway'
+p565
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p566
+asg12
+(lp567
+S'Island Gardens:exit'
+p568
+aS'Island Gardens::Docklands Light Railway'
+p569
+asg14
+(lp570
+S'Beckton Park::Docklands Light Railway'
+p571
+aS'Gallions Reach::Docklands Light Railway'
+p572
+aS'Cyprus:exit'
+p573
+asg19
+(lp574
+sg23
+(lp575
+S'Royal Victoria::Docklands Light Railway'
+p576
+aS'West Silvertown::Docklands Light Railway'
+p577
+aS'Canning Town:exit'
+p578
+aS'Canning Town:Westbound:Docklands Light Railway'
+p579
+asg29
+(lp580
+sg33
+(lp581
+S'Deptford Bridge::Docklands Light Railway'
+p582
+aS'Lewisham::Docklands Light Railway'
+p583
+aS'Elverson Road:exit'
+p584
+asg38
+(lp585
+sg43
+(lp586
+S'Beckton:exit'
+p587
+aS'Beckton::Docklands Light Railway'
+p588
+asg45
+(lp589
+sg49
+(lp590
+sg53
+(lp591
+S'London City Airport::Docklands Light Railway'
+p592
+aS'West Silvertown::Docklands Light Railway'
+p593
+aS'Pontoon Dock:exit'
+p594
+asg58
+(lp595
+S'London City Airport::Docklands Light Railway'
+p596
+aS'Woolwich Arsenal::Docklands Light Railway'
+p597
+aS'King George V:exit'
+p598
+asg63
+(lp599
+S'Pontoon Dock:exit'
+p600
+aS'Pontoon Dock::Docklands Light Railway'
+p601
+asg65
+(lp602
+S'Blackwall::Docklands Light Railway'
+p603
+aS'Poplar:exit'
+p604
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p605
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p606
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p607
+asg72
+(lp608
+S'Cyprus::Docklands Light Railway'
+p609
+aS'Royal Albert::Docklands Light Railway'
+p610
+aS'Beckton Park:exit'
+p611
+asg77
+(lp612
+S'Shadwell:exit'
+p613
+aS'Shadwell:Westbound:Docklands Light Railway'
+p614
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p615
+asg79
+(lp616
+S'Blackwall::Docklands Light Railway'
+p617
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p618
+aS'East India:exit'
+p619
+asg84
+(lp620
+S'Gallions Reach:exit'
+p621
+aS'Gallions Reach::Docklands Light Railway'
+p622
+asg86
+(lp623
+S'East India:exit'
+p624
+aS'East India::Docklands Light Railway'
+p625
+asg88
+(lp626
+sg92
+(lp627
+S'Shadwell:Eastbound:Docklands Light Railway'
+p628
+aS'Bank:exit'
+p629
+asg96
+(lp630
+sg100
+(lp631
+S'Limehouse:exit'
+p632
+aS'Limehouse::Docklands Light Railway'
+p633
+asg102
+(lp634
+S'Crossharbour:exit'
+p635
+aS'Crossharbour::Docklands Light Railway'
+p636
+asg104
+(lp637
+S'Canning Town:Eastbound:Docklands Light Railway'
+p638
+aS'West Ham::Docklands Light Railway'
+p639
+aS'Star Lane:exit'
+p640
+asg109
+(lp641
+S'Prince Regent:exit'
+p642
+aS'Prince Regent::Docklands Light Railway'
+p643
+asg111
+(lp644
+S'Langdon Park:exit'
+p645
+aS'Langdon Park::Docklands Light Railway'
+p646
+asg113
+(lp647
+S'Limehouse::Docklands Light Railway'
+p648
+aS'Westferry:exit'
+p649
+aS'Westferry:Eastbound:Docklands Light Railway'
+p650
+asg119
+(lp651
+S'Canning Town:Westbound:Docklands Light Railway'
+p652
+aS'Pontoon Dock::Docklands Light Railway'
+p653
+aS'West Silvertown:exit'
+p654
+asg124
+(lp655
+sg128
+(lp656
+sg133
+(lp657
+S'Bank:exit'
+p658
+aS'Bank::Docklands Light Railway'
+p659
+asg135
+(lp660
+S'Shadwell:Eastbound:Docklands Light Railway'
+p661
+aS'Tower Gateway:exit'
+p662
+asg139
+(lp663
+S'Devons Road::Docklands Light Railway'
+p664
+aS'Pudding Mill Lane::Docklands Light Railway'
+p665
+aS'Bow Church:exit'
+p666
+asg144
+(lp667
+S'East India::Docklands Light Railway'
+p668
+aS'Star Lane::Docklands Light Railway'
+p669
+aS'Canning Town:exit'
+p670
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p671
+asg150
+(lp672
+sg154
+(lp673
+S'Bow Church::Docklands Light Railway'
+p674
+aS'Langdon Park::Docklands Light Railway'
+p675
+aS'Devons Road:exit'
+p676
+asg159
+(lp677
+sg163
+(lp678
+S'Elverson Road:exit'
+p679
+aS'Elverson Road::Docklands Light Railway'
+p680
+asg165
+(lp681
+sg169
+(lp682
+S'King George V::Docklands Light Railway'
+p683
+aS'Pontoon Dock::Docklands Light Railway'
+p684
+aS'London City Airport:exit'
+p685
+asg174
+(lp686
+S'West India Quay:exit'
+p687
+aS'West India Quay:Southbound:Docklands Light Railway'
+p688
+aS'West India Quay:Northbound:Docklands Light Railway'
+p689
+asg176
+(lp690
+S'Woolwich Arsenal:exit'
+p691
+aS'Woolwich Arsenal::Docklands Light Railway'
+p692
+asg178
+(lp693
+sg182
+(lp694
+S'Crossharbour::Docklands Light Railway'
+p695
+aS'Island Gardens::Docklands Light Railway'
+p696
+aS'Mudchute:exit'
+p697
+asg187
+(lp698
+S'Devons Road:exit'
+p699
+aS'Devons Road::Docklands Light Railway'
+p700
+asg189
+(lp701
+S'Canary Wharf:exit'
+p702
+aS'Canary Wharf::Docklands Light Railway'
+p703
+asg191
+(lp704
+S'Beckton::Docklands Light Railway'
+p705
+aS'Cyprus::Docklands Light Railway'
+p706
+aS'Gallions Reach:exit'
+p707
+asg196
+(lp708
+S'Blackwall:exit'
+p709
+aS'Blackwall::Docklands Light Railway'
+p710
+asg198
+(lp711
+S'Cyprus:exit'
+p712
+aS'Cyprus::Docklands Light Railway'
+p713
+asg200
+(lp714
+S'Elverson Road::Docklands Light Railway'
+p715
+aS'Greenwich::Docklands Light Railway'
+p716
+aS'Deptford Bridge:exit'
+p717
+asg205
+(lp718
+sg209
+(lp719
+sg213
+(lp720
+sg220
+(lp721
+S'West Silvertown:exit'
+p722
+aS'West Silvertown::Docklands Light Railway'
+p723
+asg222
+(lp724
+S'Beckton Park::Docklands Light Railway'
+p725
+aS'Prince Regent::Docklands Light Railway'
+p726
+aS'Royal Albert:exit'
+p727
+asg227
+(lp728
+S'Deptford Bridge:exit'
+p729
+aS'Deptford Bridge::Docklands Light Railway'
+p730
+asg229
+(lp731
+S'Abbey Road:exit'
+p732
+aS'Abbey Road::Docklands Light Railway'
+p733
+asg231
+(lp734
+S'Bow Church::Docklands Light Railway'
+p735
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p736
+aS'Pudding Mill Lane:exit'
+p737
+asg236
+(lp738
+S'Cutty Sark::Docklands Light Railway'
+p739
+aS'Mudchute::Docklands Light Railway'
+p740
+aS'Island Gardens:exit'
+p741
+asg241
+(lp742
+S'Custom House::Docklands Light Railway'
+p743
+aS'Royal Albert::Docklands Light Railway'
+p744
+aS'Prince Regent:exit'
+p745
+asg246
+(lp746
+S'Heron Quays:exit'
+p747
+aS'Heron Quays::Docklands Light Railway'
+p748
+asg248
+(lp749
+S'Stratford:Canning Town Branch:Docklands Light Railway'
+p750
+aS'Stratford International:exit'
+p751
+asg252
+(lp752
+S'West Ham:exit'
+p753
+aS'West Ham::Docklands Light Railway'
+p754
+asg254
+(lp755
+S'Canary Wharf::Docklands Light Railway'
+p756
+aS'West India Quay:exit'
+p757
+aS'West India Quay:Northbound:Docklands Light Railway'
+p758
+asg260
+(lp759
+S'Limehouse::Docklands Light Railway'
+p760
+aS'Shadwell:exit'
+p761
+aS'Shadwell:Westbound:Docklands Light Railway'
+p762
+asg266
+(lp763
+S'Prince Regent::Docklands Light Railway'
+p764
+aS'Royal Victoria::Docklands Light Railway'
+p765
+aS'Custom House:exit'
+p766
+asg271
+(lp767
+sg275
+(lp768
+S'Stratford International:exit'
+p769
+aS'Stratford International::Docklands Light Railway'
+p770
+asg277
+(lp771
+sg281
+(lp772
+S'Heron Quays::Docklands Light Railway'
+p773
+aS'West India Quay:Northbound:Docklands Light Railway'
+p774
+aS'Canary Wharf:exit'
+p775
+asg286
+(lp776
+sg290
+(lp777
+S'Beckton Park:exit'
+p778
+aS'Beckton Park::Docklands Light Railway'
+p779
+asg292
+(lp780
+sg296
+(lp781
+S'Gallions Reach::Docklands Light Railway'
+p782
+aS'Beckton:exit'
+p783
+asg300
+(lp784
+sg304
+(lp785
+sg309
+(lp786
+sg314
+(lp787
+sg318
+(lp788
+S'All Saints::Docklands Light Railway'
+p789
+aS'Devons Road::Docklands Light Railway'
+p790
+aS'Langdon Park:exit'
+p791
+asg323
+(lp792
+S'Poplar:Stratford Branch:Docklands Light Railway'
+p793
+aS'Westferry:Westbound:Docklands Light Railway'
+p794
+aS'West India Quay:exit'
+p795
+aS'West India Quay:Southbound:Docklands Light Railway'
+p796
+asg328
+(lp797
+sg332
+(lp798
+S'Crossharbour::Docklands Light Railway'
+p799
+aS'Heron Quays::Docklands Light Railway'
+p800
+aS'South Quay:exit'
+p801
+asg337
+(lp802
+S'Canary Wharf::Docklands Light Railway'
+p803
+aS'South Quay::Docklands Light Railway'
+p804
+aS'Heron Quays:exit'
+p805
+asg342
+(lp806
+S'South Quay:exit'
+p807
+aS'South Quay::Docklands Light Railway'
+p808
+asg344
+(lp809
+sg348
+(lp810
+S'All Saints:exit'
+p811
+aS'All Saints::Docklands Light Railway'
+p812
+asg350
+(lp813
+S'Pudding Mill Lane::Docklands Light Railway'
+p814
+aS'Stratford:exit'
+p815
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p816
+asg355
+(lp817
+S'Pudding Mill Lane:exit'
+p818
+aS'Pudding Mill Lane::Docklands Light Railway'
+p819
+asg357
+(lp820
+S'Westferry:Westbound:Docklands Light Railway'
+p821
+aS'Poplar:exit'
+p822
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p823
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p824
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p825
+asg364
+(lp826
+S'Mudchute:exit'
+p827
+aS'Mudchute::Docklands Light Railway'
+p828
+asg366
+(lp829
+S'Westferry:exit'
+p830
+aS'Westferry:Westbound:Docklands Light Railway'
+p831
+aS'Westferry:Eastbound:Docklands Light Railway'
+p832
+asg368
+(lp833
+sg372
+(lp834
+S'Langdon Park::Docklands Light Railway'
+p835
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p836
+aS'All Saints:exit'
+p837
+asg377
+(lp838
+S'West India Quay:Southbound:Docklands Light Railway'
+p839
+aS'Poplar:exit'
+p840
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p841
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p842
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p843
+asg384
+(lp844
+sg388
+(lp845
+S'Poplar:Beckton Branch:Docklands Light Railway'
+p846
+aS'West India Quay:Southbound:Docklands Light Railway'
+p847
+aS'Westferry:exit'
+p848
+aS'Westferry:Westbound:Docklands Light Railway'
+p849
+asg393
+(lp850
+S'Greenwich:exit'
+p851
+aS'Greenwich::Docklands Light Railway'
+p852
+asg395
+(lp853
+S'Royal Albert:exit'
+p854
+aS'Royal Albert::Docklands Light Railway'
+p855
+asg397
+(lp856
+sg401
+(lp857
+sg405
+(lp858
+S'Custom House:exit'
+p859
+aS'Custom House::Docklands Light Railway'
+p860
+asg407
+(lp861
+S'Stratford High Street::Docklands Light Railway'
+p862
+aS'West Ham::Docklands Light Railway'
+p863
+aS'Abbey Road:exit'
+p864
+asg412
+(lp865
+S'East India::Docklands Light Railway'
+p866
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p867
+aS'Blackwall:exit'
+p868
+asg417
+(lp869
+sg421
+(lp870
+sg425
+(lp871
+S'Bank::Docklands Light Railway'
+p872
+aS'Tower Gateway::Docklands Light Railway'
+p873
+aS'Shadwell:exit'
+p874
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p875
+asg430
+(lp876
+S'Lewisham:exit'
+p877
+aS'Lewisham::Docklands Light Railway'
+p878
+asg432
+(lp879
+S'Abbey Road::Docklands Light Railway'
+p880
+aS'Star Lane::Docklands Light Railway'
+p881
+aS'West Ham:exit'
+p882
+asg437
+(lp883
+sg442
+(lp884
+S'Bow Church:exit'
+p885
+aS'Bow Church::Docklands Light Railway'
+p886
+asg444
+(lp887
+sg448
+(lp888
+S'London City Airport:exit'
+p889
+aS'London City Airport::Docklands Light Railway'
+p890
+asg450
+(lp891
+sg454
+(lp892
+S'Stratford:exit'
+p893
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p894
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p895
+asg456
+(lp896
+S'Tower Gateway:exit'
+p897
+aS'Tower Gateway::Docklands Light Railway'
+p898
+asg458
+(lp899
+sg462
+(lp900
+S'Star Lane:exit'
+p901
+aS'Star Lane::Docklands Light Railway'
+p902
+asg464
+(lp903
+sg468
+(lp904
+S'Canning Town:Westbound:Docklands Light Railway'
+p905
+aS'Custom House::Docklands Light Railway'
+p906
+aS'Royal Victoria:exit'
+p907
+asg473
+(lp908
+S'Shadwell:Westbound:Docklands Light Railway'
+p909
+aS'Westferry:Eastbound:Docklands Light Railway'
+p910
+aS'Limehouse:exit'
+p911
+asg478
+(lp912
+sg482
+(lp913
+S'Greenwich::Docklands Light Railway'
+p914
+aS'Island Gardens::Docklands Light Railway'
+p915
+aS'Cutty Sark:exit'
+p916
+asg487
+(lp917
+S'Stratford High Street::Docklands Light Railway'
+p918
+aS'Stratford International::Docklands Light Railway'
+p919
+aS'Stratford:exit'
+p920
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p921
+asg493
+(lp922
+S'Mudchute::Docklands Light Railway'
+p923
+aS'South Quay::Docklands Light Railway'
+p924
+aS'Crossharbour:exit'
+p925
+asg498
+(lp926
+S'Cutty Sark:exit'
+p927
+aS'Cutty Sark::Docklands Light Railway'
+p928
+asg500
+(lp929
+sg504
+(lp930
+sg508
+(lp931
+sg512
+(lp932
+S'King George V:exit'
+p933
+aS'King George V::Docklands Light Railway'
+p934
+asg514
+(lp935
+S'Cutty Sark::Docklands Light Railway'
+p936
+aS'Deptford Bridge::Docklands Light Railway'
+p937
+aS'Greenwich:exit'
+p938
+asg519
+(lp939
+sg523
+(lp940
+S'All Saints::Docklands Light Railway'
+p941
+aS'Poplar:exit'
+p942
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p943
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p944
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p945
+asg530
+(lp946
+sg534
+(lp947
+sg538
+(lp948
+S'Stratford High Street:exit'
+p949
+aS'Stratford High Street::Docklands Light Railway'
+p950
+asg540
+(lp951
+S'Abbey Road::Docklands Light Railway'
+p952
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p953
+aS'Stratford High Street:exit'
+p954
+asg545
+(lp955
+sg549
+(lp956
+S'King George V::Docklands Light Railway'
+p957
+aS'Woolwich Arsenal:exit'
+p958
+asg553
+(lp959
+S'Poplar:exit'
+p960
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p961
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p962
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p963
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p964
+asg555
+(lp965
+S'Elverson Road::Docklands Light Railway'
+p966
+aS'Lewisham:exit'
+p967
+asg559
+(lp968
+S'Royal Victoria:exit'
+p969
+aS'Royal Victoria::Docklands Light Railway'
+p970
+assS'node_attr'
+p971
+(dp972
+g10
+(lp973
+sg12
+(lp974
+sg14
+(lp975
+sg19
+(lp976
+sg23
+(lp977
+sg29
+(lp978
+sg33
+(lp979
+sg38
+(lp980
+sg43
+(lp981
+sg45
+(lp982
+sg49
+(lp983
+sg53
+(lp984
+sg58
+(lp985
+sg63
+(lp986
+sg65
+(lp987
+sg72
+(lp988
+sg77
+(lp989
+sg79
+(lp990
+sg84
+(lp991
+sg86
+(lp992
+sg88
+(lp993
+sg92
+(lp994
+sg96
+(lp995
+sg100
+(lp996
+sg102
+(lp997
+sg104
+(lp998
+sg109
+(lp999
+sg111
+(lp1000
+sg113
+(lp1001
+sg119
+(lp1002
+sg124
+(lp1003
+sg128
+(lp1004
+sg133
+(lp1005
+sg135
+(lp1006
+sg139
+(lp1007
+sg144
+(lp1008
+sg150
+(lp1009
+sg154
+(lp1010
+sg159
+(lp1011
+sg163
+(lp1012
+sg165
+(lp1013
+sg169
+(lp1014
+sg174
+(lp1015
+sg176
+(lp1016
+sg178
+(lp1017
+sg182
+(lp1018
+sg187
+(lp1019
+sg189
+(lp1020
+sg191
+(lp1021
+sg196
+(lp1022
+sg198
+(lp1023
+sg200
+(lp1024
+sg205
+(lp1025
+sg209
+(lp1026
+sg213
+(lp1027
+sg220
+(lp1028
+sg222
+(lp1029
+sg227
+(lp1030
+sg229
+(lp1031
+sg231
+(lp1032
+sg236
+(lp1033
+sg241
+(lp1034
+sg246
+(lp1035
+sg248
+(lp1036
+sg252
+(lp1037
+sg254
+(lp1038
+sg260
+(lp1039
+sg266
+(lp1040
+sg271
+(lp1041
+sg275
+(lp1042
+sg277
+(lp1043
+sg281
+(lp1044
+sg286
+(lp1045
+sg290
+(lp1046
+sg292
+(lp1047
+sg296
+(lp1048
+sg300
+(lp1049
+sg304
+(lp1050
+sg309
+(lp1051
+sg314
+(lp1052
+sg318
+(lp1053
+sg323
+(lp1054
+sg328
+(lp1055
+sg332
+(lp1056
+sg337
+(lp1057
+sg342
+(lp1058
+sg344
+(lp1059
+sg348
+(lp1060
+sg350
+(lp1061
+sg355
+(lp1062
+sg357
+(lp1063
+sg364
+(lp1064
+sg366
+(lp1065
+sg368
+(lp1066
+sg372
+(lp1067
+sg377
+(lp1068
+sg384
+(lp1069
+sg388
+(lp1070
+sg393
+(lp1071
+sg395
+(lp1072
+sg397
+(lp1073
+sg401
+(lp1074
+sg405
+(lp1075
+sg407
+(lp1076
+sg412
+(lp1077
+sg417
+(lp1078
+sg421
+(lp1079
+sg425
+(lp1080
+sg430
+(lp1081
+sg432
+(lp1082
+sg437
+(lp1083
+sg442
+(lp1084
+sg444
+(lp1085
+sg448
+(lp1086
+sg450
+(lp1087
+sg454
+(lp1088
+sg456
+(lp1089
+sg458
+(lp1090
+sg462
+(lp1091
+sg464
+(lp1092
+sg468
+(lp1093
+sg473
+(lp1094
+sg478
+(lp1095
+sg482
+(lp1096
+sg487
+(lp1097
+sg493
+(lp1098
+sg498
+(lp1099
+sg500
+(lp1100
+sg504
+(lp1101
+sg508
+(lp1102
+sg512
+(lp1103
+sg514
+(lp1104
+sg519
+(lp1105
+sg523
+(lp1106
+sg530
+(lp1107
+sg534
+(lp1108
+sg538
+(lp1109
+sg540
+(lp1110
+sg545
+(lp1111
+sg549
+(lp1112
+sg553
+(lp1113
+sg555
+(lp1114
+sg559
+(lp1115
+ssS'edge_attr'
+p1116
+(dp1117
+sS'edge_properties'
+p1118
+(dp1119
+(g308
+g848
+tp1120
+(dp1121
+S'weight'
+p1122
+I0
+sS'label'
+p1123
+S''
+p1124
+ss(g321
+g835
+tp1125
+(dp1126
+g1122
+F1.2532927717693831
+sg1123
+g1124
+ss(g340
+g800
+tp1127
+(dp1128
+g1122
+F1.061726010712617
+sg1123
+g1124
+ss(g466
+g818
+tp1129
+(dp1130
+g1122
+I0
+sg1123
+g1124
+ss(g472
+g970
+tp1131
+(dp1132
+g1122
+I2
+sg1123
+g1124
+ss(g525
+g793
+tp1133
+(dp1134
+g1122
+F0.8726779962499649
+sg1123
+g1124
+ss(g511
+g594
+tp1135
+(dp1136
+g1122
+I0
+sg1123
+g1124
+ss(g149
+g579
+tp1137
+(dp1138
+g1122
+I6
+sg1123
+g1124
+ss(g379
+g836
+tp1139
+(dp1140
+g1122
+F1.3333333333333335
+sg1123
+g1124
+ss(g116
+g821
+tp1141
+(dp1142
+g1122
+F1.5556738237837586
+sg1123
+g1124
+ss(g122
+g593
+tp1143
+(dp1144
+g1122
+F1.5974528590230097
+sg1123
+g1124
+ss(g410
+g880
+tp1145
+(dp1146
+g1122
+F1.2187663041629038
+sg1123
+g1124
+ss(g434
+g639
+tp1147
+(dp1148
+g1122
+F1.8896292471175342
+sg1123
+g1124
+ss(g156
+g790
+tp1149
+(dp1150
+g1122
+F1.8817149167288856
+sg1123
+g1124
+ss(g235
+g819
+tp1151
+(dp1152
+g1122
+I2
+sg1123
+g1124
+ss(g484
+g936
+tp1153
+(dp1154
+g1122
+F1.326601139876086
+sg1123
+g1124
+ss(g336
+g808
+tp1155
+(dp1156
+g1122
+I2
+sg1123
+g1124
+ss(g312
+g670
+tp1157
+(dp1158
+g1122
+I0
+sg1123
+g1124
+ss(g162
+g697
+tp1159
+(dp1160
+g1122
+I0
+sg1123
+g1124
+ss(g521
+g778
+tp1161
+(dp1162
+g1122
+I0
+sg1123
+g1124
+ss(g167
+g699
+tp1163
+(dp1164
+g1122
+I0
+sg1123
+g1124
+ss(g268
+g906
+tp1165
+(dp1166
+g1122
+F1.614810646602273
+sg1123
+g1124
+ss(g244
+g764
+tp1167
+(dp1168
+g1122
+F1.1504186685854307
+sg1123
+g1124
+ss(g18
+g713
+tp1169
+(dp1170
+g1122
+I2
+sg1123
+g1124
+ss(g239
+g915
+tp1171
+(dp1172
+g1122
+F1.4362098530184828
+sg1123
+g1124
+ss(g424
+g629
+tp1173
+(dp1174
+g1122
+I0
+sg1123
+g1124
+ss(g497
+g636
+tp1175
+(dp1176
+g1122
+I2
+sg1123
+g1124
+ss(g295
+g654
+tp1177
+(dp1178
+g1122
+I0
+sg1123
+g1124
+ss(g263
+g661
+tp1179
+(dp1180
+g1122
+F2.5426541829470577
+sg1123
+g1124
+ss(g537
+g925
+tp1181
+(dp1182
+g1122
+I0
+sg1123
+g1124
+ss(g476
+g648
+tp1183
+(dp1184
+g1122
+F2.207703135793807
+sg1123
+g1124
+ss(g203
+g582
+tp1185
+(dp1186
+g1122
+F1.618033988749895
+sg1123
+g1124
+ss(g52
+g864
+tp1187
+(dp1188
+g1122
+I0
+sg1123
+g1124
+ss(g420
+g766
+tp1189
+(dp1190
+g1122
+I0
+sg1123
+g1124
+ss(g217
+g604
+tp1191
+(dp1192
+g1122
+I0
+sg1123
+g1124
+ss(g386
+g679
+tp1193
+(dp1194
+g1122
+I0
+sg1123
+g1124
+ss(g411
+g733
+tp1195
+(dp1196
+g1122
+I2
+sg1123
+g1124
+ss(g331
+g938
+tp1197
+(dp1198
+g1122
+I0
+sg1123
+g1124
+ss(g409
+g952
+tp1199
+(dp1200
+g1122
+F1.7158421863968292
+sg1123
+g1124
+ss(g184
+g923
+tp1201
+(dp1202
+g1122
+F1.4904053603337262
+sg1123
+g1124
+ss(g485
+g739
+tp1203
+(dp1204
+g1122
+F1.4362098530184828
+sg1123
+g1124
+ss(g126
+g927
+tp1205
+(dp1206
+g1122
+I0
+sg1123
+g1124
+ss(g274
+g727
+tp1207
+(dp1208
+g1122
+I0
+sg1123
+g1124
+ss(g71
+g824
+tp1209
+(dp1210
+g1122
+I6
+sg1123
+g1124
+ss(g288
+g624
+tp1211
+(dp1212
+g1122
+I0
+sg1123
+g1124
+ss(g55
+g653
+tp1213
+(dp1214
+g1122
+F1.5974528590230097
+sg1123
+g1124
+ss(g284
+g803
+tp1215
+(dp1216
+g1122
+F0.8901317441298231
+sg1123
+g1124
+ss(g294
+g722
+tp1217
+(dp1218
+g1122
+I0
+sg1123
+g1124
+ss(g440
+g815
+tp1219
+(dp1220
+g1122
+I0
+sg1123
+g1124
+ss(g471
+g576
+tp1221
+(dp1222
+g1122
+F1.9481290611605644
+sg1123
+g1124
+ss(g123
+g723
+tp1223
+(dp1224
+g1122
+I2
+sg1123
+g1124
+ss(g516
+g914
+tp1225
+(dp1226
+g1122
+F1.326601139876086
+sg1123
+g1124
+ss(g330
+g851
+tp1227
+(dp1228
+g1122
+I0
+sg1123
+g1124
+ss(g157
+g664
+tp1229
+(dp1230
+g1122
+F1.536855556210432
+sg1123
+g1124
+ss(g490
+g750
+tp1231
+(dp1232
+g1122
+F1.40043199508779
+sg1123
+g1124
+ss(g26
+g618
+tp1233
+(dp1234
+g1122
+F2.044672744916828
+sg1123
+g1124
+ss(g75
+g571
+tp1235
+(dp1236
+g1122
+F1.5
+sg1123
+g1124
+ss(g542
+g862
+tp1237
+(dp1238
+g1122
+F1.7158421863968292
+sg1123
+g1124
+ss(g557
+g583
+tp1239
+(dp1240
+g1122
+F1.1023126725842283
+sg1123
+g1124
+ss(g518
+g852
+tp1241
+(dp1242
+g1122
+I2
+sg1123
+g1124
+ss(g219
+g822
+tp1243
+(dp1244
+g1122
+I0
+sg1123
+g1124
+ss(g517
+g716
+tp1245
+(dp1246
+g1122
+F1.5671873729054748
+sg1123
+g1124
+ss(g118
+g849
+tp1247
+(dp1248
+g1122
+I6
+sg1123
+g1124
+ss(g57
+g601
+tp1249
+(dp1250
+g1122
+I2
+sg1123
+g1124
+ss(g547
+g702
+tp1251
+(dp1252
+g1122
+I0
+sg1123
+g1124
+ss(g415
+g603
+tp1253
+(dp1254
+g1122
+F1.6785113019775793
+sg1123
+g1124
+ss(g202
+g937
+tp1255
+(dp1256
+g1122
+F1.5671873729054748
+sg1123
+g1124
+ss(g245
+g643
+tp1257
+(dp1258
+g1122
+I2
+sg1123
+g1124
+ss(g62
+g934
+tp1259
+(dp1260
+g1122
+I2
+sg1123
+g1124
+ss(g341
+g748
+tp1261
+(dp1262
+g1122
+I2
+sg1123
+g1124
+ss(g527
+g605
+tp1263
+(dp1264
+g1122
+I6
+sg1123
+g1124
+ss(g299
+g588
+tp1265
+(dp1266
+g1122
+I2
+sg1123
+g1124
+ss(g439
+g893
+tp1267
+(dp1268
+g1122
+I0
+sg1123
+g1124
+ss(g452
+g885
+tp1269
+(dp1270
+g1122
+I0
+sg1123
+g1124
+ss(g507
+g685
+tp1271
+(dp1272
+g1122
+I0
+sg1123
+g1124
+ss(g83
+g625
+tp1273
+(dp1274
+g1122
+I2
+sg1123
+g1124
+ss(g392
+g832
+tp1275
+(dp1276
+g1122
+I2
+sg1123
+g1124
+ss(g262
+g628
+tp1277
+(dp1278
+g1122
+F4.22272040613074
+sg1123
+g1124
+ss(g269
+g743
+tp1279
+(dp1280
+g1122
+F1.1504186685854307
+sg1123
+g1124
+ss(g130
+g687
+tp1281
+(dp1282
+g1122
+I0
+sg1123
+g1124
+ss(g376
+g812
+tp1283
+(dp1284
+g1122
+I2
+sg1123
+g1124
+ss(g346
+g811
+tp1285
+(dp1286
+g1122
+I0
+sg1123
+g1124
+ss(g414
+g617
+tp1287
+(dp1288
+g1122
+F1.02704627669473
+sg1123
+g1124
+ss(g250
+g919
+tp1289
+(dp1290
+g1122
+F1.40043199508779
+sg1123
+g1124
+ss(g208
+g573
+tp1291
+(dp1292
+g1122
+I0
+sg1123
+g1124
+ss(g95
+g659
+tp1293
+(dp1294
+g1122
+I2
+sg1123
+g1124
+ss(g453
+g666
+tp1295
+(dp1296
+g1122
+I0
+sg1123
+g1124
+ss(g47
+g877
+tp1297
+(dp1298
+g1122
+I0
+sg1123
+g1124
+ss(g532
+g901
+tp1299
+(dp1300
+g1122
+I0
+sg1123
+g1124
+ss(g37
+g680
+tp1301
+(dp1302
+g1122
+I2
+sg1123
+g1124
+ss(g81
+g668
+tp1303
+(dp1304
+g1122
+F2.044672744916828
+sg1123
+g1124
+ss(g234
+g814
+tp1305
+(dp1306
+g1122
+F2.2236991874712038
+sg1123
+g1124
+ss(g347
+g837
+tp1307
+(dp1308
+g1122
+I0
+sg1123
+g1124
+ss(g533
+g640
+tp1309
+(dp1310
+g1122
+I0
+sg1123
+g1124
+ss(g36
+g715
+tp1311
+(dp1312
+g1122
+F1.618033988749895
+sg1123
+g1124
+ss(g108
+g902
+tp1313
+(dp1314
+g1122
+I2
+sg1123
+g1124
+ss(g35
+g966
+tp1315
+(dp1316
+g1122
+F1.1023126725842283
+sg1123
+g1124
+ss(g115
+g794
+tp1317
+(dp1318
+g1122
+F1.3346672657079854
+sg1123
+g1124
+ss(g224
+g610
+tp1319
+(dp1320
+g1122
+F1.5137937550497034
+sg1123
+g1124
+ss(g99
+g791
+tp1321
+(dp1322
+g1122
+I0
+sg1123
+g1124
+ss(g374
+g789
+tp1323
+(dp1324
+g1122
+F1.2532927717693831
+sg1123
+g1124
+ss(g423
+g658
+tp1325
+(dp1326
+g1122
+I0
+sg1123
+g1124
+ss(g257
+g839
+tp1327
+(dp1328
+g1122
+F0.8726779962499649
+sg1123
+g1124
+ss(g61
+g683
+tp1329
+(dp1330
+g1122
+F2.135530834656171
+sg1123
+g1124
+ss(g74
+g725
+tp1331
+(dp1332
+g1122
+F1.5137937550497034
+sg1123
+g1124
+ss(g543
+g918
+tp1333
+(dp1334
+g1122
+F1.1991582240253076
+sg1123
+g1124
+ss(g41
+g874
+tp1335
+(dp1336
+g1122
+I0
+sg1123
+g1124
+ss(g258
+g688
+tp1337
+(dp1338
+g1122
+I2
+sg1123
+g1124
+ss(g106
+g881
+tp1339
+(dp1340
+g1122
+F1.8896292471175342
+sg1123
+g1124
+ss(g558
+g878
+tp1341
+(dp1342
+g1122
+I2
+sg1123
+g1124
+ss(g552
+g692
+tp1343
+(dp1344
+g1122
+I2
+sg1123
+g1124
+ss(g502
+g691
+tp1345
+(dp1346
+g1122
+I0
+sg1123
+g1124
+ss(g371
+g801
+tp1347
+(dp1348
+g1122
+I0
+sg1123
+g1124
+ss(g429
+g762
+tp1349
+(dp1350
+g1122
+I6
+sg1123
+g1124
+ss(g216
+g942
+tp1351
+(dp1352
+g1122
+I0
+sg1123
+g1124
+ss(g528
+g841
+tp1353
+(dp1354
+g1122
+I6
+sg1123
+g1124
+ss(g194
+g572
+tp1355
+(dp1356
+g1122
+F1.5137937550497034
+sg1123
+g1124
+ss(g461
+g882
+tp1357
+(dp1358
+g1122
+I0
+sg1123
+g1124
+ss(g416
+g710
+tp1359
+(dp1360
+g1122
+I2
+sg1123
+g1124
+ss(g56
+g684
+tp1361
+(dp1362
+g1122
+F2.4780412589787457
+sg1123
+g1124
+ss(g325
+g774
+tp1363
+(dp1364
+g1122
+F0.7976201904739961
+sg1123
+g1124
+ss(g141
+g735
+tp1365
+(dp1366
+g1122
+F2.0723301886761005
+sg1123
+g1124
+ss(g510
+g600
+tp1367
+(dp1368
+g1122
+I0
+sg1123
+g1124
+ss(g467
+g737
+tp1369
+(dp1370
+g1122
+I0
+sg1123
+g1124
+ss(g302
+g747
+tp1371
+(dp1372
+g1122
+I0
+sg1123
+g1124
+ss(g548
+g775
+tp1373
+(dp1374
+g1122
+I0
+sg1123
+g1124
+ss(g70
+g842
+tp1375
+(dp1376
+g1122
+I6
+sg1123
+g1124
+ss(g419
+g859
+tp1377
+(dp1378
+g1122
+I0
+sg1123
+g1124
+ss(g522
+g611
+tp1379
+(dp1380
+g1122
+I0
+sg1123
+g1124
+ss(g335
+g804
+tp1381
+(dp1382
+g1122
+F1.061726010712617
+sg1123
+g1124
+ss(g492
+g895
+tp1383
+(dp1384
+g1122
+I2
+sg1123
+g1124
+ss(g207
+g712
+tp1385
+(dp1386
+g1122
+I0
+sg1123
+g1124
+ss(g16
+g706
+tp1387
+(dp1388
+g1122
+F1.5137937550497034
+sg1123
+g1124
+ss(g339
+g773
+tp1389
+(dp1390
+g1122
+F0.8901317441298231
+sg1123
+g1124
+ss(g25
+g638
+tp1391
+(dp1392
+g1122
+F1.853744806084219
+sg1123
+g1124
+ss(g256
+g847
+tp1393
+(dp1394
+g1122
+F1.3346672657079854
+sg1123
+g1124
+ss(g460
+g753
+tp1395
+(dp1396
+g1122
+I0
+sg1123
+g1124
+ss(g316
+g642
+tp1397
+(dp1398
+g1122
+I0
+sg1123
+g1124
+ss(g320
+g675
+tp1399
+(dp1400
+g1122
+F1.8817149167288856
+sg1123
+g1124
+ss(g127
+g916
+tp1401
+(dp1402
+g1122
+I0
+sg1123
+g1124
+ss(g186
+g828
+tp1403
+(dp1404
+g1122
+I2
+sg1123
+g1124
+ss(g98
+g645
+tp1405
+(dp1406
+g1122
+I0
+sg1123
+g1124
+ss(g265
+g615
+tp1407
+(dp1408
+g1122
+I2
+sg1123
+g1124
+ss(g390
+g910
+tp1409
+(dp1410
+g1122
+F2.207703135793807
+sg1123
+g1124
+ss(g180
+g969
+tp1411
+(dp1412
+g1122
+I0
+sg1123
+g1124
+ss(g382
+g963
+tp1413
+(dp1414
+g1122
+I2
+sg1123
+g1124
+ss(g311
+g564
+tp1415
+(dp1416
+g1122
+I0
+sg1123
+g1124
+ss(g489
+g953
+tp1417
+(dp1418
+g1122
+F1.1991582240253076
+sg1123
+g1124
+ss(g495
+g695
+tp1419
+(dp1420
+g1122
+F1.4904053603337262
+sg1123
+g1124
+ss(g298
+g705
+tp1421
+(dp1422
+g1122
+F2.166666666666667
+sg1123
+g1124
+ss(g435
+g863
+tp1423
+(dp1424
+g1122
+F1.2187663041629038
+sg1123
+g1124
+ss(g289
+g619
+tp1425
+(dp1426
+g1122
+I0
+sg1123
+g1124
+ss(g381
+g606
+tp1427
+(dp1428
+g1122
+I6
+sg1123
+g1124
+ss(g226
+g855
+tp1429
+(dp1430
+g1122
+I2
+sg1123
+g1124
+ss(g529
+g823
+tp1431
+(dp1432
+g1122
+I6
+sg1123
+g1124
+ss(g251
+g770
+tp1433
+(dp1434
+g1122
+I2
+sg1123
+g1124
+ss(g353
+g894
+tp1435
+(dp1436
+g1122
+I2
+sg1123
+g1124
+ss(g370
+g807
+tp1437
+(dp1438
+g1122
+I0
+sg1123
+g1124
+ss(g264
+g875
+tp1439
+(dp1440
+g1122
+I6
+sg1123
+g1124
+ss(g285
+g703
+tp1441
+(dp1442
+g1122
+I2
+sg1123
+g1124
+ss(g225
+g744
+tp1443
+(dp1444
+g1122
+F2.009230856356236
+sg1123
+g1124
+ss(g359
+g867
+tp1445
+(dp1446
+g1122
+F1.6785113019775793
+sg1123
+g1124
+ss(g363
+g964
+tp1447
+(dp1448
+g1122
+I2
+sg1123
+g1124
+ss(g352
+g736
+tp1449
+(dp1450
+g1122
+F2.2236991874712038
+sg1123
+g1124
+ss(g427
+g909
+tp1451
+(dp1452
+g1122
+F2.5025331180504575
+sg1123
+g1124
+ss(g436
+g754
+tp1453
+(dp1454
+g1122
+I2
+sg1123
+g1124
+ss(g317
+g745
+tp1455
+(dp1456
+g1122
+I0
+sg1123
+g1124
+ss(g193
+g782
+tp1457
+(dp1458
+g1122
+F2.166666666666667
+sg1123
+g1124
+ss(g28
+g566
+tp1459
+(dp1460
+g1122
+I2
+sg1123
+g1124
+ss(g90
+g949
+tp1461
+(dp1462
+g1122
+I0
+sg1123
+g1124
+ss(g391
+g650
+tp1463
+(dp1464
+g1122
+I6
+sg1123
+g1124
+ss(g273
+g854
+tp1465
+(dp1466
+g1122
+I0
+sg1123
+g1124
+ss(g259
+g796
+tp1467
+(dp1468
+g1122
+I6
+sg1123
+g1124
+ss(g82
+g866
+tp1469
+(dp1470
+g1122
+F1.02704627669473
+sg1123
+g1124
+ss(g447
+g662
+tp1471
+(dp1472
+g1122
+I0
+sg1123
+g1124
+ss(g94
+g872
+tp1473
+(dp1474
+g1122
+F4.22272040613074
+sg1123
+g1124
+ss(g158
+g700
+tp1475
+(dp1476
+g1122
+I2
+sg1123
+g1124
+ss(g40
+g613
+tp1477
+(dp1478
+g1122
+I0
+sg1123
+g1124
+ss(g240
+g569
+tp1479
+(dp1480
+g1122
+I2
+sg1123
+g1124
+ss(g283
+g756
+tp1481
+(dp1482
+g1122
+F0.7976201904739961
+sg1123
+g1124
+ss(g361
+g607
+tp1483
+(dp1484
+g1122
+I6
+sg1123
+g1124
+ss(g233
+g665
+tp1485
+(dp1486
+g1122
+F2.0723301886761005
+sg1123
+g1124
+ss(g137
+g873
+tp1487
+(dp1488
+g1122
+F2.5426541829470577
+sg1123
+g1124
+ss(g480
+g568
+tp1489
+(dp1490
+g1122
+I0
+sg1123
+g1124
+ss(g477
+g633
+tp1491
+(dp1492
+g1122
+I2
+sg1123
+g1124
+ss(g173
+g890
+tp1493
+(dp1494
+g1122
+I2
+sg1123
+g1124
+ss(g22
+g783
+tp1495
+(dp1496
+g1122
+I0
+sg1123
+g1124
+ss(g243
+g726
+tp1497
+(dp1498
+g1122
+F2.009230856356236
+sg1123
+g1124
+ss(g491
+g816
+tp1499
+(dp1500
+g1122
+I6
+sg1123
+g1124
+ss(g67
+g846
+tp1501
+(dp1502
+g1122
+F1.5556738237837586
+sg1123
+g1124
+ss(g172
+g592
+tp1503
+(dp1504
+g1122
+F2.4780412589787457
+sg1123
+g1124
+ss(g171
+g596
+tp1505
+(dp1506
+g1122
+F2.135530834656171
+sg1123
+g1124
+ss(g117
+g831
+tp1507
+(dp1508
+g1122
+I2
+sg1123
+g1124
+ss(g375
+g941
+tp1509
+(dp1510
+g1122
+F1.3333333333333335
+sg1123
+g1124
+ss(g218
+g840
+tp1511
+(dp1512
+g1122
+I0
+sg1123
+g1124
+ss(g21
+g587
+tp1513
+(dp1514
+g1122
+I0
+sg1123
+g1124
+ss(g334
+g924
+tp1515
+(dp1516
+g1122
+F1.5356385577131737
+sg1123
+g1124
+ss(g526
+g961
+tp1517
+(dp1518
+g1122
+I2
+sg1123
+g1124
+ss(g185
+g740
+tp1519
+(dp1520
+g1122
+F1.4428090415820634
+sg1123
+g1124
+ss(g326
+g758
+tp1521
+(dp1522
+g1122
+I6
+sg1123
+g1124
+ss(g132
+g795
+tp1523
+(dp1524
+g1122
+I0
+sg1123
+g1124
+ss(g142
+g674
+tp1525
+(dp1526
+g1122
+F1.536855556210432
+sg1123
+g1124
+ss(g313
+g578
+tp1527
+(dp1528
+g1122
+I0
+sg1123
+g1124
+ss(g27
+g671
+tp1529
+(dp1530
+g1122
+I6
+sg1123
+g1124
+ss(g486
+g928
+tp1531
+(dp1532
+g1122
+I2
+sg1123
+g1124
+ss(g403
+g632
+tp1533
+(dp1534
+g1122
+I0
+sg1123
+g1124
+ss(g195
+g622
+tp1535
+(dp1536
+g1122
+I2
+sg1123
+g1124
+ss(g383
+g825
+tp1537
+(dp1538
+g1122
+I6
+sg1123
+g1124
+ss(g360
+g945
+tp1539
+(dp1540
+g1122
+I6
+sg1123
+g1124
+ss(g31
+g729
+tp1541
+(dp1542
+g1122
+I0
+sg1123
+g1124
+ss(g48
+g967
+tp1543
+(dp1544
+g1122
+I0
+sg1123
+g1124
+ss(g32
+g717
+tp1545
+(dp1546
+g1122
+I0
+sg1123
+g1124
+ss(g238
+g696
+tp1547
+(dp1548
+g1122
+F1.4428090415820634
+sg1123
+g1124
+ss(g215
+g960
+tp1549
+(dp1550
+g1122
+I0
+sg1123
+g1124
+ss(g404
+g911
+tp1551
+(dp1552
+g1122
+I0
+sg1123
+g1124
+ss(g303
+g805
+tp1553
+(dp1554
+g1122
+I0
+sg1123
+g1124
+ss(g91
+g954
+tp1555
+(dp1556
+g1122
+I0
+sg1123
+g1124
+ss(g121
+g577
+tp1557
+(dp1558
+g1122
+F3.136068200095657
+sg1123
+g1124
+ss(g327
+g689
+tp1559
+(dp1560
+g1122
+I2
+sg1123
+g1124
+ss(g168
+g676
+tp1561
+(dp1562
+g1122
+I0
+sg1123
+g1124
+ss(g279
+g621
+tp1563
+(dp1564
+g1122
+I0
+sg1123
+g1124
+ss(g470
+g765
+tp1565
+(dp1566
+g1122
+F1.614810646602273
+sg1123
+g1124
+ss(g148
+g565
+tp1567
+(dp1568
+g1122
+I2
+sg1123
+g1124
+ss(g400
+g598
+tp1569
+(dp1570
+g1122
+I0
+sg1123
+g1124
+ss(g322
+g646
+tp1571
+(dp1572
+g1122
+I2
+sg1123
+g1124
+ss(g204
+g730
+tp1573
+(dp1574
+g1122
+I2
+sg1123
+g1124
+ss(g76
+g779
+tp1575
+(dp1576
+g1122
+I2
+sg1123
+g1124
+ss(g354
+g921
+tp1577
+(dp1578
+g1122
+I6
+sg1123
+g1124
+ss(g107
+g669
+tp1579
+(dp1580
+g1122
+F1.853744806084219
+sg1123
+g1124
+ss(g69
+g962
+tp1581
+(dp1582
+g1122
+I2
+sg1123
+g1124
+ss(g60
+g957
+tp1583
+(dp1584
+g1122
+F2.83316785127479
+sg1123
+g1124
+ss(g153
+g751
+tp1585
+(dp1586
+g1122
+I0
+sg1123
+g1124
+ss(g147
+g652
+tp1587
+(dp1588
+g1122
+F3.136068200095657
+sg1123
+g1124
+ss(g428
+g614
+tp1589
+(dp1590
+g1122
+I2
+sg1123
+g1124
+ss(g280
+g707
+tp1591
+(dp1592
+g1122
+I0
+sg1123
+g1124
+ss(g138
+g898
+tp1593
+(dp1594
+g1122
+I2
+sg1123
+g1124
+ss(g307
+g649
+tp1595
+(dp1596
+g1122
+I0
+sg1123
+g1124
+ss(g362
+g843
+tp1597
+(dp1598
+g1122
+I6
+sg1123
+g1124
+ss(g536
+g635
+tp1599
+(dp1600
+g1122
+I0
+sg1123
+g1124
+ss(g399
+g933
+tp1601
+(dp1602
+g1122
+I0
+sg1123
+g1124
+ss(g544
+g950
+tp1603
+(dp1604
+g1122
+I2
+sg1123
+g1124
+ss(g161
+g827
+tp1605
+(dp1606
+g1122
+I0
+sg1123
+g1124
+ss(g503
+g958
+tp1607
+(dp1608
+g1122
+I0
+sg1123
+g1124
+ss(g475
+g760
+tp1609
+(dp1610
+g1122
+F2.5025331180504575
+sg1123
+g1124
+ss(g131
+g757
+tp1611
+(dp1612
+g1122
+I0
+sg1123
+g1124
+ss(g211
+g709
+tp1613
+(dp1614
+g1122
+I0
+sg1123
+g1124
+ss(g551
+g597
+tp1615
+(dp1616
+g1122
+F2.83316785127479
+sg1123
+g1124
+ss(g146
+g905
+tp1617
+(dp1618
+g1122
+F1.9481290611605644
+sg1123
+g1124
+ss(g446
+g897
+tp1619
+(dp1620
+g1122
+I0
+sg1123
+g1124
+ss(g270
+g860
+tp1621
+(dp1622
+g1122
+I2
+sg1123
+g1124
+ss(g441
+g920
+tp1623
+(dp1624
+g1122
+I0
+sg1123
+g1124
+ss(g152
+g769
+tp1625
+(dp1626
+g1122
+I0
+sg1123
+g1124
+ss(g496
+g799
+tp1627
+(dp1628
+g1122
+F1.5356385577131737
+sg1123
+g1124
+ss(g481
+g741
+tp1629
+(dp1630
+g1122
+I0
+sg1123
+g1124
+ss(g17
+g609
+tp1631
+(dp1632
+g1122
+F1.5
+sg1123
+g1124
+ss(g143
+g886
+tp1633
+(dp1634
+g1122
+I2
+sg1123
+g1124
+ss(g68
+g943
+tp1635
+(dp1636
+g1122
+I6
+sg1123
+g1124
+ss(g380
+g944
+tp1637
+(dp1638
+g1122
+I6
+sg1123
+g1124
+ss(g306
+g830
+tp1639
+(dp1640
+g1122
+I0
+sg1123
+g1124
+ss(g51
+g732
+tp1641
+(dp1642
+g1122
+I0
+sg1123
+g1124
+ss(g506
+g889
+tp1643
+(dp1644
+g1122
+I0
+sg1123
+g1124
+ss(g42
+g761
+tp1645
+(dp1646
+g1122
+I0
+sg1123
+g1124
+ss(g212
+g868
+tp1647
+(dp1648
+g1122
+I0
+sg1123
+g1124
+ss(g181
+g907
+tp1649
+(dp1650
+g1122
+I0
+sg1123
+g1124
+ss(g387
+g584
+tp1651
+(dp1652
+g1122
+I0
+sg1123
+g1124
+sssbsS'Docklands Light Railway'
+p1653
+g2
+(g3
+g4
+Ntp1654
+Rp1655
+(dp1656
+g8
+(dp1657
+S'Canning Town:entrance'
+p1658
+(lp1659
+sS'Island Gardens:entrance'
+p1660
+(lp1661
+sS'Cyprus::Docklands Light Railway'
+p1662
+(lp1663
+S'Gallions Reach::Docklands Light Railway'
+p1664
+aS'Beckton Park::Docklands Light Railway'
+p1665
+aS'Cyprus:entrance'
+p1666
+asS'Beckton:exit'
+p1667
+(lp1668
+S'Beckton:entrance'
+p1669
+aS'Beckton::Docklands Light Railway'
+p1670
+asS'Canning Town:Eastbound:Docklands Light Railway'
+p1671
+(lp1672
+S'Star Lane::Docklands Light Railway'
+p1673
+aS'East India::Docklands Light Railway'
+p1674
+aS'Canning Town:Westbound:Docklands Light Railway'
+p1675
+aS'Canning Town:entrance'
+p1676
+asS'Deptford Bridge:exit'
+p1677
+(lp1678
+S'Deptford Bridge:entrance'
+p1679
+aS'Deptford Bridge::Docklands Light Railway'
+p1680
+asS'Elverson Road::Docklands Light Railway'
+p1681
+(lp1682
+S'Lewisham::Docklands Light Railway'
+p1683
+aS'Deptford Bridge::Docklands Light Railway'
+p1684
+aS'Elverson Road:entrance'
+p1685
+asS'Deptford Bridge:entrance'
+p1686
+(lp1687
+sS'Beckton:entrance'
+p1688
+(lp1689
+sS'Lewisham:exit'
+p1690
+(lp1691
+S'Lewisham:entrance'
+p1692
+aS'Lewisham::Docklands Light Railway'
+p1693
+asS'Abbey Road:exit'
+p1694
+(lp1695
+S'Abbey Road:entrance'
+p1696
+aS'Abbey Road::Docklands Light Railway'
+p1697
+asS'Pontoon Dock::Docklands Light Railway'
+p1698
+(lp1699
+S'London City Airport::Docklands Light Railway'
+p1700
+aS'West Silvertown::Docklands Light Railway'
+p1701
+aS'Pontoon Dock:entrance'
+p1702
+asS'King George V::Docklands Light Railway'
+p1703
+(lp1704
+S'Woolwich Arsenal::Docklands Light Railway'
+p1705
+aS'London City Airport::Docklands Light Railway'
+p1706
+aS'King George V:entrance'
+p1707
+asS'Pontoon Dock:entrance'
+p1708
+(lp1709
+sS'Poplar:Beckton Branch:Docklands Light Railway'
+p1710
+(lp1711
+S'Westferry:Eastbound:Docklands Light Railway'
+p1712
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p1713
+aS'Poplar:entrance'
+p1714
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p1715
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p1716
+asS'Beckton Park::Docklands Light Railway'
+p1717
+(lp1718
+S'Royal Albert::Docklands Light Railway'
+p1719
+aS'Cyprus::Docklands Light Railway'
+p1720
+aS'Beckton Park:entrance'
+p1721
+asS'Westferry:entrance'
+p1722
+(lp1723
+sS'East India::Docklands Light Railway'
+p1724
+(lp1725
+S'Canning Town:Westbound:Docklands Light Railway'
+p1726
+aS'Blackwall::Docklands Light Railway'
+p1727
+aS'East India:entrance'
+p1728
+asS'Gallions Reach:entrance'
+p1729
+(lp1730
+sS'East India:entrance'
+p1731
+(lp1732
+sS'Stratford High Street:exit'
+p1733
+(lp1734
+S'Stratford High Street:entrance'
+p1735
+aS'Stratford High Street::Docklands Light Railway'
+p1736
+asS'Shadwell:entrance'
+p1737
+(lp1738
+sS'Bank::Docklands Light Railway'
+p1739
+(lp1740
+S'Shadwell:Westbound:Docklands Light Railway'
+p1741
+aS'Bank:entrance'
+p1742
+asS'Langdon Park:exit'
+p1743
+(lp1744
+S'Langdon Park:entrance'
+p1745
+aS'Langdon Park::Docklands Light Railway'
+p1746
+asS'Limehouse:entrance'
+p1747
+(lp1748
+sS'West Silvertown:entrance'
+p1749
+(lp1750
+sS'Star Lane::Docklands Light Railway'
+p1751
+(lp1752
+S'West Ham::Docklands Light Railway'
+p1753
+aS'Canning Town:Westbound:Docklands Light Railway'
+p1754
+aS'Star Lane:entrance'
+p1755
+asS'Prince Regent:entrance'
+p1756
+(lp1757
+sS'Langdon Park:entrance'
+p1758
+(lp1759
+sS'Westferry:Westbound:Docklands Light Railway'
+p1760
+(lp1761
+S'Poplar:Bank Branch:Docklands Light Railway'
+p1762
+aS'West India Quay:Northbound:Docklands Light Railway'
+p1763
+aS'Westferry:entrance'
+p1764
+aS'Westferry:Eastbound:Docklands Light Railway'
+p1765
+asS'West Silvertown::Docklands Light Railway'
+p1766
+(lp1767
+S'Canning Town:Eastbound:Docklands Light Railway'
+p1768
+aS'Pontoon Dock::Docklands Light Railway'
+p1769
+aS'West Silvertown:entrance'
+p1770
+asS'Cutty Sark:exit'
+p1771
+(lp1772
+S'Cutty Sark:entrance'
+p1773
+aS'Cutty Sark::Docklands Light Railway'
+p1774
+asS'West India Quay:exit'
+p1775
+(lp1776
+S'West India Quay:entrance'
+p1777
+aS'West India Quay:Southbound:Docklands Light Railway'
+p1778
+aS'West India Quay:Northbound:Docklands Light Railway'
+p1779
+asS'Bank:entrance'
+p1780
+(lp1781
+sS'Tower Gateway::Docklands Light Railway'
+p1782
+(lp1783
+S'Shadwell:Westbound:Docklands Light Railway'
+p1784
+aS'Tower Gateway:entrance'
+p1785
+asS'Bow Church::Docklands Light Railway'
+p1786
+(lp1787
+S'Pudding Mill Lane::Docklands Light Railway'
+p1788
+aS'Devons Road::Docklands Light Railway'
+p1789
+aS'Bow Church:entrance'
+p1790
+asS'Canning Town:Westbound:Docklands Light Railway'
+p1791
+(lp1792
+S'West Silvertown::Docklands Light Railway'
+p1793
+aS'Royal Victoria::Docklands Light Railway'
+p1794
+aS'Canning Town:entrance'
+p1795
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p1796
+asS'Stratford International:exit'
+p1797
+(lp1798
+S'Stratford International:entrance'
+p1799
+aS'Stratford International::Docklands Light Railway'
+p1800
+asS'Devons Road::Docklands Light Railway'
+p1801
+(lp1802
+S'Langdon Park::Docklands Light Railway'
+p1803
+aS'Bow Church::Docklands Light Railway'
+p1804
+aS'Devons Road:entrance'
+p1805
+asS'Mudchute:exit'
+p1806
+(lp1807
+S'Mudchute:entrance'
+p1808
+aS'Mudchute::Docklands Light Railway'
+p1809
+asS'Elverson Road:entrance'
+p1810
+(lp1811
+sS'Devons Road:exit'
+p1812
+(lp1813
+S'Devons Road:entrance'
+p1814
+aS'Devons Road::Docklands Light Railway'
+p1815
+asS'West India Quay:entrance'
+p1816
+(lp1817
+sS'Woolwich Arsenal:entrance'
+p1818
+(lp1819
+sS'Blackwall::Docklands Light Railway'
+p1820
+(lp1821
+S'East India::Docklands Light Railway'
+p1822
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p1823
+aS'Blackwall:entrance'
+p1824
+asS'West India Quay:Northbound:Docklands Light Railway'
+p1825
+(lp1826
+S'Canary Wharf::Docklands Light Railway'
+p1827
+aS'West India Quay:Southbound:Docklands Light Railway'
+p1828
+aS'West India Quay:entrance'
+p1829
+asS'Mudchute::Docklands Light Railway'
+p1830
+(lp1831
+S'Island Gardens::Docklands Light Railway'
+p1832
+aS'Crossharbour::Docklands Light Railway'
+p1833
+aS'Mudchute:entrance'
+p1834
+asS'Devons Road:entrance'
+p1835
+(lp1836
+sS'Canary Wharf:entrance'
+p1837
+(lp1838
+sS'Gallions Reach::Docklands Light Railway'
+p1839
+(lp1840
+S'Beckton::Docklands Light Railway'
+p1841
+aS'Cyprus::Docklands Light Railway'
+p1842
+aS'Gallions Reach:entrance'
+p1843
+asS'Blackwall:entrance'
+p1844
+(lp1845
+sS'Cyprus:entrance'
+p1846
+(lp1847
+sS'Deptford Bridge::Docklands Light Railway'
+p1848
+(lp1849
+S'Greenwich::Docklands Light Railway'
+p1850
+aS'Elverson Road::Docklands Light Railway'
+p1851
+aS'Deptford Bridge:entrance'
+p1852
+asS'Cyprus:exit'
+p1853
+(lp1854
+S'Cyprus:entrance'
+p1855
+aS'Cyprus::Docklands Light Railway'
+p1856
+asS'Blackwall:exit'
+p1857
+(lp1858
+S'Blackwall:entrance'
+p1859
+aS'Blackwall::Docklands Light Railway'
+p1860
+asS'Poplar:exit'
+p1861
+(lp1862
+S'Poplar:entrance'
+p1863
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p1864
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p1865
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p1866
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p1867
+asS'Royal Albert::Docklands Light Railway'
+p1868
+(lp1869
+S'Beckton Park::Docklands Light Railway'
+p1870
+aS'Prince Regent::Docklands Light Railway'
+p1871
+aS'Royal Albert:entrance'
+p1872
+asS'Abbey Road:entrance'
+p1873
+(lp1874
+sS'Pudding Mill Lane::Docklands Light Railway'
+p1875
+(lp1876
+S'Bow Church::Docklands Light Railway'
+p1877
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p1878
+aS'Pudding Mill Lane:entrance'
+p1879
+asS'Island Gardens::Docklands Light Railway'
+p1880
+(lp1881
+S'Cutty Sark::Docklands Light Railway'
+p1882
+aS'Mudchute::Docklands Light Railway'
+p1883
+aS'Island Gardens:entrance'
+p1884
+asS'Prince Regent::Docklands Light Railway'
+p1885
+(lp1886
+S'Custom House::Docklands Light Railway'
+p1887
+aS'Royal Albert::Docklands Light Railway'
+p1888
+aS'Prince Regent:entrance'
+p1889
+asS'Stratford International::Docklands Light Railway'
+p1890
+(lp1891
+S'Stratford:Canning Town Branch:Docklands Light Railway'
+p1892
+aS'Stratford International:entrance'
+p1893
+asS'West Ham:entrance'
+p1894
+(lp1895
+sS'West India Quay:Southbound:Docklands Light Railway'
+p1896
+(lp1897
+S'Westferry:Eastbound:Docklands Light Railway'
+p1898
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p1899
+aS'West India Quay:entrance'
+p1900
+aS'West India Quay:Northbound:Docklands Light Railway'
+p1901
+asS'Shadwell:Eastbound:Docklands Light Railway'
+p1902
+(lp1903
+S'Bank::Docklands Light Railway'
+p1904
+aS'Tower Gateway::Docklands Light Railway'
+p1905
+aS'Shadwell:Westbound:Docklands Light Railway'
+p1906
+aS'Shadwell:entrance'
+p1907
+asS'Custom House::Docklands Light Railway'
+p1908
+(lp1909
+S'Prince Regent::Docklands Light Railway'
+p1910
+aS'Royal Victoria::Docklands Light Railway'
+p1911
+aS'Custom House:entrance'
+p1912
+asS'Royal Albert:exit'
+p1913
+(lp1914
+S'Royal Albert:entrance'
+p1915
+aS'Royal Albert::Docklands Light Railway'
+p1916
+asS'Stratford International:entrance'
+p1917
+(lp1918
+sS'Gallions Reach:exit'
+p1919
+(lp1920
+S'Gallions Reach:entrance'
+p1921
+aS'Gallions Reach::Docklands Light Railway'
+p1922
+asS'Canary Wharf::Docklands Light Railway'
+p1923
+(lp1924
+S'Heron Quays::Docklands Light Railway'
+p1925
+aS'West India Quay:Southbound:Docklands Light Railway'
+p1926
+aS'Canary Wharf:entrance'
+p1927
+asS'East India:exit'
+p1928
+(lp1929
+S'East India:entrance'
+p1930
+aS'East India::Docklands Light Railway'
+p1931
+asS'Beckton Park:entrance'
+p1932
+(lp1933
+sS'West Silvertown:exit'
+p1934
+(lp1935
+S'West Silvertown:entrance'
+p1936
+aS'West Silvertown::Docklands Light Railway'
+p1937
+asS'Beckton::Docklands Light Railway'
+p1938
+(lp1939
+S'Gallions Reach::Docklands Light Railway'
+p1940
+aS'Beckton:entrance'
+p1941
+asS'Heron Quays:exit'
+p1942
+(lp1943
+S'Heron Quays:entrance'
+p1944
+aS'Heron Quays::Docklands Light Railway'
+p1945
+asS'Westferry:exit'
+p1946
+(lp1947
+S'Westferry:entrance'
+p1948
+aS'Westferry:Westbound:Docklands Light Railway'
+p1949
+aS'Westferry:Eastbound:Docklands Light Railway'
+p1950
+asS'Canning Town:exit'
+p1951
+(lp1952
+S'Canning Town:entrance'
+p1953
+aS'Canning Town:Westbound:Docklands Light Railway'
+p1954
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p1955
+asS'Prince Regent:exit'
+p1956
+(lp1957
+S'Prince Regent:entrance'
+p1958
+aS'Prince Regent::Docklands Light Railway'
+p1959
+asS'Langdon Park::Docklands Light Railway'
+p1960
+(lp1961
+S'Devons Road::Docklands Light Railway'
+p1962
+aS'All Saints::Docklands Light Railway'
+p1963
+aS'Langdon Park:entrance'
+p1964
+asS'Shadwell:exit'
+p1965
+(lp1966
+S'Shadwell:entrance'
+p1967
+aS'Shadwell:Westbound:Docklands Light Railway'
+p1968
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p1969
+asS'Pontoon Dock:exit'
+p1970
+(lp1971
+S'Pontoon Dock:entrance'
+p1972
+aS'Pontoon Dock::Docklands Light Railway'
+p1973
+asS'Greenwich:exit'
+p1974
+(lp1975
+S'Greenwich:entrance'
+p1976
+aS'Greenwich::Docklands Light Railway'
+p1977
+asS'South Quay::Docklands Light Railway'
+p1978
+(lp1979
+S'Heron Quays::Docklands Light Railway'
+p1980
+aS'Crossharbour::Docklands Light Railway'
+p1981
+aS'South Quay:entrance'
+p1982
+asS'Heron Quays::Docklands Light Railway'
+p1983
+(lp1984
+S'South Quay::Docklands Light Railway'
+p1985
+aS'Canary Wharf::Docklands Light Railway'
+p1986
+aS'Heron Quays:entrance'
+p1987
+asS'Crossharbour:exit'
+p1988
+(lp1989
+S'Crossharbour:entrance'
+p1990
+aS'Crossharbour::Docklands Light Railway'
+p1991
+asS'All Saints:exit'
+p1992
+(lp1993
+S'All Saints:entrance'
+p1994
+aS'All Saints::Docklands Light Railway'
+p1995
+asS'All Saints:entrance'
+p1996
+(lp1997
+sS'Stratford:Lewisham Branch:Docklands Light Railway'
+p1998
+(lp1999
+S'Pudding Mill Lane::Docklands Light Railway'
+p2000
+aS'Stratford:entrance'
+p2001
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p2002
+asS'Pudding Mill Lane:entrance'
+p2003
+(lp2004
+sS'Poplar:Bank Branch:Docklands Light Railway'
+p2005
+(lp2006
+S'Blackwall::Docklands Light Railway'
+p2007
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p2008
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p2009
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p2010
+aS'Poplar:entrance'
+p2011
+asS'Mudchute:entrance'
+p2012
+(lp2013
+sS'Lewisham:entrance'
+p2014
+(lp2015
+sS'South Quay:exit'
+p2016
+(lp2017
+S'South Quay:entrance'
+p2018
+aS'South Quay::Docklands Light Railway'
+p2019
+asS'All Saints::Docklands Light Railway'
+p2020
+(lp2021
+S'Langdon Park::Docklands Light Railway'
+p2022
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p2023
+aS'All Saints:entrance'
+p2024
+asS'Poplar:Lewisham Branch:Docklands Light Railway'
+p2025
+(lp2026
+S'All Saints::Docklands Light Railway'
+p2027
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p2028
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p2029
+aS'Poplar:entrance'
+p2030
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p2031
+asS'Elverson Road:exit'
+p2032
+(lp2033
+S'Elverson Road:entrance'
+p2034
+aS'Elverson Road::Docklands Light Railway'
+p2035
+asS'Westferry:Eastbound:Docklands Light Railway'
+p2036
+(lp2037
+S'Limehouse::Docklands Light Railway'
+p2038
+aS'Westferry:Westbound:Docklands Light Railway'
+p2039
+aS'Westferry:entrance'
+p2040
+asS'Greenwich:entrance'
+p2041
+(lp2042
+sS'Royal Albert:entrance'
+p2043
+(lp2044
+sS'King George V:exit'
+p2045
+(lp2046
+S'King George V:entrance'
+p2047
+aS'King George V::Docklands Light Railway'
+p2048
+asS'Limehouse:exit'
+p2049
+(lp2050
+S'Limehouse:entrance'
+p2051
+aS'Limehouse::Docklands Light Railway'
+p2052
+asS'Custom House:entrance'
+p2053
+(lp2054
+sS'Abbey Road::Docklands Light Railway'
+p2055
+(lp2056
+S'Stratford High Street::Docklands Light Railway'
+p2057
+aS'West Ham::Docklands Light Railway'
+p2058
+aS'Abbey Road:entrance'
+p2059
+asS'Royal Victoria:exit'
+p2060
+(lp2061
+S'Royal Victoria:entrance'
+p2062
+aS'Royal Victoria::Docklands Light Railway'
+p2063
+asS'Custom House:exit'
+p2064
+(lp2065
+S'Custom House:entrance'
+p2066
+aS'Custom House::Docklands Light Railway'
+p2067
+asS'Bank:exit'
+p2068
+(lp2069
+S'Bank:entrance'
+p2070
+aS'Bank::Docklands Light Railway'
+p2071
+asS'Shadwell:Westbound:Docklands Light Railway'
+p2072
+(lp2073
+S'Limehouse::Docklands Light Railway'
+p2074
+aS'Shadwell:entrance'
+p2075
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p2076
+asS'Woolwich Arsenal:exit'
+p2077
+(lp2078
+S'Woolwich Arsenal:entrance'
+p2079
+aS'Woolwich Arsenal::Docklands Light Railway'
+p2080
+asS'West Ham::Docklands Light Railway'
+p2081
+(lp2082
+S'Star Lane::Docklands Light Railway'
+p2083
+aS'Abbey Road::Docklands Light Railway'
+p2084
+aS'West Ham:entrance'
+p2085
+asS'Stratford:exit'
+p2086
+(lp2087
+S'Stratford:entrance'
+p2088
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p2089
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p2090
+asS'Bow Church:entrance'
+p2091
+(lp2092
+sS'Tower Gateway:exit'
+p2093
+(lp2094
+S'Tower Gateway:entrance'
+p2095
+aS'Tower Gateway::Docklands Light Railway'
+p2096
+asS'London City Airport:entrance'
+p2097
+(lp2098
+sS'Bow Church:exit'
+p2099
+(lp2100
+S'Bow Church:entrance'
+p2101
+aS'Bow Church::Docklands Light Railway'
+p2102
+asS'Stratford:entrance'
+p2103
+(lp2104
+sS'Tower Gateway:entrance'
+p2105
+(lp2106
+sS'West Ham:exit'
+p2107
+(lp2108
+S'West Ham:entrance'
+p2109
+aS'West Ham::Docklands Light Railway'
+p2110
+asS'Star Lane:entrance'
+p2111
+(lp2112
+sS'Pudding Mill Lane:exit'
+p2113
+(lp2114
+S'Pudding Mill Lane:entrance'
+p2115
+aS'Pudding Mill Lane::Docklands Light Railway'
+p2116
+asS'Royal Victoria::Docklands Light Railway'
+p2117
+(lp2118
+S'Custom House::Docklands Light Railway'
+p2119
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p2120
+aS'Royal Victoria:entrance'
+p2121
+asS'Limehouse::Docklands Light Railway'
+p2122
+(lp2123
+S'Westferry:Westbound:Docklands Light Railway'
+p2124
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p2125
+aS'Limehouse:entrance'
+p2126
+asS'Island Gardens:exit'
+p2127
+(lp2128
+S'Island Gardens:entrance'
+p2129
+aS'Island Gardens::Docklands Light Railway'
+p2130
+asS'Cutty Sark::Docklands Light Railway'
+p2131
+(lp2132
+S'Greenwich::Docklands Light Railway'
+p2133
+aS'Island Gardens::Docklands Light Railway'
+p2134
+aS'Cutty Sark:entrance'
+p2135
+asS'Stratford:Canning Town Branch:Docklands Light Railway'
+p2136
+(lp2137
+S'Stratford High Street::Docklands Light Railway'
+p2138
+aS'Stratford International::Docklands Light Railway'
+p2139
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p2140
+aS'Stratford:entrance'
+p2141
+asS'Crossharbour::Docklands Light Railway'
+p2142
+(lp2143
+S'Mudchute::Docklands Light Railway'
+p2144
+aS'South Quay::Docklands Light Railway'
+p2145
+aS'Crossharbour:entrance'
+p2146
+asS'Cutty Sark:entrance'
+p2147
+(lp2148
+sS'London City Airport::Docklands Light Railway'
+p2149
+(lp2150
+S'King George V::Docklands Light Railway'
+p2151
+aS'Pontoon Dock::Docklands Light Railway'
+p2152
+aS'London City Airport:entrance'
+p2153
+asS'London City Airport:exit'
+p2154
+(lp2155
+S'London City Airport:entrance'
+p2156
+aS'London City Airport::Docklands Light Railway'
+p2157
+asS'Heron Quays:entrance'
+p2158
+(lp2159
+sS'King George V:entrance'
+p2160
+(lp2161
+sS'Greenwich::Docklands Light Railway'
+p2162
+(lp2163
+S'Deptford Bridge::Docklands Light Railway'
+p2164
+aS'Cutty Sark::Docklands Light Railway'
+p2165
+aS'Greenwich:entrance'
+p2166
+asS'Beckton Park:exit'
+p2167
+(lp2168
+S'Beckton Park:entrance'
+p2169
+aS'Beckton Park::Docklands Light Railway'
+p2170
+asS'Poplar:Stratford Branch:Docklands Light Railway'
+p2171
+(lp2172
+S'West India Quay:Northbound:Docklands Light Railway'
+p2173
+aS'Poplar:entrance'
+p2174
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p2175
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p2176
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p2177
+asS'Crossharbour:entrance'
+p2178
+(lp2179
+sS'Star Lane:exit'
+p2180
+(lp2181
+S'Star Lane:entrance'
+p2182
+aS'Star Lane::Docklands Light Railway'
+p2183
+asS'South Quay:entrance'
+p2184
+(lp2185
+sS'Stratford High Street:entrance'
+p2186
+(lp2187
+sS'Stratford High Street::Docklands Light Railway'
+p2188
+(lp2189
+S'Abbey Road::Docklands Light Railway'
+p2190
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p2191
+aS'Stratford High Street:entrance'
+p2192
+asS'Canary Wharf:exit'
+p2193
+(lp2194
+S'Canary Wharf:entrance'
+p2195
+aS'Canary Wharf::Docklands Light Railway'
+p2196
+asS'Woolwich Arsenal::Docklands Light Railway'
+p2197
+(lp2198
+S'King George V::Docklands Light Railway'
+p2199
+aS'Woolwich Arsenal:entrance'
+p2200
+asS'Poplar:entrance'
+p2201
+(lp2202
+sS'Lewisham::Docklands Light Railway'
+p2203
+(lp2204
+S'Elverson Road::Docklands Light Railway'
+p2205
+aS'Lewisham:entrance'
+p2206
+asS'Royal Victoria:entrance'
+p2207
+(lp2208
+ssg561
+(dp2209
+g1658
+(lp2210
+S'Canning Town:exit'
+p2211
+aS'Canning Town:Westbound:Docklands Light Railway'
+p2212
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p2213
+asg1660
+(lp2214
+S'Island Gardens:exit'
+p2215
+aS'Island Gardens::Docklands Light Railway'
+p2216
+asg1662
+(lp2217
+S'Beckton Park::Docklands Light Railway'
+p2218
+aS'Gallions Reach::Docklands Light Railway'
+p2219
+aS'Cyprus:exit'
+p2220
+asg1667
+(lp2221
+sg1671
+(lp2222
+S'Royal Victoria::Docklands Light Railway'
+p2223
+aS'West Silvertown::Docklands Light Railway'
+p2224
+aS'Canning Town:exit'
+p2225
+aS'Canning Town:Westbound:Docklands Light Railway'
+p2226
+asg1677
+(lp2227
+sg1681
+(lp2228
+S'Deptford Bridge::Docklands Light Railway'
+p2229
+aS'Lewisham::Docklands Light Railway'
+p2230
+aS'Elverson Road:exit'
+p2231
+asg1686
+(lp2232
+S'Deptford Bridge:exit'
+p2233
+aS'Deptford Bridge::Docklands Light Railway'
+p2234
+asg1688
+(lp2235
+S'Beckton:exit'
+p2236
+aS'Beckton::Docklands Light Railway'
+p2237
+asg1690
+(lp2238
+sg1694
+(lp2239
+sg1698
+(lp2240
+S'London City Airport::Docklands Light Railway'
+p2241
+aS'West Silvertown::Docklands Light Railway'
+p2242
+aS'Pontoon Dock:exit'
+p2243
+asg1703
+(lp2244
+S'London City Airport::Docklands Light Railway'
+p2245
+aS'Woolwich Arsenal::Docklands Light Railway'
+p2246
+aS'King George V:exit'
+p2247
+asg1708
+(lp2248
+S'Pontoon Dock:exit'
+p2249
+aS'Pontoon Dock::Docklands Light Railway'
+p2250
+asg1710
+(lp2251
+S'Blackwall::Docklands Light Railway'
+p2252
+aS'Poplar:exit'
+p2253
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p2254
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p2255
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p2256
+asg1717
+(lp2257
+S'Cyprus::Docklands Light Railway'
+p2258
+aS'Royal Albert::Docklands Light Railway'
+p2259
+aS'Beckton Park:exit'
+p2260
+asg1722
+(lp2261
+S'Westferry:exit'
+p2262
+aS'Westferry:Westbound:Docklands Light Railway'
+p2263
+aS'Westferry:Eastbound:Docklands Light Railway'
+p2264
+asg1724
+(lp2265
+S'Blackwall::Docklands Light Railway'
+p2266
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p2267
+aS'East India:exit'
+p2268
+asg1729
+(lp2269
+S'Gallions Reach:exit'
+p2270
+aS'Gallions Reach::Docklands Light Railway'
+p2271
+asg1731
+(lp2272
+S'East India:exit'
+p2273
+aS'East India::Docklands Light Railway'
+p2274
+asg1733
+(lp2275
+sg1737
+(lp2276
+S'Shadwell:exit'
+p2277
+aS'Shadwell:Westbound:Docklands Light Railway'
+p2278
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p2279
+asg1739
+(lp2280
+S'Shadwell:Eastbound:Docklands Light Railway'
+p2281
+aS'Bank:exit'
+p2282
+asg1743
+(lp2283
+sg1747
+(lp2284
+S'Limehouse:exit'
+p2285
+aS'Limehouse::Docklands Light Railway'
+p2286
+asg1749
+(lp2287
+S'West Silvertown:exit'
+p2288
+aS'West Silvertown::Docklands Light Railway'
+p2289
+asg1751
+(lp2290
+S'Canning Town:Eastbound:Docklands Light Railway'
+p2291
+aS'West Ham::Docklands Light Railway'
+p2292
+aS'Star Lane:exit'
+p2293
+asg1756
+(lp2294
+S'Prince Regent:exit'
+p2295
+aS'Prince Regent::Docklands Light Railway'
+p2296
+asg1758
+(lp2297
+S'Langdon Park:exit'
+p2298
+aS'Langdon Park::Docklands Light Railway'
+p2299
+asg1760
+(lp2300
+S'Limehouse::Docklands Light Railway'
+p2301
+aS'Westferry:exit'
+p2302
+aS'Westferry:Eastbound:Docklands Light Railway'
+p2303
+asg1766
+(lp2304
+S'Canning Town:Westbound:Docklands Light Railway'
+p2305
+aS'Pontoon Dock::Docklands Light Railway'
+p2306
+aS'West Silvertown:exit'
+p2307
+asg1771
+(lp2308
+sg1775
+(lp2309
+sg1780
+(lp2310
+S'Bank:exit'
+p2311
+aS'Bank::Docklands Light Railway'
+p2312
+asg1782
+(lp2313
+S'Shadwell:Eastbound:Docklands Light Railway'
+p2314
+aS'Tower Gateway:exit'
+p2315
+asg1786
+(lp2316
+S'Devons Road::Docklands Light Railway'
+p2317
+aS'Pudding Mill Lane::Docklands Light Railway'
+p2318
+aS'Bow Church:exit'
+p2319
+asg1791
+(lp2320
+S'East India::Docklands Light Railway'
+p2321
+aS'Star Lane::Docklands Light Railway'
+p2322
+aS'Canning Town:exit'
+p2323
+aS'Canning Town:Eastbound:Docklands Light Railway'
+p2324
+asg1797
+(lp2325
+sg1801
+(lp2326
+S'Bow Church::Docklands Light Railway'
+p2327
+aS'Langdon Park::Docklands Light Railway'
+p2328
+aS'Devons Road:exit'
+p2329
+asg1806
+(lp2330
+sg1810
+(lp2331
+S'Elverson Road:exit'
+p2332
+aS'Elverson Road::Docklands Light Railway'
+p2333
+asg1812
+(lp2334
+sg1816
+(lp2335
+S'West India Quay:exit'
+p2336
+aS'West India Quay:Southbound:Docklands Light Railway'
+p2337
+aS'West India Quay:Northbound:Docklands Light Railway'
+p2338
+asg1818
+(lp2339
+S'Woolwich Arsenal:exit'
+p2340
+aS'Woolwich Arsenal::Docklands Light Railway'
+p2341
+asg1820
+(lp2342
+S'East India::Docklands Light Railway'
+p2343
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p2344
+aS'Blackwall:exit'
+p2345
+asg1825
+(lp2346
+S'Poplar:Stratford Branch:Docklands Light Railway'
+p2347
+aS'Westferry:Westbound:Docklands Light Railway'
+p2348
+aS'West India Quay:exit'
+p2349
+aS'West India Quay:Southbound:Docklands Light Railway'
+p2350
+asg1830
+(lp2351
+S'Crossharbour::Docklands Light Railway'
+p2352
+aS'Island Gardens::Docklands Light Railway'
+p2353
+aS'Mudchute:exit'
+p2354
+asg1835
+(lp2355
+S'Devons Road:exit'
+p2356
+aS'Devons Road::Docklands Light Railway'
+p2357
+asg1837
+(lp2358
+S'Canary Wharf:exit'
+p2359
+aS'Canary Wharf::Docklands Light Railway'
+p2360
+asg1839
+(lp2361
+S'Beckton::Docklands Light Railway'
+p2362
+aS'Cyprus::Docklands Light Railway'
+p2363
+aS'Gallions Reach:exit'
+p2364
+asg1844
+(lp2365
+S'Blackwall:exit'
+p2366
+aS'Blackwall::Docklands Light Railway'
+p2367
+asg1846
+(lp2368
+S'Cyprus:exit'
+p2369
+aS'Cyprus::Docklands Light Railway'
+p2370
+asg1848
+(lp2371
+S'Elverson Road::Docklands Light Railway'
+p2372
+aS'Greenwich::Docklands Light Railway'
+p2373
+aS'Deptford Bridge:exit'
+p2374
+asg1853
+(lp2375
+sg1857
+(lp2376
+sg1861
+(lp2377
+sg1868
+(lp2378
+S'Beckton Park::Docklands Light Railway'
+p2379
+aS'Prince Regent::Docklands Light Railway'
+p2380
+aS'Royal Albert:exit'
+p2381
+asg1873
+(lp2382
+S'Abbey Road:exit'
+p2383
+aS'Abbey Road::Docklands Light Railway'
+p2384
+asg1875
+(lp2385
+S'Bow Church::Docklands Light Railway'
+p2386
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p2387
+aS'Pudding Mill Lane:exit'
+p2388
+asg1880
+(lp2389
+S'Cutty Sark::Docklands Light Railway'
+p2390
+aS'Mudchute::Docklands Light Railway'
+p2391
+aS'Island Gardens:exit'
+p2392
+asg1885
+(lp2393
+S'Custom House::Docklands Light Railway'
+p2394
+aS'Royal Albert::Docklands Light Railway'
+p2395
+aS'Prince Regent:exit'
+p2396
+asg1890
+(lp2397
+S'Stratford:Canning Town Branch:Docklands Light Railway'
+p2398
+aS'Stratford International:exit'
+p2399
+asg1894
+(lp2400
+S'West Ham:exit'
+p2401
+aS'West Ham::Docklands Light Railway'
+p2402
+asg1896
+(lp2403
+S'Canary Wharf::Docklands Light Railway'
+p2404
+aS'West India Quay:exit'
+p2405
+aS'West India Quay:Northbound:Docklands Light Railway'
+p2406
+asg1902
+(lp2407
+S'Limehouse::Docklands Light Railway'
+p2408
+aS'Shadwell:exit'
+p2409
+aS'Shadwell:Westbound:Docklands Light Railway'
+p2410
+asg1908
+(lp2411
+S'Prince Regent::Docklands Light Railway'
+p2412
+aS'Royal Victoria::Docklands Light Railway'
+p2413
+aS'Custom House:exit'
+p2414
+asg1913
+(lp2415
+sg1917
+(lp2416
+S'Stratford International:exit'
+p2417
+aS'Stratford International::Docklands Light Railway'
+p2418
+asg1919
+(lp2419
+sg1923
+(lp2420
+S'Heron Quays::Docklands Light Railway'
+p2421
+aS'West India Quay:Northbound:Docklands Light Railway'
+p2422
+aS'Canary Wharf:exit'
+p2423
+asg1928
+(lp2424
+sg1932
+(lp2425
+S'Beckton Park:exit'
+p2426
+aS'Beckton Park::Docklands Light Railway'
+p2427
+asg1934
+(lp2428
+sg1938
+(lp2429
+S'Gallions Reach::Docklands Light Railway'
+p2430
+aS'Beckton:exit'
+p2431
+asg1942
+(lp2432
+sg1946
+(lp2433
+sg1951
+(lp2434
+sg1956
+(lp2435
+sg1960
+(lp2436
+S'All Saints::Docklands Light Railway'
+p2437
+aS'Devons Road::Docklands Light Railway'
+p2438
+aS'Langdon Park:exit'
+p2439
+asg1965
+(lp2440
+sg1970
+(lp2441
+sg1974
+(lp2442
+sg1978
+(lp2443
+S'Crossharbour::Docklands Light Railway'
+p2444
+aS'Heron Quays::Docklands Light Railway'
+p2445
+aS'South Quay:exit'
+p2446
+asg1983
+(lp2447
+S'Canary Wharf::Docklands Light Railway'
+p2448
+aS'South Quay::Docklands Light Railway'
+p2449
+aS'Heron Quays:exit'
+p2450
+asg1988
+(lp2451
+sg1992
+(lp2452
+sg1996
+(lp2453
+S'All Saints:exit'
+p2454
+aS'All Saints::Docklands Light Railway'
+p2455
+asg1998
+(lp2456
+S'Pudding Mill Lane::Docklands Light Railway'
+p2457
+aS'Stratford:exit'
+p2458
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p2459
+asg2003
+(lp2460
+S'Pudding Mill Lane:exit'
+p2461
+aS'Pudding Mill Lane::Docklands Light Railway'
+p2462
+asg2005
+(lp2463
+S'Westferry:Westbound:Docklands Light Railway'
+p2464
+aS'Poplar:exit'
+p2465
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p2466
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p2467
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p2468
+asg2012
+(lp2469
+S'Mudchute:exit'
+p2470
+aS'Mudchute::Docklands Light Railway'
+p2471
+asg2014
+(lp2472
+S'Lewisham:exit'
+p2473
+aS'Lewisham::Docklands Light Railway'
+p2474
+asg2016
+(lp2475
+sg2020
+(lp2476
+S'Langdon Park::Docklands Light Railway'
+p2477
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p2478
+aS'All Saints:exit'
+p2479
+asg2025
+(lp2480
+S'West India Quay:Southbound:Docklands Light Railway'
+p2481
+aS'Poplar:exit'
+p2482
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p2483
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p2484
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p2485
+asg2032
+(lp2486
+sg2036
+(lp2487
+S'Poplar:Beckton Branch:Docklands Light Railway'
+p2488
+aS'West India Quay:Southbound:Docklands Light Railway'
+p2489
+aS'Westferry:exit'
+p2490
+aS'Westferry:Westbound:Docklands Light Railway'
+p2491
+asg2041
+(lp2492
+S'Greenwich:exit'
+p2493
+aS'Greenwich::Docklands Light Railway'
+p2494
+asg2043
+(lp2495
+S'Royal Albert:exit'
+p2496
+aS'Royal Albert::Docklands Light Railway'
+p2497
+asg2045
+(lp2498
+sg2049
+(lp2499
+sg2053
+(lp2500
+S'Custom House:exit'
+p2501
+aS'Custom House::Docklands Light Railway'
+p2502
+asg2055
+(lp2503
+S'Stratford High Street::Docklands Light Railway'
+p2504
+aS'West Ham::Docklands Light Railway'
+p2505
+aS'Abbey Road:exit'
+p2506
+asg2060
+(lp2507
+sg2064
+(lp2508
+sg2068
+(lp2509
+sg2072
+(lp2510
+S'Bank::Docklands Light Railway'
+p2511
+aS'Tower Gateway::Docklands Light Railway'
+p2512
+aS'Shadwell:exit'
+p2513
+aS'Shadwell:Eastbound:Docklands Light Railway'
+p2514
+asg2077
+(lp2515
+sg2081
+(lp2516
+S'Abbey Road::Docklands Light Railway'
+p2517
+aS'Star Lane::Docklands Light Railway'
+p2518
+aS'West Ham:exit'
+p2519
+asg2086
+(lp2520
+sg2091
+(lp2521
+S'Bow Church:exit'
+p2522
+aS'Bow Church::Docklands Light Railway'
+p2523
+asg2093
+(lp2524
+sg2097
+(lp2525
+S'London City Airport:exit'
+p2526
+aS'London City Airport::Docklands Light Railway'
+p2527
+asg2099
+(lp2528
+sg2103
+(lp2529
+S'Stratford:exit'
+p2530
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p2531
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p2532
+asg2105
+(lp2533
+S'Tower Gateway:exit'
+p2534
+aS'Tower Gateway::Docklands Light Railway'
+p2535
+asg2107
+(lp2536
+sg2111
+(lp2537
+S'Star Lane:exit'
+p2538
+aS'Star Lane::Docklands Light Railway'
+p2539
+asg2113
+(lp2540
+sg2117
+(lp2541
+S'Canning Town:Westbound:Docklands Light Railway'
+p2542
+aS'Custom House::Docklands Light Railway'
+p2543
+aS'Royal Victoria:exit'
+p2544
+asg2122
+(lp2545
+S'Shadwell:Westbound:Docklands Light Railway'
+p2546
+aS'Westferry:Eastbound:Docklands Light Railway'
+p2547
+aS'Limehouse:exit'
+p2548
+asg2127
+(lp2549
+sg2131
+(lp2550
+S'Greenwich::Docklands Light Railway'
+p2551
+aS'Island Gardens::Docklands Light Railway'
+p2552
+aS'Cutty Sark:exit'
+p2553
+asg2136
+(lp2554
+S'Stratford High Street::Docklands Light Railway'
+p2555
+aS'Stratford International::Docklands Light Railway'
+p2556
+aS'Stratford:exit'
+p2557
+aS'Stratford:Lewisham Branch:Docklands Light Railway'
+p2558
+asg2142
+(lp2559
+S'Mudchute::Docklands Light Railway'
+p2560
+aS'South Quay::Docklands Light Railway'
+p2561
+aS'Crossharbour:exit'
+p2562
+asg2147
+(lp2563
+S'Cutty Sark:exit'
+p2564
+aS'Cutty Sark::Docklands Light Railway'
+p2565
+asg2149
+(lp2566
+S'King George V::Docklands Light Railway'
+p2567
+aS'Pontoon Dock::Docklands Light Railway'
+p2568
+aS'London City Airport:exit'
+p2569
+asg2154
+(lp2570
+sg2158
+(lp2571
+S'Heron Quays:exit'
+p2572
+aS'Heron Quays::Docklands Light Railway'
+p2573
+asg2160
+(lp2574
+S'King George V:exit'
+p2575
+aS'King George V::Docklands Light Railway'
+p2576
+asg2162
+(lp2577
+S'Cutty Sark::Docklands Light Railway'
+p2578
+aS'Deptford Bridge::Docklands Light Railway'
+p2579
+aS'Greenwich:exit'
+p2580
+asg2167
+(lp2581
+sg2171
+(lp2582
+S'All Saints::Docklands Light Railway'
+p2583
+aS'Poplar:exit'
+p2584
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p2585
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p2586
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p2587
+asg2178
+(lp2588
+S'Crossharbour:exit'
+p2589
+aS'Crossharbour::Docklands Light Railway'
+p2590
+asg2180
+(lp2591
+sg2184
+(lp2592
+S'South Quay:exit'
+p2593
+aS'South Quay::Docklands Light Railway'
+p2594
+asg2186
+(lp2595
+S'Stratford High Street:exit'
+p2596
+aS'Stratford High Street::Docklands Light Railway'
+p2597
+asg2188
+(lp2598
+S'Abbey Road::Docklands Light Railway'
+p2599
+aS'Stratford:Canning Town Branch:Docklands Light Railway'
+p2600
+aS'Stratford High Street:exit'
+p2601
+asg2193
+(lp2602
+sg2197
+(lp2603
+S'King George V::Docklands Light Railway'
+p2604
+aS'Woolwich Arsenal:exit'
+p2605
+asg2201
+(lp2606
+S'Poplar:exit'
+p2607
+aS'Poplar:Stratford Branch:Docklands Light Railway'
+p2608
+aS'Poplar:Beckton Branch:Docklands Light Railway'
+p2609
+aS'Poplar:Lewisham Branch:Docklands Light Railway'
+p2610
+aS'Poplar:Bank Branch:Docklands Light Railway'
+p2611
+asg2203
+(lp2612
+S'Elverson Road::Docklands Light Railway'
+p2613
+aS'Lewisham:exit'
+p2614
+asg2207
+(lp2615
+S'Royal Victoria:exit'
+p2616
+aS'Royal Victoria::Docklands Light Railway'
+p2617
+assg971
+(dp2618
+g1658
+(lp2619
+sg1660
+(lp2620
+sg1662
+(lp2621
+sg1667
+(lp2622
+sg1671
+(lp2623
+sg1677
+(lp2624
+sg1681
+(lp2625
+sg1686
+(lp2626
+sg1688
+(lp2627
+sg1690
+(lp2628
+sg1694
+(lp2629
+sg1698
+(lp2630
+sg1703
+(lp2631
+sg1708
+(lp2632
+sg1710
+(lp2633
+sg1717
+(lp2634
+sg1722
+(lp2635
+sg1724
+(lp2636
+sg1729
+(lp2637
+sg1731
+(lp2638
+sg1733
+(lp2639
+sg1737
+(lp2640
+sg1739
+(lp2641
+sg1743
+(lp2642
+sg1747
+(lp2643
+sg1749
+(lp2644
+sg1751
+(lp2645
+sg1756
+(lp2646
+sg1758
+(lp2647
+sg1760
+(lp2648
+sg1766
+(lp2649
+sg1771
+(lp2650
+sg1775
+(lp2651
+sg1780
+(lp2652
+sg1782
+(lp2653
+sg1786
+(lp2654
+sg1791
+(lp2655
+sg1797
+(lp2656
+sg1801
+(lp2657
+sg1806
+(lp2658
+sg1810
+(lp2659
+sg1812
+(lp2660
+sg1816
+(lp2661
+sg1818
+(lp2662
+sg1820
+(lp2663
+sg1825
+(lp2664
+sg1830
+(lp2665
+sg1835
+(lp2666
+sg1837
+(lp2667
+sg1839
+(lp2668
+sg1844
+(lp2669
+sg1846
+(lp2670
+sg1848
+(lp2671
+sg1853
+(lp2672
+sg1857
+(lp2673
+sg1861
+(lp2674
+sg1868
+(lp2675
+sg1873
+(lp2676
+sg1875
+(lp2677
+sg1880
+(lp2678
+sg1885
+(lp2679
+sg1890
+(lp2680
+sg1894
+(lp2681
+sg1896
+(lp2682
+sg1902
+(lp2683
+sg1908
+(lp2684
+sg1913
+(lp2685
+sg1917
+(lp2686
+sg1919
+(lp2687
+sg1923
+(lp2688
+sg1928
+(lp2689
+sg1932
+(lp2690
+sg1934
+(lp2691
+sg1938
+(lp2692
+sg1942
+(lp2693
+sg1946
+(lp2694
+sg1951
+(lp2695
+sg1956
+(lp2696
+sg1960
+(lp2697
+sg1965
+(lp2698
+sg1970
+(lp2699
+sg1974
+(lp2700
+sg1978
+(lp2701
+sg1983
+(lp2702
+sg1988
+(lp2703
+sg1992
+(lp2704
+sg1996
+(lp2705
+sg1998
+(lp2706
+sg2003
+(lp2707
+sg2005
+(lp2708
+sg2012
+(lp2709
+sg2014
+(lp2710
+sg2016
+(lp2711
+sg2020
+(lp2712
+sg2025
+(lp2713
+sg2032
+(lp2714
+sg2036
+(lp2715
+sg2041
+(lp2716
+sg2043
+(lp2717
+sg2045
+(lp2718
+sg2049
+(lp2719
+sg2053
+(lp2720
+sg2055
+(lp2721
+sg2060
+(lp2722
+sg2064
+(lp2723
+sg2068
+(lp2724
+sg2072
+(lp2725
+sg2077
+(lp2726
+sg2081
+(lp2727
+sg2086
+(lp2728
+sg2091
+(lp2729
+sg2093
+(lp2730
+sg2097
+(lp2731
+sg2099
+(lp2732
+sg2103
+(lp2733
+sg2105
+(lp2734
+sg2107
+(lp2735
+sg2111
+(lp2736
+sg2113
+(lp2737
+sg2117
+(lp2738
+sg2122
+(lp2739
+sg2127
+(lp2740
+sg2131
+(lp2741
+sg2136
+(lp2742
+sg2142
+(lp2743
+sg2147
+(lp2744
+sg2149
+(lp2745
+sg2154
+(lp2746
+sg2158
+(lp2747
+sg2160
+(lp2748
+sg2162
+(lp2749
+sg2167
+(lp2750
+sg2171
+(lp2751
+sg2178
+(lp2752
+sg2180
+(lp2753
+sg2184
+(lp2754
+sg2186
+(lp2755
+sg2188
+(lp2756
+sg2193
+(lp2757
+sg2197
+(lp2758
+sg2201
+(lp2759
+sg2203
+(lp2760
+sg2207
+(lp2761
+ssg1116
+(dp2762
+sg1118
+(dp2763
+(g1950
+g2490
+tp2764
+(dp2765
+g1122
+I0
+sg1123
+g1124
+ss(g1963
+g2477
+tp2766
+(dp2767
+g1122
+F1.2532927717693831
+sg1123
+g1124
+ss(g1985
+g2445
+tp2768
+(dp2769
+g1122
+F1.061726010712617
+sg1123
+g1124
+ss(g2115
+g2461
+tp2770
+(dp2771
+g1122
+I0
+sg1123
+g1124
+ss(g2121
+g2617
+tp2772
+(dp2773
+g1122
+I2
+sg1123
+g1124
+ss(g2173
+g2347
+tp2774
+(dp2775
+g1122
+F0.8726779962499649
+sg1123
+g1124
+ss(g1973
+g2243
+tp2776
+(dp2777
+g1122
+I0
+sg1123
+g1124
+ss(g1796
+g2226
+tp2778
+(dp2779
+g1122
+I6
+sg1123
+g1124
+ss(g2027
+g2478
+tp2780
+(dp2781
+g1122
+F1.3333333333333335
+sg1123
+g1124
+ss(g1697
+g2506
+tp2782
+(dp2783
+g1122
+I0
+sg1123
+g1124
+ss(g1762
+g2464
+tp2784
+(dp2785
+g1122
+F1.5556738237837586
+sg1123
+g1124
+ss(g1769
+g2242
+tp2786
+(dp2787
+g1122
+F1.5974528590230097
+sg1123
+g1124
+ss(g2058
+g2517
+tp2788
+(dp2789
+g1122
+F1.2187663041629038
+sg1123
+g1124
+ss(g2083
+g2292
+tp2790
+(dp2791
+g1122
+F1.8896292471175342
+sg1123
+g1124
+ss(g1803
+g2438
+tp2792
+(dp2793
+g1122
+F1.8817149167288856
+sg1123
+g1124
+ss(g1879
+g2462
+tp2794
+(dp2795
+g1122
+I2
+sg1123
+g1124
+ss(g2133
+g2578
+tp2796
+(dp2797
+g1122
+F1.326601139876086
+sg1123
+g1124
+ss(g1982
+g2594
+tp2798
+(dp2799
+g1122
+I2
+sg1123
+g1124
+ss(g1954
+g2323
+tp2800
+(dp2801
+g1122
+I0
+sg1123
+g1124
+ss(g1809
+g2354
+tp2802
+(dp2803
+g1122
+I0
+sg1123
+g1124
+ss(g2169
+g2426
+tp2804
+(dp2805
+g1122
+I0
+sg1123
+g1124
+ss(g1814
+g2356
+tp2806
+(dp2807
+g1122
+I0
+sg1123
+g1124
+ss(g1911
+g2543
+tp2808
+(dp2809
+g1122
+F1.614810646602273
+sg1123
+g1124
+ss(g1887
+g2412
+tp2810
+(dp2811
+g1122
+F1.1504186685854307
+sg1123
+g1124
+ss(g1936
+g2288
+tp2812
+(dp2813
+g1122
+I0
+sg1123
+g1124
+ss(g1666
+g2370
+tp2814
+(dp2815
+g1122
+I2
+sg1123
+g1124
+ss(g1882
+g2552
+tp2816
+(dp2817
+g1122
+F1.4362098530184828
+sg1123
+g1124
+ss(g2071
+g2282
+tp2818
+(dp2819
+g1122
+I0
+sg1123
+g1124
+ss(g2146
+g2590
+tp2820
+(dp2821
+g1122
+I2
+sg1123
+g1124
+ss(g1937
+g2307
+tp2822
+(dp2823
+g1122
+I0
+sg1123
+g1124
+ss(g1905
+g2314
+tp2824
+(dp2825
+g1122
+F2.5426541829470577
+sg1123
+g1124
+ss(g1991
+g2562
+tp2826
+(dp2827
+g1122
+I0
+sg1123
+g1124
+ss(g2124
+g2301
+tp2828
+(dp2829
+g1122
+F2.207703135793807
+sg1123
+g1124
+ss(g1851
+g2229
+tp2830
+(dp2831
+g1122
+F1.618033988749895
+sg1123
+g1124
+ss(g2080
+g2605
+tp2832
+(dp2833
+g1122
+I0
+sg1123
+g1124
+ss(g2067
+g2414
+tp2834
+(dp2835
+g1122
+I0
+sg1123
+g1124
+ss(g1865
+g2253
+tp2836
+(dp2837
+g1122
+I0
+sg1123
+g1124
+ss(g2034
+g2332
+tp2838
+(dp2839
+g1122
+I0
+sg1123
+g1124
+ss(g2059
+g2384
+tp2840
+(dp2841
+g1122
+I2
+sg1123
+g1124
+ss(g1977
+g2580
+tp2842
+(dp2843
+g1122
+I0
+sg1123
+g1124
+ss(g2057
+g2599
+tp2844
+(dp2845
+g1122
+F1.7158421863968292
+sg1123
+g1124
+ss(g1833
+g2560
+tp2846
+(dp2847
+g1122
+F1.4904053603337262
+sg1123
+g1124
+ss(g2134
+g2390
+tp2848
+(dp2849
+g1122
+F1.4362098530184828
+sg1123
+g1124
+ss(g1916
+g2381
+tp2850
+(dp2851
+g1122
+I0
+sg1123
+g1124
+ss(g1716
+g2467
+tp2852
+(dp2853
+g1122
+I6
+sg1123
+g1124
+ss(g2024
+g2455
+tp2854
+(dp2855
+g1122
+I2
+sg1123
+g1124
+ss(g1773
+g2564
+tp2856
+(dp2857
+g1122
+I0
+sg1123
+g1124
+ss(g1701
+g2306
+tp2858
+(dp2859
+g1122
+F1.5974528590230097
+sg1123
+g1124
+ss(g1925
+g2448
+tp2860
+(dp2861
+g1122
+F0.8901317441298231
+sg1123
+g1124
+ss(g1742
+g2312
+tp2862
+(dp2863
+g1122
+I2
+sg1123
+g1124
+ss(g2089
+g2458
+tp2864
+(dp2865
+g1122
+I0
+sg1123
+g1124
+ss(g2120
+g2223
+tp2866
+(dp2867
+g1122
+F1.9481290611605644
+sg1123
+g1124
+ss(g1770
+g2289
+tp2868
+(dp2869
+g1122
+I2
+sg1123
+g1124
+ss(g2165
+g2551
+tp2870
+(dp2871
+g1122
+F1.326601139876086
+sg1123
+g1124
+ss(g1976
+g2493
+tp2872
+(dp2873
+g1122
+I0
+sg1123
+g1124
+ss(g1804
+g2317
+tp2874
+(dp2875
+g1122
+F1.536855556210432
+sg1123
+g1124
+ss(g2139
+g2398
+tp2876
+(dp2877
+g1122
+F1.40043199508779
+sg1123
+g1124
+ss(g1785
+g2535
+tp2878
+(dp2879
+g1122
+I2
+sg1123
+g1124
+ss(g1674
+g2267
+tp2880
+(dp2881
+g1122
+F2.044672744916828
+sg1123
+g1124
+ss(g1720
+g2218
+tp2882
+(dp2883
+g1122
+F1.5
+sg1123
+g1124
+ss(g2190
+g2504
+tp2884
+(dp2885
+g1122
+F1.7158421863968292
+sg1123
+g1124
+ss(g2205
+g2230
+tp2886
+(dp2887
+g1122
+F1.1023126725842283
+sg1123
+g1124
+ss(g2166
+g2494
+tp2888
+(dp2889
+g1122
+I2
+sg1123
+g1124
+ss(g1719
+g2379
+tp2890
+(dp2891
+g1122
+F1.5137937550497034
+sg1123
+g1124
+ss(g1765
+g2491
+tp2892
+(dp2893
+g1122
+I6
+sg1123
+g1124
+ss(g1702
+g2250
+tp2894
+(dp2895
+g1122
+I2
+sg1123
+g1124
+ss(g2195
+g2359
+tp2896
+(dp2897
+g1122
+I0
+sg1123
+g1124
+ss(g1823
+g2252
+tp2898
+(dp2899
+g1122
+F1.6785113019775793
+sg1123
+g1124
+ss(g1850
+g2579
+tp2900
+(dp2901
+g1122
+F1.5671873729054748
+sg1123
+g1124
+ss(g1889
+g2296
+tp2902
+(dp2903
+g1122
+I2
+sg1123
+g1124
+ss(g1707
+g2576
+tp2904
+(dp2905
+g1122
+I2
+sg1123
+g1124
+ss(g2175
+g2254
+tp2906
+(dp2907
+g1122
+I6
+sg1123
+g1124
+ss(g1941
+g2237
+tp2908
+(dp2909
+g1122
+I2
+sg1123
+g1124
+ss(g2088
+g2530
+tp2910
+(dp2911
+g1122
+I0
+sg1123
+g1124
+ss(g2101
+g2522
+tp2912
+(dp2913
+g1122
+I0
+sg1123
+g1124
+ss(g1945
+g2450
+tp2914
+(dp2915
+g1122
+I0
+sg1123
+g1124
+ss(g1728
+g2274
+tp2916
+(dp2917
+g1122
+I2
+sg1123
+g1124
+ss(g1904
+g2281
+tp2918
+(dp2919
+g1122
+F4.22272040613074
+sg1123
+g1124
+ss(g1910
+g2394
+tp2920
+(dp2921
+g1122
+F1.1504186685854307
+sg1123
+g1124
+ss(g1777
+g2336
+tp2922
+(dp2923
+g1122
+I0
+sg1123
+g1124
+ss(g1805
+g2357
+tp2924
+(dp2925
+g1122
+I2
+sg1123
+g1124
+ss(g1994
+g2454
+tp2926
+(dp2927
+g1122
+I0
+sg1123
+g1124
+ss(g1822
+g2266
+tp2928
+(dp2929
+g1122
+F1.02704627669473
+sg1123
+g1124
+ss(g1892
+g2556
+tp2930
+(dp2931
+g1122
+F1.40043199508779
+sg1123
+g1124
+ss(g1856
+g2220
+tp2932
+(dp2933
+g1122
+I0
+sg1123
+g1124
+ss(g1829
+g2338
+tp2934
+(dp2935
+g1122
+I2
+sg1123
+g1124
+ss(g2102
+g2319
+tp2936
+(dp2937
+g1122
+I0
+sg1123
+g1124
+ss(g1692
+g2473
+tp2938
+(dp2939
+g1122
+I0
+sg1123
+g1124
+ss(g2182
+g2538
+tp2940
+(dp2941
+g1122
+I0
+sg1123
+g1124
+ss(g1685
+g2333
+tp2942
+(dp2943
+g1122
+I2
+sg1123
+g1124
+ss(g1726
+g2321
+tp2944
+(dp2945
+g1122
+F2.044672744916828
+sg1123
+g1124
+ss(g1878
+g2457
+tp2946
+(dp2947
+g1122
+F2.2236991874712038
+sg1123
+g1124
+ss(g1995
+g2479
+tp2948
+(dp2949
+g1122
+I0
+sg1123
+g1124
+ss(g2183
+g2293
+tp2950
+(dp2951
+g1122
+I0
+sg1123
+g1124
+ss(g1684
+g2372
+tp2952
+(dp2953
+g1122
+F1.618033988749895
+sg1123
+g1124
+ss(g1755
+g2539
+tp2954
+(dp2955
+g1122
+I2
+sg1123
+g1124
+ss(g1683
+g2613
+tp2956
+(dp2957
+g1122
+F1.1023126725842283
+sg1123
+g1124
+ss(g1763
+g2348
+tp2958
+(dp2959
+g1122
+F1.3346672657079854
+sg1123
+g1124
+ss(g1870
+g2259
+tp2960
+(dp2961
+g1122
+F1.5137937550497034
+sg1123
+g1124
+ss(g1746
+g2439
+tp2962
+(dp2963
+g1122
+I0
+sg1123
+g1124
+ss(g2022
+g2437
+tp2964
+(dp2965
+g1122
+F1.2532927717693831
+sg1123
+g1124
+ss(g2070
+g2311
+tp2966
+(dp2967
+g1122
+I0
+sg1123
+g1124
+ss(g1899
+g2481
+tp2968
+(dp2969
+g1122
+F0.8726779962499649
+sg1123
+g1124
+ss(g1706
+g2567
+tp2970
+(dp2971
+g1122
+F2.135530834656171
+sg1123
+g1124
+ss(g2164
+g2373
+tp2972
+(dp2973
+g1122
+F1.5671873729054748
+sg1123
+g1124
+ss(g2191
+g2555
+tp2974
+(dp2975
+g1122
+F1.1991582240253076
+sg1123
+g1124
+ss(g2040
+g2264
+tp2976
+(dp2977
+g1122
+I2
+sg1123
+g1124
+ss(g1900
+g2337
+tp2978
+(dp2979
+g1122
+I2
+sg1123
+g1124
+ss(g1753
+g2518
+tp2980
+(dp2981
+g1122
+F1.8896292471175342
+sg1123
+g1124
+ss(g2206
+g2474
+tp2982
+(dp2983
+g1122
+I2
+sg1123
+g1124
+ss(g2200
+g2341
+tp2984
+(dp2985
+g1122
+I2
+sg1123
+g1124
+ss(g2079
+g2340
+tp2986
+(dp2987
+g1122
+I0
+sg1123
+g1124
+ss(g2019
+g2446
+tp2988
+(dp2989
+g1122
+I0
+sg1123
+g1124
+ss(g2076
+g2410
+tp2990
+(dp2991
+g1122
+I6
+sg1123
+g1124
+ss(g1864
+g2584
+tp2992
+(dp2993
+g1122
+I0
+sg1123
+g1124
+ss(g2176
+g2483
+tp2994
+(dp2995
+g1122
+I6
+sg1123
+g1124
+ss(g1842
+g2219
+tp2996
+(dp2997
+g1122
+F1.5137937550497034
+sg1123
+g1124
+ss(g2110
+g2519
+tp2998
+(dp2999
+g1122
+I0
+sg1123
+g1124
+ss(g1824
+g2367
+tp3000
+(dp3001
+g1122
+I2
+sg1123
+g1124
+ss(g1700
+g2568
+tp3002
+(dp3003
+g1122
+F2.4780412589787457
+sg1123
+g1124
+ss(g1827
+g2422
+tp3004
+(dp3005
+g1122
+F0.7976201904739961
+sg1123
+g1124
+ss(g1789
+g2327
+tp3006
+(dp3007
+g1122
+F1.536855556210432
+sg1123
+g1124
+ss(g1721
+g2427
+tp3008
+(dp3009
+g1122
+I2
+sg1123
+g1124
+ss(g2116
+g2388
+tp3010
+(dp3011
+g1122
+I0
+sg1123
+g1124
+ss(g1944
+g2572
+tp3012
+(dp3013
+g1122
+I0
+sg1123
+g1124
+ss(g2196
+g2423
+tp3014
+(dp3015
+g1122
+I0
+sg1123
+g1124
+ss(g1715
+g2484
+tp3016
+(dp3017
+g1122
+I6
+sg1123
+g1124
+ss(g2066
+g2501
+tp3018
+(dp3019
+g1122
+I0
+sg1123
+g1124
+ss(g2170
+g2260
+tp3020
+(dp3021
+g1122
+I0
+sg1123
+g1124
+ss(g1980
+g2449
+tp3022
+(dp3023
+g1122
+F1.061726010712617
+sg1123
+g1124
+ss(g2141
+g2532
+tp3024
+(dp3025
+g1122
+I2
+sg1123
+g1124
+ss(g1855
+g2369
+tp3026
+(dp3027
+g1122
+I0
+sg1123
+g1124
+ss(g1664
+g2363
+tp3028
+(dp3029
+g1122
+F1.5137937550497034
+sg1123
+g1124
+ss(g1986
+g2421
+tp3030
+(dp3031
+g1122
+F0.8901317441298231
+sg1123
+g1124
+ss(g1673
+g2291
+tp3032
+(dp3033
+g1122
+F1.853744806084219
+sg1123
+g1124
+ss(g1898
+g2489
+tp3034
+(dp3035
+g1122
+F1.3346672657079854
+sg1123
+g1124
+ss(g1930
+g2273
+tp3036
+(dp3037
+g1122
+I0
+sg1123
+g1124
+ss(g2109
+g2401
+tp3038
+(dp3039
+g1122
+I0
+sg1123
+g1124
+ss(g1958
+g2295
+tp3040
+(dp3041
+g1122
+I0
+sg1123
+g1124
+ss(g1962
+g2328
+tp3042
+(dp3043
+g1122
+F1.8817149167288856
+sg1123
+g1124
+ss(g1931
+g2268
+tp3044
+(dp3045
+g1122
+I0
+sg1123
+g1124
+ss(g1834
+g2471
+tp3046
+(dp3047
+g1122
+I2
+sg1123
+g1124
+ss(g1745
+g2298
+tp3048
+(dp3049
+g1122
+I0
+sg1123
+g1124
+ss(g1907
+g2279
+tp3050
+(dp3051
+g1122
+I2
+sg1123
+g1124
+ss(g2038
+g2547
+tp3052
+(dp3053
+g1122
+F2.207703135793807
+sg1123
+g1124
+ss(g1860
+g2345
+tp3054
+(dp3055
+g1122
+I0
+sg1123
+g1124
+ss(g2030
+g2610
+tp3056
+(dp3057
+g1122
+I2
+sg1123
+g1124
+ss(g1901
+g2350
+tp3058
+(dp3059
+g1122
+I6
+sg1123
+g1124
+ss(g1953
+g2211
+tp3060
+(dp3061
+g1122
+I0
+sg1123
+g1124
+ss(g2138
+g2600
+tp3062
+(dp3063
+g1122
+F1.1991582240253076
+sg1123
+g1124
+ss(g2075
+g2278
+tp3064
+(dp3065
+g1122
+I2
+sg1123
+g1124
+ss(g2144
+g2352
+tp3066
+(dp3067
+g1122
+F1.4904053603337262
+sg1123
+g1124
+ss(g1940
+g2362
+tp3068
+(dp3069
+g1122
+F2.166666666666667
+sg1123
+g1124
+ss(g2084
+g2505
+tp3070
+(dp3071
+g1122
+F1.2187663041629038
+sg1123
+g1124
+ss(g1774
+g2553
+tp3072
+(dp3073
+g1122
+I0
+sg1123
+g1124
+ss(g2029
+g2255
+tp3074
+(dp3075
+g1122
+I6
+sg1123
+g1124
+ss(g1872
+g2497
+tp3076
+(dp3077
+g1122
+I2
+sg1123
+g1124
+ss(g2177
+g2466
+tp3078
+(dp3079
+g1122
+I6
+sg1123
+g1124
+ss(g2039
+g2303
+tp3080
+(dp3081
+g1122
+I6
+sg1123
+g1124
+ss(g2001
+g2531
+tp3082
+(dp3083
+g1122
+I2
+sg1123
+g1124
+ss(g2018
+g2593
+tp3084
+(dp3085
+g1122
+I0
+sg1123
+g1124
+ss(g1906
+g2514
+tp3086
+(dp3087
+g1122
+I6
+sg1123
+g1124
+ss(g1927
+g2360
+tp3088
+(dp3089
+g1122
+I2
+sg1123
+g1124
+ss(g1871
+g2395
+tp3090
+(dp3091
+g1122
+F2.009230856356236
+sg1123
+g1124
+ss(g2007
+g2344
+tp3092
+(dp3093
+g1122
+F1.6785113019775793
+sg1123
+g1124
+ss(g2011
+g2611
+tp3094
+(dp3095
+g1122
+I2
+sg1123
+g1124
+ss(g2000
+g2387
+tp3096
+(dp3097
+g1122
+F2.2236991874712038
+sg1123
+g1124
+ss(g2074
+g2546
+tp3098
+(dp3099
+g1122
+F2.5025331180504575
+sg1123
+g1124
+ss(g2085
+g2402
+tp3100
+(dp3101
+g1122
+I2
+sg1123
+g1124
+ss(g1959
+g2396
+tp3102
+(dp3103
+g1122
+I0
+sg1123
+g1124
+ss(g1841
+g2430
+tp3104
+(dp3105
+g1122
+F2.166666666666667
+sg1123
+g1124
+ss(g1676
+g2213
+tp3106
+(dp3107
+g1122
+I2
+sg1123
+g1124
+ss(g1735
+g2596
+tp3108
+(dp3109
+g1122
+I0
+sg1123
+g1124
+ss(g2157
+g2569
+tp3110
+(dp3111
+g1122
+I0
+sg1123
+g1124
+ss(g1764
+g2263
+tp3112
+(dp3113
+g1122
+I2
+sg1123
+g1124
+ss(g1859
+g2366
+tp3114
+(dp3115
+g1122
+I0
+sg1123
+g1124
+ss(g1727
+g2343
+tp3116
+(dp3117
+g1122
+F1.02704627669473
+sg1123
+g1124
+ss(g2096
+g2315
+tp3118
+(dp3119
+g1122
+I0
+sg1123
+g1124
+ss(g1741
+g2511
+tp3120
+(dp3121
+g1122
+F4.22272040613074
+sg1123
+g1124
+ss(g1987
+g2573
+tp3122
+(dp3123
+g1122
+I2
+sg1123
+g1124
+ss(g1967
+g2277
+tp3124
+(dp3125
+g1122
+I0
+sg1123
+g1124
+ss(g1884
+g2216
+tp3126
+(dp3127
+g1122
+I2
+sg1123
+g1124
+ss(g1926
+g2404
+tp3128
+(dp3129
+g1122
+F0.7976201904739961
+sg1123
+g1124
+ss(g1877
+g2318
+tp3130
+(dp3131
+g1122
+F2.0723301886761005
+sg1123
+g1124
+ss(g1784
+g2512
+tp3132
+(dp3133
+g1122
+F2.5426541829470577
+sg1123
+g1124
+ss(g2129
+g2215
+tp3134
+(dp3135
+g1122
+I0
+sg1123
+g1124
+ss(g2126
+g2286
+tp3136
+(dp3137
+g1122
+I2
+sg1123
+g1124
+ss(g1799
+g2417
+tp3138
+(dp3139
+g1122
+I0
+sg1123
+g1124
+ss(g1670
+g2431
+tp3140
+(dp3141
+g1122
+I0
+sg1123
+g1124
+ss(g1888
+g2380
+tp3142
+(dp3143
+g1122
+F2.009230856356236
+sg1123
+g1124
+ss(g2140
+g2459
+tp3144
+(dp3145
+g1122
+I6
+sg1123
+g1124
+ss(g1712
+g2488
+tp3146
+(dp3147
+g1122
+F1.5556738237837586
+sg1123
+g1124
+ss(g2152
+g2241
+tp3148
+(dp3149
+g1122
+F2.4780412589787457
+sg1123
+g1124
+ss(g2151
+g2245
+tp3150
+(dp3151
+g1122
+F2.135530834656171
+sg1123
+g1124
+ss(g2009
+g2256
+tp3152
+(dp3153
+g1122
+I6
+sg1123
+g1124
+ss(g2023
+g2583
+tp3154
+(dp3155
+g1122
+F1.3333333333333335
+sg1123
+g1124
+ss(g1866
+g2482
+tp3156
+(dp3157
+g1122
+I0
+sg1123
+g1124
+ss(g1669
+g2236
+tp3158
+(dp3159
+g1122
+I0
+sg1123
+g1124
+ss(g1981
+g2561
+tp3160
+(dp3161
+g1122
+F1.5356385577131737
+sg1123
+g1124
+ss(g2174
+g2608
+tp3162
+(dp3163
+g1122
+I2
+sg1123
+g1124
+ss(g1832
+g2391
+tp3164
+(dp3165
+g1122
+F1.4428090415820634
+sg1123
+g1124
+ss(g1828
+g2406
+tp3166
+(dp3167
+g1122
+I6
+sg1123
+g1124
+ss(g1779
+g2349
+tp3168
+(dp3169
+g1122
+I0
+sg1123
+g1124
+ss(g1788
+g2386
+tp3170
+(dp3171
+g1122
+F2.0723301886761005
+sg1123
+g1124
+ss(g1955
+g2225
+tp3172
+(dp3173
+g1122
+I0
+sg1123
+g1124
+ss(g1949
+g2302
+tp3174
+(dp3175
+g1122
+I0
+sg1123
+g1124
+ss(g2062
+g2616
+tp3176
+(dp3177
+g1122
+I0
+sg1123
+g1124
+ss(g2135
+g2565
+tp3178
+(dp3179
+g1122
+I2
+sg1123
+g1124
+ss(g2051
+g2285
+tp3180
+(dp3181
+g1122
+I0
+sg1123
+g1124
+ss(g1843
+g2271
+tp3182
+(dp3183
+g1122
+I2
+sg1123
+g1124
+ss(g2031
+g2468
+tp3184
+(dp3185
+g1122
+I6
+sg1123
+g1124
+ss(g2008
+g2587
+tp3186
+(dp3187
+g1122
+I6
+sg1123
+g1124
+ss(g1693
+g2614
+tp3188
+(dp3189
+g1122
+I0
+sg1123
+g1124
+ss(g1680
+g2374
+tp3190
+(dp3191
+g1122
+I0
+sg1123
+g1124
+ss(g1883
+g2353
+tp3192
+(dp3193
+g1122
+F1.4428090415820634
+sg1123
+g1124
+ss(g1863
+g2607
+tp3194
+(dp3195
+g1122
+I0
+sg1123
+g1124
+ss(g2052
+g2548
+tp3196
+(dp3197
+g1122
+I0
+sg1123
+g1124
+ss(g1736
+g2601
+tp3198
+(dp3199
+g1122
+I0
+sg1123
+g1124
+ss(g1768
+g2224
+tp3200
+(dp3201
+g1122
+F3.136068200095657
+sg1123
+g1124
+ss(g2010
+g2485
+tp3202
+(dp3203
+g1122
+I6
+sg1123
+g1124
+ss(g1815
+g2329
+tp3204
+(dp3205
+g1122
+I0
+sg1123
+g1124
+ss(g1921
+g2270
+tp3206
+(dp3207
+g1122
+I0
+sg1123
+g1124
+ss(g2119
+g2413
+tp3208
+(dp3209
+g1122
+F1.614810646602273
+sg1123
+g1124
+ss(g1795
+g2212
+tp3210
+(dp3211
+g1122
+I2
+sg1123
+g1124
+ss(g2048
+g2247
+tp3212
+(dp3213
+g1122
+I0
+sg1123
+g1124
+ss(g1964
+g2299
+tp3214
+(dp3215
+g1122
+I2
+sg1123
+g1124
+ss(g2002
+g2558
+tp3216
+(dp3217
+g1122
+I6
+sg1123
+g1124
+ss(g1679
+g2233
+tp3218
+(dp3219
+g1122
+I0
+sg1123
+g1124
+ss(g1754
+g2322
+tp3220
+(dp3221
+g1122
+F1.853744806084219
+sg1123
+g1124
+ss(g1714
+g2609
+tp3222
+(dp3223
+g1122
+I2
+sg1123
+g1124
+ss(g1705
+g2604
+tp3224
+(dp3225
+g1122
+F2.83316785127479
+sg1123
+g1124
+ss(g1800
+g2399
+tp3226
+(dp3227
+g1122
+I0
+sg1123
+g1124
+ss(g1793
+g2305
+tp3228
+(dp3229
+g1122
+F3.136068200095657
+sg1123
+g1124
+ss(g1972
+g2249
+tp3230
+(dp3231
+g1122
+I0
+sg1123
+g1124
+ss(g1852
+g2234
+tp3232
+(dp3233
+g1122
+I2
+sg1123
+g1124
+ss(g1968
+g2513
+tp3234
+(dp3235
+g1122
+I0
+sg1123
+g1124
+ss(g1915
+g2496
+tp3236
+(dp3237
+g1122
+I0
+sg1123
+g1124
+ss(g2047
+g2575
+tp3238
+(dp3239
+g1122
+I0
+sg1123
+g1124
+ss(g2192
+g2597
+tp3240
+(dp3241
+g1122
+I2
+sg1123
+g1124
+ss(g1675
+g2324
+tp3242
+(dp3243
+g1122
+I6
+sg1123
+g1124
+ss(g1808
+g2470
+tp3244
+(dp3245
+g1122
+I0
+sg1123
+g1124
+ss(g1990
+g2589
+tp3246
+(dp3247
+g1122
+I0
+sg1123
+g1124
+ss(g1922
+g2364
+tp3248
+(dp3249
+g1122
+I0
+sg1123
+g1124
+ss(g2125
+g2408
+tp3250
+(dp3251
+g1122
+F2.5025331180504575
+sg1123
+g1124
+ss(g1778
+g2405
+tp3252
+(dp3253
+g1122
+I0
+sg1123
+g1124
+ss(g2095
+g2534
+tp3254
+(dp3255
+g1122
+I0
+sg1123
+g1124
+ss(g2199
+g2246
+tp3256
+(dp3257
+g1122
+F2.83316785127479
+sg1123
+g1124
+ss(g1794
+g2542
+tp3258
+(dp3259
+g1122
+F1.9481290611605644
+sg1123
+g1124
+ss(g1867
+g2465
+tp3260
+(dp3261
+g1122
+I0
+sg1123
+g1124
+ss(g1912
+g2502
+tp3262
+(dp3263
+g1122
+I2
+sg1123
+g1124
+ss(g2090
+g2557
+tp3264
+(dp3265
+g1122
+I0
+sg1123
+g1124
+ss(g2153
+g2527
+tp3266
+(dp3267
+g1122
+I2
+sg1123
+g1124
+ss(g2145
+g2444
+tp3268
+(dp3269
+g1122
+F1.5356385577131737
+sg1123
+g1124
+ss(g2130
+g2392
+tp3270
+(dp3271
+g1122
+I0
+sg1123
+g1124
+ss(g1665
+g2258
+tp3272
+(dp3273
+g1122
+F1.5
+sg1123
+g1124
+ss(g1790
+g2523
+tp3274
+(dp3275
+g1122
+I2
+sg1123
+g1124
+ss(g1893
+g2418
+tp3276
+(dp3277
+g1122
+I2
+sg1123
+g1124
+ss(g1713
+g2585
+tp3278
+(dp3279
+g1122
+I6
+sg1123
+g1124
+ss(g2028
+g2586
+tp3280
+(dp3281
+g1122
+I6
+sg1123
+g1124
+ss(g1948
+g2262
+tp3282
+(dp3283
+g1122
+I0
+sg1123
+g1124
+ss(g1696
+g2383
+tp3284
+(dp3285
+g1122
+I0
+sg1123
+g1124
+ss(g2156
+g2526
+tp3286
+(dp3287
+g1122
+I0
+sg1123
+g1124
+ss(g1969
+g2409
+tp3288
+(dp3289
+g1122
+I0
+sg1123
+g1124
+ss(g2063
+g2544
+tp3290
+(dp3291
+g1122
+I0
+sg1123
+g1124
+ss(g2035
+g2231
+tp3292
+(dp3293
+g1122
+I0
+sg1123
+g1124
+sssbs.
