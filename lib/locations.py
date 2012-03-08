@@ -122,6 +122,9 @@ def describe_route(origin, destination, graph):
     origin += ":entrance"
     destination += ":exit"
 
+    estimated_time =  shortest_path(graph, origin)[1][destination]
+    #print "Estimated time: %.2d minutes" % estimated_time 
+
     shortest_path_dictionary = shortest_path(graph, origin)[0]
     if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
         raise ValueError("Not found - no such path exists")
