@@ -89,41 +89,12 @@ class WMTLocations():
         else:
             return None
 
-    def check_existence_of(self, column, value):
-        """
-        Check to see if any row in the database has a value in column; returns True if exists, False if not
-        """
-        (where_statement, where_values) = self.make_where_statement({column: value})
-        rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
-        return bool(rows)
-
-    def get_max_value(self, column, params):
-        """
-        Return the maximum value of integer column out of the table given the params given
-        """
-        (where_statement, where_values) = self.make_where_statement(params)
-        return int(self.database.get_value("SELECT MAX(\"%s\") FROM locations WHERE %s" % (column, where_statement), where_values))
-
-    def make_where_statement(self, params):
-        """
-        Convert a dictionary of params and return a statement that can go after a WHERE
-        """
-        if not params:
-            return (" 1 ", ())
-
-        column_names = [row[1] for row in self.database.get_rows("PRAGMA table_info(locations)")]
-        for column in params.keys():
-            if column not in column_names:
-                raise KeyError("Error: Database column %s not in our database" % column)
-        # Construct our SQL statement
-        where_statement = ' AND '.join(['"%s" = ?' % column for (column, value) in params.items()])
-        where_values = tuple([value for (column, value) in params.items()])
-        return (where_statement, where_values)
-
     def describe_route(self, origin, destination, via=None, line=None):
         """
         Return the shortest route between origin and destination
         """
+        if not self.network:
+            raise ValueError("No network information available for these locations")
         if via:
             return self.describe_route(origin, via, line=line) + self.describe_route(via, destination, line=line)[1:]
 
@@ -164,3 +135,34 @@ class WMTLocations():
             if i > 1 and path_taken[i][0] == path_taken[i - 2][0]:
                 return False
         return True
+
+    def check_existence_of(self, column, value):
+        """
+        Check to see if any row in the database has a value in column; returns True if exists, False if not
+        """
+        (where_statement, where_values) = self.make_where_statement({column: value})
+        rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
+        return bool(rows)
+
+    def get_max_value(self, column, params):
+        """
+        Return the maximum value of integer column out of the table given the params given
+        """
+        (where_statement, where_values) = self.make_where_statement(params)
+        return int(self.database.get_value("SELECT MAX(\"%s\") FROM locations WHERE %s" % (column, where_statement), where_values))
+
+    def make_where_statement(self, params):
+        """
+        Convert a dictionary of params and return a statement that can go after a WHERE
+        """
+        if not params:
+            return (" 1 ", ())
+
+        column_names = [row[1] for row in self.database.get_rows("PRAGMA table_info(locations)")]
+        for column in params.keys():
+            if column not in column_names:
+                raise KeyError("Error: Database column %s not in our database" % column)
+        # Construct our SQL statement
+        where_statement = ' AND '.join(['"%s" = ?' % column for (column, value) in params.items()])
+        where_values = tuple([value for (column, value) in params.items()])
+        return (where_statement, where_values)
