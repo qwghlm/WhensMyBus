@@ -50,9 +50,10 @@ class WhensMyDLR(WhensMyRailTransport):
         destination = destination and re.sub(" Station", "", destination, flags=re.I)
         return (('DLR',), origin, destination)
 
-    def get_departure_data(self, station, _line_code):
+    def get_departure_data(self, station, line_code, must_stop_at=None):
         """
-        Take a station ID and a line ID, and get departure data for that station
+        Take a station object and a line ID, and get departure data for that station
+        Returns a dictionary; keys are platform names, values lists of DLRTrain objects
         """
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         tfl_url = "http://www.dlrlondon.co.uk/xml/mobile/%s.xml" % station.code
@@ -62,16 +63,20 @@ class WhensMyDLR(WhensMyRailTransport):
 
         # Go through each platform and get data about every train arriving, including which direction it's headed
         trains_by_platform = {}
-        platforms_to_ignore = {'ban': 'P10',
-                               'tog': 'P1',
-                               'wiq': 'P1',
-                               'str': 'P4B',
-                               'lew': 'P5'}
+        platforms_to_ignore = [('tog', 'P1'),
+                               ('wiq', 'P1')]
+        platforms_to_ignore_if_empty = [('ban', 'P10'),
+                                        ('str', 'P4B'),
+                                        ('lew', 'P5')]
         for platform in dlr_data.findall("div[@id='ttbox']"):
 
             # Get the platform number from image attached and the time published
             img = platform.find("div[@id='platformleft']/img")
             platform_name = img.attrib['src'].split('.')[0][:-1].upper()
+
+            if (station.code, platform_name) in platforms_to_ignore:
+                continue
+
             trains_by_platform[platform_name] = []
 
             # Get trains for this platform
@@ -90,6 +95,11 @@ class WhensMyDLR(WhensMyRailTransport):
                     destination = capwords(result.group(1).strip())
                     if destination == 'Terminates Here':
                         continue
+                    # Filter out any trains where they do not directly call at the intermediate station requested
+                    if must_stop_at:
+                        destination_station = self.get_station_by_station_name(line_code, destination)
+                        if destination_station and not self.geodata.direct_route_exists(station.name, destination_station.name, via=must_stop_at):
+                            continue
                     departure_delta = timedelta(minutes=(result.group(3) and int(result.group(3)) or 0))
                     departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
                     trains_by_platform[platform_name].append(DLRTrain(destination, departure_time))
@@ -97,7 +107,9 @@ class WhensMyDLR(WhensMyRailTransport):
                 else:
                     logging.debug("Error - could not parse this line: %s", train)
 
-            if not trains_by_platform[platform_name] and platform_name == platforms_to_ignore.get(station.code, ""):
+            # If there are no trains in this platform to our specified stop, or it is a platform that can be ignored when it is empty
+            # e.g. it is the "spare" platform at a terminuse, then delete this platform entirely
+            if not trains_by_platform[platform_name] and must_stop_at or (station.code, platform_name) in platforms_to_ignore_if_empty:
                 del trains_by_platform[platform_name]
 
         # Some platforms run trains the same way (e.g. at termini). DLR doesn't tell us if this is the case, so we look at the destinations
