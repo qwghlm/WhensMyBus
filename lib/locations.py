@@ -96,7 +96,11 @@ class WMTLocations():
         if not self.network:
             raise ValueError("No network information available for these locations")
         if via:
-            return self.describe_route(origin, via, line=line) + self.describe_route(via, destination, line=line)[1:]
+            first_half = self.describe_route(origin, via, line=line)
+            second_half = self.describe_route(via, destination, line=line)
+            if first_half and second_half and second_half[0] == first_half[-1]:
+                del second_half[0]
+            return first_half + second_half
 
         origin += ":entrance"
         destination += ":exit"
