@@ -179,7 +179,7 @@ class Departure():
         self.destination = destination
         self.departure_time = datetime.strptime(departure_time, "%H%M")
         # Deal with us being one side of midnight from the prescribed times
-        if datetime.now().hour >= 18 and self.departure_time.hour < 6:
+        if datetime.now().hour > self.departure_time.hour + 1:
             self.departure_time += timedelta(days=1)
 
     def __cmp__(self, other):
