@@ -73,9 +73,10 @@ class WhensMyTube(WhensMyRailTransport):
         destination = destination and re.sub(" Station", "", destination, flags=re.I)
         return ((line_name,), origin, destination)
 
-    def get_departure_data(self, station, line_code):
+    def get_departure_data(self, station, line_code, must_stop_at=None):
         """
         Take a station ID and a line ID, and get departure data for that station
+        Returns a dictionary; keys are direction names, values lists of TubeTrain objects
         """
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         self.check_station_is_open(station)
