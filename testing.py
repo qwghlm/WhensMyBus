@@ -461,8 +461,6 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         # We should get two results and hence a semi-colon separating them, if this is not from a specific stop
         if destination_not_specified:
             self.assertRegexpMatches(result, ';')
-        else:
-            self.assertNotRegexpMatches(result, ';')
 
         print result
 
@@ -622,11 +620,15 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
     def test_location(self):
         """
-        Unit tests for WMTLocation object and the bus database
+        Unit tests for WMTLocation object and the Tube database
         """
         super(WhensMyTubeTestCase, self).test_location()
         self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'Line': 'M'}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_fuzzy_match({'Line': 'M'}, "Kings Cross", RailStation).code, "KXX")
+        # find_exact_match() is not tested as it is not needed
+        self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
+        self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", line="Northern"))
+        self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", line="Northern", via="Bank"))
 
     def test_bad_line_name(self):
         """
@@ -724,11 +726,14 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
 
     def test_location(self):
         """
-        Unit tests for WMTLocation object and the bus database
+        Unit tests for WMTLocation object and the DLR database
         """
         super(WhensMyDLRTestCase, self).test_location()
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Limehouse", RailStation).code, "lim")
+        # find_exact_match() is not tested as it is not needed
+        self.assertIn(('West Ham', '', 'Docklands Light Railway'), self.bot.geodata.describe_route("Stratford", "Beckton"))
+        self.assertIn(('Blackwall', '', 'Docklands Light Railway'), self.bot.geodata.describe_route("Stratford", "Beckton", via="Poplar"))
 
     def test_bad_station_name(self):
         """
@@ -774,7 +779,7 @@ def run_tests():
     """
     parser = argparse.ArgumentParser(description="Unit testing for When's My Transport?")
     parser.add_argument("test_case_name", action="store", default="", help="Name of the class to test (e.g. WhensMyBus, WhensMyTube)")
-    parser.add_argument("--dologin", dest="dologin", action="store_true", default=False, help="Force check of databases and logins")
+    parser.add_argument("--local-only", dest="local_only", action="store_true", default=False, help="Test local app only, not remote services")
 
     test_case_name = parser.parse_args().test_case_name
 
@@ -800,19 +805,19 @@ def run_tests():
     elif test_case_name == "WhensMyDLR":
         dlr_errors = ()
         station_errors = ('bad_station_name',)
-        failures = format_errors[:-1] + geotag_errors + dlr_errors + station_errors  # Exclude blank tweet test
+        failures = format_errors[:-1] + geotag_errors + dlr_errors + station_errors  # Exclude blank tweet test for DLR
         successes = ('standard_messages',)
     else:
         print "Error - %s is not a valid Test Case Name" % test_case_name
         sys.exit(1)
 
-    if parser.parse_args().dologin:
-        test_names = unit_tests + local_tests + remote_tests + failures + successes
+    if parser.parse_args().local_only:
+        test_names = unit_tests + local_tests + failures
     else:
-        test_names = unit_tests + local_tests + failures + successes
+        test_names = unit_tests + local_tests + remote_tests + failures + successes
 
     suite = unittest.TestSuite(map(eval(test_case_name + 'TestCase'), ['test_%s' % t for t in test_names]))
-    runner = unittest.TextTestRunner(verbosity=1, failfast=1, buffer=True)
+    runner = unittest.TextTestRunner(verbosity=2, failfast=1, buffer=True)
     runner.run(suite)
 
 if __name__ == "__main__":
