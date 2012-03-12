@@ -3,11 +3,9 @@
 """
 Location-finding service for WhensMyTransport
 """
-import copy
 import logging
 import pickle
 import os.path
-import time
 from math import sqrt
 
 from lib.stringutils import get_best_fuzzy_match
@@ -19,7 +17,6 @@ from pygraph.algorithms.minmax import shortest_path
 DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/')
 
 
-
 class WMTLocations():
     """
     Service object used to find stops or stations (locations) - given a position, exact match or fuzzy match,
@@ -28,7 +25,7 @@ class WMTLocations():
     def __init__(self, instance_name):
         self.database = WMTDatabase('%s.geodata.db' % instance_name)
         network_file = DB_PATH + '/%s.network.gr' % instance_name
-        self.network = os.path.exists(network_file) and pickle.load(open(network_file)) 
+        self.network = os.path.exists(network_file) and pickle.load(open(network_file))
 
     def find_closest(self, position, params, returned_object):
         """
@@ -138,8 +135,10 @@ class WMTLocations():
         else:
             network = self.network['All']
         shortest_path_dictionary = shortest_path(network, origin)[0]
-        if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
-            raise ValueError("Not found - no such path exists")
+        if origin not in shortest_path_dictionary:
+            raise KeyError("Not found - no such node %s exists" % origin)
+        if destination not in shortest_path_dictionary:
+            raise KeyError("Not found - no such node %s exists" % destination)
         # Shortest path dictionary consists of a dictionary of node names as keys, with the values
         # being the name of the node that preceded it in the shortest path
         # Count back from our destinaton, to the origin point
@@ -157,16 +156,11 @@ class WMTLocations():
         Return whether there is a direct route (i.e. one that does work without changing) on a list of stops
         """
         path_taken = self.describe_route(origin, destination, via=via, line=line)
-        for i in range(1, len(path_taken)-1):
+        for i in range(1, len(path_taken)):
             # If same station twice in a row, then we must have a change
-            if path_taken[i][0] == path_taken[i+1][0]:
+            if path_taken[i][0] == path_taken[i - 1][0]:
+                return False
+            # If visiting same station with one in between, then we must have visited a station & doubled back
+            if i > 1 and path_taken[i][0] == path_taken[i - 2][0]:
                 return False
         return True
-
-    def stops_at(self, origin, requested_stop, last_stop):
-        """
-        Return whether the we stop at requested_stop on the way from origin to last_stop
-        """
-        path_taken = self.describe_route(origin, last_stop)
-        stations_stopped_at = [stop[0] for stop in path_taken]
-        return requested_stop in stations_stopped_at
