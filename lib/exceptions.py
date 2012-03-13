@@ -35,11 +35,14 @@ class WhensMyTransportException(Exception):
         'nonexistent_bus':     "I couldn't recognise the number you gave me (%s) as a London bus",
         'stop_name_not_found': "I couldn't find any bus stops on the %s route by that name (%s)",
         'stop_id_not_found':   "The %s route doesn't call at the stop with ID %s",
-        'no_bus_arrival_data': "There aren't any %s buses currently shown for your stop",
+        'no_buses_shown':      "There are no %s buses currently shown from your stop",
+        'no_buses_shown_to':   "There are no %s buses currently shown from your stop to %s",
 
         # WhensMyTube & WhensMyDLR errors
         'rail_station_name_not_found': "I couldn't recognise that station (%s) as being on the %s",
-        'no_rail_arrival_data':        "There aren't any %s trains currently shown for %s station",
+        'no_trains_shown':           "There are no %s trains currently shown going from %s",
+        'no_trains_shown_to':        "There are no %s trains currently shown going from %s to %s",
+        'no_direct_route':           "There is no direct route between %s and %s on the %s",
 
         # WhensMyTube-only errors
         'blank_tube_tweet':           "I need to have a Tube line in order to find the times for it",

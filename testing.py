@@ -613,7 +613,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         Generic test to confirm message is being produced correctly
         """
         self.assertNotEqual(result, result.upper())
-        self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There aren't any %s Line trains)" % (expected_origin, routes_specified))
+        self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There are no %s Line trains)" % (expected_origin, routes_specified))
         if destination_not_specified:
             pass  # TODO Tests for when a destination is specified
         print result
@@ -719,7 +719,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         Generic test to confirm message is being produced correctly
         """
         self.assertNotEqual(result, result.upper())
-        self.assertRegexpMatches(result, r"(%s to .* ([0-9]{1,4})|There aren't any %s trains)" % (expected_origin, routes_specified))
+        self.assertRegexpMatches(result, r"(%s to .* ([0-9]{1,4})|There are no %s trains)" % (expected_origin, routes_specified))
         if destination_not_specified:
             pass  # TODO Tests for when a destination is specified
         print result

@@ -90,7 +90,10 @@ class WhensMyBus(WhensMyTransport):
             if departure_data:
                 return "%s %s" % (route_number, self.format_departure_data(departure_data))
             else:
-                raise WhensMyTransportException('no_bus_arrival_data', route_number)
+                if destination:
+                    raise WhensMyTransportException('no_buses_shown_to', route_number, destination)
+                else:
+                    raise WhensMyTransportException('no_buses_shown', route_number)
         else:
             if re.match('^[0-9]{5}$', origin):
                 raise WhensMyTransportException('stop_id_not_found', route_number, origin)

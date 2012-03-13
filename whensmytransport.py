@@ -441,26 +441,32 @@ class WhensMyRailTransport(WhensMyTransport):
         else:
             station = self.get_station_by_station_name(line_code, origin)
 
-        must_stop_at = None
+        destination_name = None
         if destination:
             try:
                 destination_station = self.get_station_by_station_name(line_code, destination)
                 if destination_station:
-                    must_stop_at = destination_station.name
+                    destination_name = destination_station.name
             # We may not be able to find a destination, in which case - don't worry about this bit, and stick to unfiltered
             except WhensMyTransportException:
                 logging.debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
+
+        if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line=line):
+            raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
         # If we have a station code, go get the data for it
         if station:
             if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
                 raise WhensMyTransportException('rail_station_not_in_system', station.name)
 
-            departure_data = self.get_departure_data(station, line_code, must_stop_at=must_stop_at)
+            departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name)
             if departure_data:
                 return "%s to %s" % (station.get_abbreviated_name(), self.format_departure_data(departure_data))
             else:
-                raise WhensMyTransportException('no_rail_arrival_data', line_name, station.name)
+                if destination_name:
+                    raise WhensMyTransportException('no_trains_shown_to', line_name, station.name, destination_name)
+                else:
+                    raise WhensMyTransportException('no_trains_shown', line_name, station.name)
         else:
             raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
 
