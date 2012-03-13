@@ -22,7 +22,7 @@ from lib.browser import WMTBrowser
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
 from lib.listutils import unique_values
-from whensmytransport import get_line_code
+from whensmyrail import get_line_code
 
 line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
 
@@ -154,7 +154,7 @@ def import_dlr_xml_to_db():
         name = line[1]
         if name.lower() in stations:
             stations[name.lower()]['Code'] = code
-            stations[name.lower()]['Line'] = 'D'  # Sort for Docklands
+            stations[name.lower()]['Line'] = 'DLR'  # Sort for Docklands
         else:
             print "Cannot find %s from dlr-references in geodata!" % name
 
@@ -442,7 +442,7 @@ def scrape_odd_platform_designations(write_file=False):
 if __name__ == "__main__":
     #import_bus_csv_to_db()
     #import_tube_xml_to_db()
-    #import_dlr_xml_to_db()
+    import_dlr_xml_to_db()
     #scrape_odd_platform_designations()
     import_network_data_to_graph('whensmydlr')
     import_network_data_to_graph('whensmytube')
