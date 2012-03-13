@@ -5,7 +5,6 @@ Data importing tools for WhensMyTransport - import TfL's data into an easier for
 """
 # Standard Python libraries
 import csv
-import copy
 import os
 import cPickle as pickle
 import re
@@ -17,14 +16,11 @@ from pprint import pprint
 
 # Library available from http://code.google.com/p/python-graph/
 from pygraph.classes.digraph import digraph
-from pygraph.algorithms.minmax import shortest_path
 
 # Local files
 from lib.browser import WMTBrowser
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
-from lib.models import TubeTrain, RailStation
-from lib.stringutils import get_best_fuzzy_match
 from lib.listutils import unique_values
 from whensmytransport import get_line_code
 
@@ -390,49 +386,6 @@ def create_graph_from_dict(stations, database, interchanges_by_foot):
                     gr.add_edge((inbound_node, node), wt=weight)
     return gr
 
-def scrape_tfl_destination_codes():
-    """
-    An experimental script that takes current Tube data from TfL, scrapes it to find every possible existing
-    platform, destination code and destination name, and puts it into a database to help with us producing
-    better output for users
-    """
-    database = WMTDatabase("whensmytube.geodata.db")
-    browser = WMTBrowser()
-
-    destination_summary = {}
-    for line_code in line_codes:
-        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
-        try:
-            train_data = browser.fetch_xml_tree(tfl_url)
-        except Exception:
-            print "Couldn't get data for %s" % line_code
-            continue
-
-        for train in train_data.findall('T'):
-            destination = train.attrib['DE']
-            destination_code = train.attrib['D']
-
-            if destination_summary.get(destination_code, destination) != destination and destination_code != '0':
-                print "Error - mismatching destinations: %s (existing) and %s (new) with code %s" \
-                      % (destination_summary[destination_code], destination, destination_code)
-
-            database.write_query("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
-            destination_summary[destination_code] = destination
-
-    # Check to see if destination is in our database
-    for row in database.get_rows("SELECT destination_name, line_code FROM destination_codes"):
-        destination = TubeTrain(row[0]).get_clean_destination_name()
-        if destination in ("Unknown", "Special", "Out Of Service"):
-            continue
-        if destination.startswith('Br To') or destination in ('Network Rail', 'Chiltern Toc'):
-            continue
-        if not database.get_row("SELECT Name FROM locations WHERE Name=? AND Line=?", (destination, row[1])):
-            station_is_on_other_line = database.get_rows("SELECT Name FROM locations WHERE Name=?", (destination,))
-            if not station_is_on_other_line:
-                all_stations_on_line = [RailStation(**row) for row in database.get_rows("SELECT Name FROM locations WHERE Line=?", (row[1],))]
-                if not get_best_fuzzy_match(destination, all_stations_on_line):
-                    print "Destination %s on %s not found in locations database" % (row[0], row[1])
-
 
 def scrape_odd_platform_designations(write_file=False):
     """
@@ -496,7 +449,6 @@ if __name__ == "__main__":
     #import_bus_csv_to_db()
     #import_tube_xml_to_db()
     #import_dlr_xml_to_db()
-    #scrape_tfl_destination_codes()
     #scrape_odd_platform_designations()
     import_network_data_to_graph(False)
     import_network_data_to_graph(True)
