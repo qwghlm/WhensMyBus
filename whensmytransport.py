@@ -318,7 +318,7 @@ class WhensMyTransport:
 
         return (request, origin, destination)
 
-    def cleanup_departure_data(self, departure_data, null_object_constructor):
+    def cleanup_departure_data(self, departure_data, null_object_constructor=None):
         """
         Takes a dictionary produced by get_departure_data and cleans it up. If no departures listed at all,
         then return an empty dictionary, else fill any slot with a null object, represented by null_object_constructor

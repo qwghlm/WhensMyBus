@@ -88,13 +88,7 @@ class WhensMyRailTransport(WhensMyTransport):
 
         destination_name = None
         if destination:
-            try:
-                destination_station = self.get_station_by_station_name(line_code, destination)
-                if destination_station:
-                    destination_name = destination_station.name
-            # We may not be able to find a destination, in which case - don't worry about this bit, and stick to unfiltered
-            except WhensMyTransportException:
-                logging.debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
+            destination_name = self.get_canonical_station_name(line_code, destination) or None
 
         if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line=line):
             raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
@@ -129,6 +123,13 @@ class WhensMyRailTransport(WhensMyTransport):
         logging.debug("Attempting to get a fuzzy match on placename %s", origin)
         return self.geodata.find_fuzzy_match({'Line': line_code}, origin, RailStation)
 
+    def get_canonical_station_name(self, line_code, origin):
+        """
+        Return just the string matching for a line code and origin name, or blank if none exists
+        """
+        station_obj = self.get_station_by_station_name(line_code, origin)
+        return station_obj and station_obj.name or ""
+
     def parse_message(self, message):
         """
         Parse a Tweet - tokenize it, and get the line, origin and destination specified by the user
@@ -157,22 +158,24 @@ class WhensMyRailTransport(WhensMyTransport):
         if line_code == 'DLR':
             dlr_url = "http://www.dlrlondon.co.uk/xml/mobile/%s.xml" % station.code
             dlr_data = self.browser.fetch_xml_tree(dlr_url)
-            trains_by_platform = parse_dlr_data(dlr_data, station)
-            return self.cleanup_departure_data(trains_by_platform, lambda a: NullDeparture("from " + a))
+            departure_data = parse_dlr_data(dlr_data, station)
+            null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
             tube_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station.code)
             tube_data = self.browser.fetch_xml_tree(tube_url)
-            trains_by_direction = parse_tube_data(tube_data, station, line_code)
-            return self.cleanup_departure_data(trains_by_direction, NullDeparture)
+            departure_data = parse_tube_data(tube_data, station, line_code)
+            null_constructor = lambda direction: NullDeparture(direction)
 
-        # TODO Filter when destination is same as this one
+        # Filter out trains terminating here
+        terminus = lambda departure: self.get_canonical_station_name(line_code, departure.destination)
+        for (key, departures) in departure_data.items():
+            departure_data[key] = [d for d in departures if terminus(d) != station.name]
+            if via:
+                departure_data[key] = [d for d in departures if self.geodata.direct_route_exists(station.name, terminus(d), via=via)]
+                # FIXME Deal with entirely empty slots
 
-        # TODO Fix must_stop_at
-        # Filter out any trains where they do not directly call at the intermediate station requested
-        # if must_stop_at:
-        #     destination_station = self.get_station_by_station_name(line_code, destination)
-        #     if destination_station and not self.geodata.direct_route_exists(station.name, destination_station.name, via=must_stop_at):
-        #         continue
+        departure_data = self.cleanup_departure_data(departure_data, null_constructor)
+        return departure_data
 
     def check_station_is_open(self, station):
         """
@@ -201,5 +204,5 @@ def get_line_code(line_name):
 
 
 if __name__ == "__main__":
-    WMD = WhensMyRailTransport("whensmydlr")  # FIXME use command line options? 
+    WMD = WhensMyRailTransport("whensmydlr")  # FIXME use command line options?
     WMD.check_tweets()
