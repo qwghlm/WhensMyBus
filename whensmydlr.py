@@ -58,7 +58,6 @@ class WhensMyDLR(WhensMyRailTransport):
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         tfl_url = "http://www.dlrlondon.co.uk/xml/mobile/%s.xml" % station.code
         dlr_data = self.browser.fetch_xml_tree(tfl_url)
-
         train_info_regex = re.compile(r"[1-4] (\D+)(([0-9]+) mins?)?", flags=re.I)
 
         # Go through each platform and get data about every train arriving, including which direction it's headed
@@ -69,14 +68,11 @@ class WhensMyDLR(WhensMyRailTransport):
                                         ('str', 'P4B'),
                                         ('lew', 'P5')]
         for platform in dlr_data.findall("div[@id='ttbox']"):
-
             # Get the platform number from image attached and the time published
             img = platform.find("div[@id='platformleft']/img")
             platform_name = img.attrib['src'].split('.')[0][:-1].upper()
-
             if (station.code, platform_name) in platforms_to_ignore:
                 continue
-
             trains_by_platform[platform_name] = []
 
             # Get trains for this platform
@@ -108,7 +104,7 @@ class WhensMyDLR(WhensMyRailTransport):
                     logging.debug("Error - could not parse this line: %s", train)
 
             # If there are no trains in this platform to our specified stop, or it is a platform that can be ignored when it is empty
-            # e.g. it is the "spare" platform at a terminuse, then delete this platform entirely
+            # e.g. it is the "spare" platform at a terminus, then delete this platform entirely
             if not trains_by_platform[platform_name] and must_stop_at or (station.code, platform_name) in platforms_to_ignore_if_empty:
                 del trains_by_platform[platform_name]
 
@@ -121,8 +117,7 @@ class WhensMyDLR(WhensMyRailTransport):
         for (plat1, plat2) in common_platforms[:1]:
             logging.debug("Merging platforms %s and %s", plat1, plat2)
             trains_by_platform[plat1 + ' & ' + plat2] = unique_values(trains_by_platform[plat1] + trains_by_platform[plat2])
-            del trains_by_platform[plat1]
-            del trains_by_platform[plat2]
+            del trains_by_platform[plat1], trains_by_platform[plat2]
 
         return self.cleanup_departure_data(trains_by_platform, lambda a: NullDeparture("from " + a))
 
