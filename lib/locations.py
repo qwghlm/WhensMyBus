@@ -4,7 +4,7 @@
 Location-finding service for WhensMyTransport
 """
 import logging
-import pickle
+import cPickle as pickle
 import os.path
 from math import sqrt
 

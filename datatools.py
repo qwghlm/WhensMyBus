@@ -7,7 +7,7 @@ Data importing tools for WhensMyTransport - import TfL's data into an easier for
 import csv
 import copy
 import os
-import pickle
+import cPickle as pickle
 import re
 import sys
 import subprocess

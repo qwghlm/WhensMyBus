@@ -2,7 +2,7 @@
 """
 Application settings handling for When's My Transport
 """
-import pickle
+import cPickle as pickle
 from lib.database import WMTDatabase
 
 
