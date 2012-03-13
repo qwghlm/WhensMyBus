@@ -13,8 +13,7 @@ if sys.version_info < (2, 7):
     sys.exit(1)
 
 from whensmybus import WhensMyBus
-from whensmydlr import WhensMyDLR
-from whensmytube import WhensMyTube
+from whensmyrail import WhensMyRailTransport
 
 from lib.exceptions import WhensMyTransportException
 from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
@@ -593,7 +592,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyTube(testing=True, silent=True)
+        self.bot = WhensMyRailTransport("whensmytube", testing=True, silent=True)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -696,7 +695,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyDLR(testing=True, silent=True)
+        self.bot = WhensMyRailTransport("whensmydlr", testing=True, silent=True)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -764,7 +763,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
             to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
-            line_fragments = [value % test_variables for value in ("", "%(line)s",)]
+            line_fragments = [value % test_variables for value in ("%(line)s",)] #FIXME blank?
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:

@@ -11,6 +11,9 @@ This is a parent classes used by all three bots, handling common functionality b
 loading the databases, config, connecting to Twitter, reading @ replies, replying to them, checking new followers, following them back
 as well as models and classes for useful constructs such as Trains and Stations
 
+The WhensMyBus and WhensMyRail classes handle looking up route, line, station and stop locations and names, and processing
+data via the respective services' APIs
+
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
@@ -44,8 +47,6 @@ from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
 from lib.locations import WMTLocations
 from lib.logger import setup_logging
-from lib.models import RailStation
-from lib.stringutils import get_best_fuzzy_match
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
 # Some constants we use
@@ -396,7 +397,7 @@ class WhensMyTransport:
         return ""
 
     @abstractmethod
-    def get_departure_data(self, station_or_stops, line_or_route):
+    def get_departure_data(self, station_or_stops, line_or_route, via):
         """
         Abstract method. This must be overridden by a child class to do anything useful
         Takes a string or list of strings representing a station or stop, and a string representing the line or route
@@ -406,90 +407,6 @@ class WhensMyTransport:
         #pylint: disable=W0613
         return {}
 
-
-class WhensMyRailTransport(WhensMyTransport):
-    """
-    Parent class for the WhensMyDLR and WhensMyTube bots. This deals with common functionality between the two -
-    namely looking up stations from a database given a position or name. This works best when there is a limited number of
-    stations and they have well-known, universally agreed names, which is normally railways and not buses.
-    """
-    __metaclass__ = ABCMeta
-
-    def __init__(self, instance_name, testing=False, silent=False):
-        """
-        Constructor, called by child functions
-        """
-        WhensMyTransport.__init__(self, instance_name, testing, silent)
-        self.line_lookup = {}
-
-    def process_individual_request(self, line_name, origin, destination, position):
-        """
-        Take an individual line, with either origin or position, and work out which station the user is
-        referring to, and then get times for it
-        """
-        line = self.line_lookup.get(line_name, "") or get_best_fuzzy_match(line_name, self.line_lookup.values())
-        if not line:
-            raise WhensMyTransportException('nonexistent_line', line_name)
-        line_code = get_line_code(line)
-        if line != 'DLR':
-            line_name += " Line"
-
-        # Dig out relevant station for this line from the geotag, if provided
-        # Else there will be an origin (either a number or a placename), so try parsing it properly
-        if position:
-            station = self.get_station_by_geolocation(line_code, position)
-        else:
-            station = self.get_station_by_station_name(line_code, origin)
-
-        destination_name = None
-        if destination:
-            try:
-                destination_station = self.get_station_by_station_name(line_code, destination)
-                if destination_station:
-                    destination_name = destination_station.name
-            # We may not be able to find a destination, in which case - don't worry about this bit, and stick to unfiltered
-            except WhensMyTransportException:
-                logging.debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
-
-        if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line=line):
-            raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
-
-        # If we have a station code, go get the data for it
-        if station:
-            if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
-                raise WhensMyTransportException('rail_station_not_in_system', station.name)
-
-            departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name)
-            if departure_data:
-                return "%s to %s" % (station.get_abbreviated_name(), self.format_departure_data(departure_data))
-            else:
-                if destination_name:
-                    raise WhensMyTransportException('no_trains_shown_to', line_name, station.name, destination_name)
-                else:
-                    raise WhensMyTransportException('no_trains_shown', line_name, station.name)
-        else:
-            raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
-
-    def get_station_by_geolocation(self, line_code, position):
-        """
-        Take a line and a tuple specifying latitude & longitude, and works out closest station
-        """
-        logging.debug("Attempting to get closest to position: %s", position)
-        return self.geodata.find_closest(position, {'Line': line_code}, RailStation)
-
-    def get_station_by_station_name(self, line_code, origin):
-        """
-        Take a line and a string specifying origin, and work out matching for that name
-        """
-        logging.debug("Attempting to get a fuzzy match on placename %s", origin)
-        return self.geodata.find_fuzzy_match({'Line': line_code}, origin, RailStation)
-
-
-def get_line_code(line_name):
-    """
-    Return the TfL line code for the line requested, which is always the first letter except the Circle, whose code is 'O'
-    """
-    return (line_name == 'Circle') and 'O' or line_name[0]
 
 if __name__ == "__main__":
     print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytube.py"
