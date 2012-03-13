@@ -732,8 +732,8 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Limehouse", RailStation).code, "lim")
         # find_exact_match() is not tested as it is not needed
-        self.assertIn(('West Ham', '', 'Docklands Light Railway'), self.bot.geodata.describe_route("Stratford", "Beckton"))
-        self.assertIn(('Blackwall', '', 'Docklands Light Railway'), self.bot.geodata.describe_route("Stratford", "Beckton", via="Poplar"))
+        self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton"))
+        self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton", via="Poplar"))
 
     def test_bad_station_name(self):
         """
@@ -742,6 +742,14 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         message = 'DLR from Ealing Broadway'
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Ealing Broadway', 'DLR')
+
+    def test_bad_routing(self):
+        """
+        Test to confirm routes that are not possible on the DLR are correctly handled
+        """
+        message = 'DLR from Lewisham to Woolwich Arsenal'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_direct_route', 'Lewisham', 'Woolwich Arsenal', 'DLR')
 
     def test_standard_messages(self):
         """
@@ -804,7 +812,7 @@ def run_tests():
         successes = ('standard_messages',)
     elif test_case_name == "WhensMyDLR":
         dlr_errors = ()
-        station_errors = ('bad_station_name',)
+        station_errors = ('bad_station_name', 'bad_routing')
         failures = format_errors[:-1] + geotag_errors + dlr_errors + station_errors  # Exclude blank tweet test for DLR
         successes = ('standard_messages',)
     else:
