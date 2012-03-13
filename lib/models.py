@@ -103,6 +103,12 @@ class RailStation():
         self.inner = Inner
         self.outer = Outer
 
+    def __repr__(self):
+        """
+        Representation function for debugging
+        """
+        return self.name
+
     def get_abbreviated_name(self):
         """
         Take this station's name and abbreviate it to make it fit on Twitter better
