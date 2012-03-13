@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 An experimental script that takes current Tube data from TfL, scrapes it to find every possible existing
 platform, destination code and destination name, and puts it into a database to help with us producing
@@ -29,7 +30,7 @@ def scrape_tfl_destination_codes():
             print "Couldn't get data for %s" % line_code
             continue
 
-        for train in train_data.findall('T'):
+        for train in train_data.findall('.//T'):
             destination = train.attrib['DE']
             destination_code = train.attrib['D']
             if destination_summary.get(destination_code, destination) != destination and destination_code != '0':
@@ -38,7 +39,7 @@ def scrape_tfl_destination_codes():
 
             database.write_query("INSERT OR IGNORE INTO destination_codes VALUES (?, ?, ?)", (destination_code, line_code, destination))
             destination_summary[destination_code] = destination
-            pprint(destination_summary)
+    pprint(destination_summary)
 
 
 def check_tfl_destination_codes():
