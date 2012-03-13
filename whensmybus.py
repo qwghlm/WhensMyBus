@@ -186,7 +186,7 @@ class WhensMyBus(WhensMyTransport):
 
         return relevant_stops
 
-    def get_departure_data(self, relevant_stops, route_number):
+    def get_departure_data(self, relevant_stops, route_number, via=None):
         """
         Fetch the JSON data from the TfL website, for a dictionary of relevant_stops (each a BusStop object)
         and a particular route_number, and returns a dictionary of runs mapping to Bus objects
@@ -231,7 +231,7 @@ class WhensMyBus(WhensMyTransport):
                     del relevant_buses[run]
 
         return self.cleanup_departure_data(relevant_buses, lambda a: NullDeparture(stop_directions[a]))
-        
+
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":
     # Instantiate with no variables (all config is done in the file config.cfg) and then call check_tweets()
