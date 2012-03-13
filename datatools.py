@@ -235,14 +235,11 @@ def import_tube_xml_to_db():
     export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('Name',))
 
 
-def import_network_data_to_graph(is_dlr=False):
+def import_network_data_to_graph(instance_name='whensmytube'):
     """
     Import data from a file describing the edges of the Tube network and turn it into a graph object which we pickle and save
     """
-    if is_dlr:
-        database = WMTDatabase("whensmydlr.geodata.db")
-    else:
-        database = WMTDatabase("whensmytube.geodata.db")
+    database = WMTDatabase("%s.geodata.db" % instance_name)
 
     # Adapted from https://github.com/smly/hubigraph/blob/fa23adc07c87dd2a310a20d04f428f819d43cbdb/test/LondonUnderground.txt
     # which is a CSV of all edges in the network
@@ -255,7 +252,7 @@ def import_network_data_to_graph(is_dlr=False):
     for (station1, station2, line) in reader:
         if line in ("National Rail", "East London"): # TODO Maybe make these "Overground"?
             continue
-        if is_dlr ^ (line == "Docklands Light Railway"):
+        if (instance_name == 'whensmydlr') ^ (line == "DLR"):
             continue
         if line == "Walk":
             interchanges_by_foot.append((station1, station2))
@@ -304,10 +301,7 @@ def import_network_data_to_graph(is_dlr=False):
         graphs[line] = create_graph_from_dict(subset_of_stations, database, interchanges_by_foot)
     graphs['All'] = create_graph_from_dict(stations_neighbours, database, interchanges_by_foot)
 
-    if is_dlr:
-        pickle.dump(graphs, open("./db/whensmydlr.network.gr", "w"))
-    else:
-        pickle.dump(graphs, open("./db/whensmytube.network.gr", "w"))
+    pickle.dump(graphs, open("./db/%s.network.gr" % instance_name, "w"))
 
 def create_graph_from_dict(stations, database, interchanges_by_foot):
     # Start creating our directed graph - first by adding all the nodes. Each station is represented by multiple nodes: one to represent
@@ -450,6 +444,6 @@ if __name__ == "__main__":
     #import_tube_xml_to_db()
     #import_dlr_xml_to_db()
     #scrape_odd_platform_designations()
-    import_network_data_to_graph(False)
-    import_network_data_to_graph(True)
+    import_network_data_to_graph('whensmydlr')
+    import_network_data_to_graph('whensmytube')
     pass
