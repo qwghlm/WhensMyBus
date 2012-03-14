@@ -18,15 +18,14 @@ buses and routes, checking the TfL bus API and formatting an appropriate reply t
 # Standard libraries of Python 2.6
 import logging
 import re
-from time import localtime
 from pprint import pprint  # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyTransport
+from lib.dataparsers import parse_bus_data
 from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
-from lib.models import BusStop, Bus, NullDeparture
-
+from lib.models import BusStop, NullDeparture
 
 class WhensMyBus(WhensMyTransport):
     """
@@ -191,37 +190,12 @@ class WhensMyBus(WhensMyTransport):
         Fetch the JSON data from the TfL website, for a dictionary of relevant_stops (each a BusStop object)
         and a particular route_number, and returns a dictionary of runs mapping to Bus objects
         """
+        stop_directions = dict([(run, heading_to_direction(stop.heading)) for (run, stop) in relevant_stops.items()])
         relevant_buses = {}
-        stop_directions = {}
         for (run, stop) in relevant_stops.items():
-
-            relevant_buses[run] = []
-            stop_directions[run] = heading_to_direction(stop.heading)
-
-            stop_name = stop.get_clean_name()
             tfl_url = "http://countdown.tfl.gov.uk/stopBoard/%s" % stop.number
             bus_data = self.browser.fetch_json(tfl_url)
-            arrivals = bus_data.get('arrivals', [])
-
-            # Handle TfL's JSON-encoded error message
-            if not arrivals and bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
-                raise WhensMyTransportException('tfl_server_down')
-
-            # Do the user a favour - check for both number and possible Night Bus version of the bus
-            relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
-                                                        and a['isRealTime'] and not a['isCancelled']]
-            if relevant_arrivals:
-                for arrival in relevant_arrivals[:3]:
-                    scheduled_time = arrival['scheduledTime'].replace(':', '')
-                    # Short hack to get BST working
-                    if localtime().tm_isdst:
-                        hour = (int(scheduled_time[0:2]) + 1) % 24
-                        scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
-
-                    logging.debug("Run %s, stop %s produced bus to %s %s", run, stop_name, arrival['destination'], scheduled_time)
-                    relevant_buses[run].append(Bus(stop_name, arrival['destination'], scheduled_time))
-            else:
-                logging.debug("Run %s, stop %s produced no buses", run, stop_name)
+            relevant_buses[run] = parse_bus_data(bus_data, stop, route_number)
 
         # If the number of runs is 3 or 4, get rid of any without buses shown
         if len(relevant_buses) > 2:

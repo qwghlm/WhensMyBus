@@ -4,10 +4,43 @@ Data parsers for Whens My Transport?
 import logging
 import re
 from datetime import datetime, timedelta
+from time import localtime
+
+from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.locations import WMTLocations
+from lib.models import RailStation, TubeTrain, Bus, Train as DLRTrain
 from lib.stringutils import capwords
-from lib.models import RailStation, TubeTrain, Train as DLRTrain
+
+
+def parse_bus_data(bus_data, stop, route_number):
+    """
+    Take a parsed json object bus_data from a single stop, BusStop object and strings representing the route and run
+    Returns an array of Bus objects
+    """
+    arrivals = bus_data.get('arrivals', [])
+
+    # Handle TfL's JSON-encoded error message
+    if not arrivals and bus_data.get('stopBoardMessage', '') == "noPredictionsDueToSystemError":
+        raise WhensMyTransportException('tfl_server_down')
+
+    # Do the user a favour - check for both number and possible Night Bus version of the bus
+    relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
+                                                and a['isRealTime'] and not a['isCancelled']]
+    relevant_buses = []
+    if relevant_arrivals:
+        for arrival in relevant_arrivals[:3]:
+            scheduled_time = arrival['scheduledTime'].replace(':', '')
+            # Short hack to get BST working
+            if localtime().tm_isdst:
+                hour = (int(scheduled_time[0:2]) + 1) % 24
+                scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
+            logging.debug("Stop %s produced bus to %s %s", stop.get_clean_name(), arrival['destination'], scheduled_time)
+            relevant_buses.append(Bus(stop.get_clean_name(), arrival['destination'], scheduled_time))
+    else:
+        logging.debug("Stop %s produced no buses", stop.get_clean_name())
+
+    return relevant_buses
 
 
 def parse_dlr_data(dlr_data, station):
