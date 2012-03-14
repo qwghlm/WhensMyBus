@@ -166,14 +166,17 @@ class WhensMyRailTransport(WhensMyTransport):
             departure_data = parse_tube_data(tube_data, station, line_code)
             null_constructor = lambda direction: NullDeparture(direction)
 
-        # Filter out trains terminating here
+        # Filter out trains terminating here, and any that do not serve our destination
         terminus = lambda departure: self.get_canonical_station_name(line_code, departure.destination)
-        for (key, departures) in departure_data.items():
-            departure_data[key] = [d for d in departures if terminus(d) != station.name]
+        for (slot, departures) in departure_data.items():
+            # For any non-empty list of departures, filter out any that terminate here. If as a result the list becomes empty, we mark the
+            # slot as deletable by setting the value to None
+            if departures:
+                departure_data[slot] = [d for d in departures if terminus(d) != station.name] or None
+            # If we've specified a station to go via, filter out any that do not stop at that station, or mark for deletion. Note that unlike
+            # the above, this will turn all existing empty lists into Nones (and thus deletable) as well
             if via:
-                departure_data[key] = [d for d in departures if self.geodata.direct_route_exists(station.name, terminus(d), via=via)]
-                # FIXME Deal with entirely empty slots
-
+                departure_data[slot] = [d for d in departures if self.geodata.direct_route_exists(station.name, terminus(d), via=via)] or None
         departure_data = self.cleanup_departure_data(departure_data, null_constructor)
         return departure_data
 

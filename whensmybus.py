@@ -204,7 +204,9 @@ class WhensMyBus(WhensMyTransport):
                 if run > 2 and not bus_list:
                     del relevant_buses[run]
 
-        return self.cleanup_departure_data(relevant_buses, lambda run: NullDeparture(stop_directions[run]))
+        null_constructor = lambda run: NullDeparture(stop_directions[run])
+        departure_data = self.cleanup_departure_data(relevant_buses, null_constructor)
+        return departure_data
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":

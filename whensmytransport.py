@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#pylint: disable=W0142,R0201
+#pylint: disable=W0142
 """
 
 When's My Transport?
@@ -318,7 +318,7 @@ class WhensMyTransport:
 
         return (request, origin, destination)
 
-    def cleanup_departure_data(self, departure_data, null_object_constructor=None):
+    def cleanup_departure_data(self, departure_data, null_object_constructor):
         """
         Takes a dictionary produced by get_departure_data and cleans it up. If no departures listed at all,
         then return an empty dictionary, else fill any slot with a null object, represented by null_object_constructor
@@ -326,11 +326,15 @@ class WhensMyTransport:
         null_object_constructor is either a classname constructor, or a function that returns a created object
         e.g. lambda a: Constructor(a.lower())
         """
-        # Make sure there is a bus in at least one stop, and if not then fill empty runs with NullDeparture objects
+        # Make sure there is a departure in at least one slot
         if not [departures for departures in departure_data.values() if departures]:
             return {}
+        # Go through list of slots and departures for them.  If there is a None, then there is no slot at all and we delete it
+        # If there is an empty list (no departures) then we replace it with the null object specified ("None shown...").
         for key in departure_data.keys():
-            if not departure_data[key]:
+            if departure_data[key] is None:
+                del departure_data[key]
+            elif departure_data[key] == []:
                 departure_data[key] = [null_object_constructor(key)]
         return departure_data
 
@@ -383,7 +387,7 @@ class WhensMyTransport:
         Abstract method. This must be overridden by a child class to do anything useful
         Takes message, the message from the user. Returns a tuple of (line_or_routes_specified, origin, destination)
         """
-        #pylint: disable=W0613
+        #pylint: disable=W0613,R0201
         return (None, None, None)
 
     @abstractmethod
@@ -393,7 +397,7 @@ class WhensMyTransport:
         Takes a code (e.g. a bus route or line name), origin, destination and (latitude, longitude) tuple
         Returns a string repesenting the message sent back to the user. This can be more than 140 characters
         """
-        #pylint: disable=W0613
+        #pylint: disable=W0613,R0201
         return ""
 
     @abstractmethod
@@ -404,7 +408,7 @@ class WhensMyTransport:
         Returns a dictionary; items are lists of Departure objects, keys are however we have grouped those Departures
         e.g. buses are grouped by Run and the keys are thus the Run numbers
         """
-        #pylint: disable=W0613
+        #pylint: disable=W0613,R0201
         return {}
 
 
