@@ -17,6 +17,7 @@ stations and lines, checking the TfL Tube and DLR APIs and formatting an appropr
 from abc import ABCMeta
 import logging
 import re
+from pprint import pprint
 
 from whensmytransport import WhensMyTransport
 from lib.dataparsers import parse_dlr_data, parse_tube_data
@@ -133,7 +134,10 @@ class WhensMyRailTransport(WhensMyTransport):
         Take a line and a string specifying origin, and work out matching for that name
         """
         logging.debug("Attempting to get a fuzzy match on placename %s", origin)
-        return self.geodata.find_fuzzy_match({'Line': line_code}, origin, RailStation)
+        if origin == "Unknown":
+            return None
+        else:
+            return self.geodata.find_fuzzy_match({'Line': line_code}, origin, RailStation)
 
     def get_canonical_station_name(self, line_code, origin):
         """
@@ -164,7 +168,7 @@ class WhensMyRailTransport(WhensMyTransport):
             null_constructor = lambda direction: NullDeparture(direction)
 
         # Filter out trains terminating here, and any that do not serve our destination
-        terminus = lambda departure: self.get_canonical_station_name(line_code, departure.destination)
+        terminus = lambda departure: self.get_canonical_station_name(line_code, departure.get_clean_destination_name())
         for (slot, departures) in departure_data.items():
             # For any non-empty list of departures, filter out any that terminate here. If as a result the list becomes empty, we mark the
             # slot as deletable by setting the value to None
