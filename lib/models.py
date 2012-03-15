@@ -164,11 +164,11 @@ class RailStation():
         # For low-scoring matches, we try matching between a string the same size as the user query, if its shorter than the name
         # being tested against, so this works for e.g. Kings Cross matching King's Cross St Pancras
         score = get_name_similarity(self.name, test_string)
-        abbreviated_score = get_name_similarity(test_string, self.name[:len(test_string)])
-        if abbreviated_score >= 85 and abbreviated_score > score:
-            return min(abbreviated_score, 99)  # Never 100, in case it overrides an exact match
-        else:
-            return score
+        if len(test_string) < len(self.name):
+            abbreviated_score = get_name_similarity(self.name[:len(test_string)], test_string)
+            if abbreviated_score >= 85 and abbreviated_score > score:
+                return min(abbreviated_score, 99)  # Never 100, in case it overrides an exact match
+        return score
 
 #
 # Representations of departures
@@ -198,6 +198,9 @@ class Departure():
         Return hash value to enable ability to use as dictionary key
         """
         return hash('-'.join([self.destination, self.get_departure_time()]))
+
+    def __repr__(self):
+        return "%s %s" % (self.destination, self.departure_time)
 
     def get_destination(self):
         """
