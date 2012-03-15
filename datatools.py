@@ -384,20 +384,11 @@ def scrape_odd_platform_designations(write_file=False):
     Check Tfl Tube API for Underground platforms that are not designated with a *-bound direction, and (optionally)
     generates a blank CSV template for those stations with Inner/Outer Rail designations
     """
-    #pylint: disable=W0703
     database = WMTDatabase("whensmytube.geodata.db")
-    browser = WMTBrowser()
-
     print "Platforms without a Inner/Outer Rail specification:"
     station_platforms = {}
-    line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
-    for line_code in line_codes:
-        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
-        try:
-            train_data = browser.fetch_xml_tree(tfl_url)
-        except Exception:
-            print "Couldn't get data for %s" % line_code
-            continue
+    all_train_data = get_tfl_prediction_summaries()
+    for (line_code, train_data) in all_train_data.items():
         for station in train_data.findall('S'):
             station_code = station.attrib['Code'][:3]
             station_name = station.attrib['N'][:-1]
@@ -438,6 +429,24 @@ def scrape_odd_platform_designations(write_file=False):
         print error
 
     outputfile.close()
+
+
+def get_tfl_prediction_summaries():
+    """
+    Go through TfL's PredictionSummary API and return list of XML Trees for every single line
+    """
+    #pylint: disable=W0703
+    browser = WMTBrowser()
+    all_train_data = {}
+    line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
+    for line_code in line_codes:
+        tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
+        try:
+            all_train_data[line_code] = browser.fetch_xml_tree(tfl_url)
+        except Exception:
+            print "Couldn't get data for %s" % line_code
+            continue
+    return all_train_data
 
 if __name__ == "__main__":
     #import_bus_csv_to_db()
