@@ -45,6 +45,7 @@ from pprint import pprint # For debugging
 from lib.browser import WMTBrowser
 from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
+from lib.listutils import unique_values
 from lib.locations import WMTLocations
 from lib.logger import setup_logging
 from lib.twitterclient import WMTTwitterClient, is_direct_message
@@ -381,7 +382,7 @@ class WhensMyTransport:
         departures_by_destination = {}
         # Go through each slot, and each slot's departures, sorted in time order
         for slot in sorted(departure_data.keys()):
-            for departure in sorted(departure_data[slot]):
+            for departure in unique_values(sorted(departure_data[slot]))[:3]:
                 destination = departure.get_destination()
                 # Create a slot for this departure if none exists
                 if destination not in departures_by_destination:
