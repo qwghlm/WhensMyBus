@@ -25,11 +25,12 @@ URL_SETS = {
         'TUBE_URL': "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s",
     },
     'test': {
-        'BUS_URL':  "file://" + HOME_DIR + "/testdata/bus/%s.json",   # TODO Fill testdata/ dir with test data
+        'BUS_URL':  "file://" + HOME_DIR + "/testdata/bus/%s.json",
         'DLR_URL':  "file://" + HOME_DIR + "/testdata/dlr/%s.xml",
         'TUBE_URL': "file://" + HOME_DIR + "/testdata/tube/%s-%s.xml",
     }
 }
+
 
 class WMTURLProvider():
     """
