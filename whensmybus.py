@@ -198,8 +198,8 @@ class WhensMyBus(WhensMyTransport):
         # If the number of runs is 3 or 4, get rid of any without buses shown
         if len(relevant_buses) > 2:
             logging.debug("Number of runs is %s, removing any non-existent entries", len(relevant_buses))
-            for (run, bus_list) in relevant_buses.items():
-                if run > 2 and not bus_list:
+            for (run, departures) in relevant_buses.items():
+                if run > 2 and not departures:
                     del relevant_buses[run]
 
         null_constructor = lambda run: NullDeparture(stop_directions[run])

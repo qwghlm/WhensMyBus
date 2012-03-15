@@ -145,7 +145,7 @@ class WhensMyRailTransport(WhensMyTransport):
     def get_departure_data(self, station, line_code, via=None):
         """
         Take a station object and a line ID, and get departure data for that station
-        Returns a dictionary; keys are platform names, values lists of DLRTrain objects
+        Returns a dictionary; keys are slot names (platform for DLR, direction for Tube), values lists of Train objects
         """
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         self.check_station_is_open(station)

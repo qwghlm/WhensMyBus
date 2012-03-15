@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #pylint: disable=R0913
 """
-Models/abstractions of concepts such as stations, trains, bus stops etc.
+Models and abstractions of concepts such as stations, trains, bus stops etc.
 """
 from datetime import datetime, timedelta
 import re
@@ -234,6 +234,7 @@ class Bus(Departure):
     Class representing a bus of any kind
 
     Unlike Trains, bus stop names for the same place can vary depending on which direction, so this takes this into account
+    by recording the departure point as well
     """
     #pylint: disable=R0903
     def __init__(self, departure_point, destination, departure_time):

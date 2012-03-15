@@ -119,17 +119,17 @@ class WhensMyTransport:
         """
         tweets = self.twitter_client.fetch_tweets()
         for tweet in tweets:
-
             # If the Tweet is not valid (e.g. not directly addressed, from ourselves) then skip it
             if not self.validate_tweet(tweet):
                 continue
+
             # Try processing the Tweet. This may fail with a WhensMyTransportException for a number of reasons, in which
-            # case we catch the exception and process an apology accordingly
+            # case we catch the exception and process an apology accordingly. Other Python Exceptions may occur too - we handle
+            # these by DMing the admin with an alert
             try:
                 replies = self.process_tweet(tweet)
             except WhensMyTransportException as exc:
                 replies = (self.process_wmt_exception(exc),)
-            # Other Python Exceptions may occur too - we handle these by DMing the admin with an alert
             except Exception as exc:
                 self.alert_admin_about_exception(tweet, exc.__class__.__name__)
                 replies = (self.process_wmt_exception(WhensMyTransportException('unknown_error')),)
@@ -138,9 +138,8 @@ class WhensMyTransport:
             if not replies:
                 replies = self.check_politeness(tweet)
 
-            # Send a reply back, if we have one
+            # Send a reply back, if we have one. DMs and @ replies have different structures and different handlers
             for reply in replies:
-                # DMs and @ replies have different structures and different handlers
                 if is_direct_message(tweet):
                     self.twitter_client.send_reply_back(reply, tweet.sender.screen_name, True, tweet.id)
                 else:
@@ -150,8 +149,8 @@ class WhensMyTransport:
 
     def validate_tweet(self, tweet):
         """
-        Check to see if a Tweet is valid (i.e. we want to reply to it). Tweets from ourselves, and mentions that
-        are not directly addressed to us, are ignored
+        Check to see if a Tweet is valid (i.e. we want to reply to it), and returns True if so
+        Tweets from ourselves, and mentions that are not directly addressed to us, returns False
         """
         message = tweet.text
 
@@ -177,12 +176,13 @@ class WhensMyTransport:
 
     def process_tweet(self, tweet):
         """
-        Process a single Tweet object and return a list of replies, one per route or line
+        Process a single Tweet object and return a list of strings (replies), one per route or line
         e.g.:
             '@whensmybus 341 from Clerkenwell' produces
             '341 Clerkenwell Road to Waterloo 1241; Rosebery Avenue to Angel Road 1247'
 
         Each reply might be more than 140 characters
+        No replies at all are given if the message is a thank-you or does not include a route or line
         """
         # Don't do anything if this is a thank-you
         if self.check_politeness(tweet):
@@ -191,36 +191,33 @@ class WhensMyTransport:
         # Get route number, from and to from the message
         message = tweet.text
         (requested_routes, origin, destination) = self.parse_message(message)
-
-        if requested_routes == None:
+        if requested_routes is None:
             return []
 
         # If no origin specified, let's see if we have co-ordinates on the Tweet
-        if origin == None:
+        if origin is None:
             position = self.get_tweet_geolocation(tweet, ' '.join(requested_routes))
         else:
             position = None
 
         replies = []
-
         for requested_route in requested_routes:
+            try:
+                replies.append(self.process_individual_request(requested_route, origin, destination, position))
             # Exceptions produced for an individual request are particular to a route/stop combination - e.g. the bus
             # given does not stop at the stop given, so we just provide an error message for that circumstance, treat as
             # a non-fatal error, and process the next one. The one case where there is a fatal error (TfL's servers are
             # down), we raise this exception to be caught higher up by check_tweets()
-            try:
-                replies.append(self.process_individual_request(requested_route, origin, destination, position))
             except WhensMyTransportException as exc:
                 if exc.msgid == 'tfl_server_down':
                     raise
                 else:
                     replies.append(self.process_wmt_exception(exc))
-
         return replies
 
     def check_politeness(self, tweet):
         """
-        In case someone's just being nice to us, send them a "No problem"
+        Checks a Tweet for politeness. In case someone's just being nice to us, return a "No problem" else return an empty list
         """
         message = self.sanitize_message(tweet.text).lower()
         if message.startswith('thanks') or message.startswith('thank you'):
@@ -229,7 +226,7 @@ class WhensMyTransport:
 
     def sanitize_message(self, message):
         """
-        Takes a message and scrubs out any @username or #hashtags
+        Takes a message, scrub out the @username of this bot and any #hashtags, and return the sanitized messages
         """
         # Remove hashtags and @username
         message = re.sub(r"\s#\w+\b", '', message)
@@ -248,7 +245,7 @@ class WhensMyTransport:
     def parse_message(self, message):
         """
         Abstract method. This must be overridden by a child class to do anything useful
-        Takes message, the message from the user. Returns a tuple of (line_or_routes_specified, origin, destination)
+        Takes a message rom the user. Returns a tuple of (line_or_routes_specified, origin, destination)
         """
         #pylint: disable=W0613,R0201
         return (None, None, None)
@@ -339,17 +336,25 @@ class WhensMyTransport:
     def get_departure_data(self, station_or_stops, line_or_route, via):
         """
         Abstract method. This must be overridden by a child class to do anything useful
-        Takes a string or list of strings representing a station or stop, and a string representing the line or route
-        Returns a dictionary; items are lists of Departure objects, keys are however we have grouped those Departures
-        e.g. buses are grouped by Run and the keys are thus the Run numbers
+
+        Takes a string or list of strings representing a station or stop, and a string representing the line or route,
+        and a string representing the stop the line or route has to stop at
+
+        Returns a dictionary; items are lists of Departure objects, keys are "slots" that we have grouped these Departures into
+            Buses are grouped by Run and the keys are thus the Run numbers
+            TubeTrains are grouped by direction, keys are "Eastbound", "Westbound" etc.
+            DLRTrains are grouped by platform, keys are "p1", "p2"
         """
         #pylint: disable=W0613,R0201
         return {}
 
     def cleanup_departure_data(self, departure_data, null_object_constructor):
         """
-        Takes a dictionary produced by get_departure_data and cleans it up. If no departures listed at all,
-        then return an empty dictionary, else fill any slot with a null object, represented by null_object_constructor
+        Takes a dictionary produced by get_departure_data, cleans it up and returns it
+
+        If no departures listed at all, then return an empty dictionary
+        Any slot with an empty list as its value has it filled with a null object, which is constructed by null_object_constructor
+        Any slot with None as its value is deleted
 
         null_object_constructor is either a classname constructor, or a function that returns a created object
         e.g. lambda a: Constructor(a.lower())
@@ -359,27 +364,24 @@ class WhensMyTransport:
             return {}
         # Go through list of slots and departures for them.  If there is a None, then there is no slot at all and we delete it
         # If there is an empty list (no departures) then we replace it with the null object specified ("None shown...").
-        for key in departure_data.keys():
-            if departure_data[key] is None:
-                del departure_data[key]
-            elif departure_data[key] == []:
-                departure_data[key] = [null_object_constructor(key)]
+        for slot in departure_data.keys():
+            if departure_data[slot] is None:
+                del departure_data[slot]
+            elif departure_data[slot] == []:
+                departure_data[slot] = [null_object_constructor(slot)]
         return departure_data
 
-    def format_departure_data(self, departures_by_platform):
+    def format_departure_data(self, departure_data):
         """
-        Take departure data (which is a dictionary of { platform_id : [Departure list], ... } values), and turn into a formatted
-        string. Departures are sorted into earliest first and roughly clustered around common platforms
-
-        Note that "platform" is a generic term and can refer to a platform (DLR), direction (Tube), or bus stop (Bus) depending
-        on how the particular mode of transport is best organised
+        Takes a dictionary produced by get_departure_data, and turn into a formatted string for the user
+        Departures are sorted by slot ID and then earliest first
         """
-        # Dictionaries alone do not preserve order, hence a list of the correct order for destinations as well
+        # dict.keys() does not preserve order, hence a list of the correct order for destinations as well
         destinations_correct_order = []
         departures_by_destination = {}
-        # Go through each platform, and each platform's departures, sorted in time order
-        for platform in sorted(departures_by_platform.keys()):
-            for departure in sorted(departures_by_platform[platform]):
+        # Go through each slot, and each slot's departures, sorted in time order
+        for slot in sorted(departure_data.keys()):
+            for departure in sorted(departure_data[slot]):
                 destination = departure.get_destination()
                 # Create a slot for this departure if none exists
                 if destination not in departures_by_destination:
@@ -394,7 +396,7 @@ class WhensMyTransport:
 
     def process_wmt_exception(self, exc):
         """
-        Turns a WhensMyTransportException into a message for the user
+        Takes a WhensMyTransportException and returns a string (reply) for the user
         """
         logging.debug("Exception encountered: %s", exc.get_value())
         return "Sorry! %s" % exc.get_value()
@@ -413,4 +415,4 @@ class WhensMyTransport:
 
 
 if __name__ == "__main__":
-    print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytube.py"
+    print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmyrail.py"
