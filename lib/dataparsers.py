@@ -3,6 +3,7 @@
 Data parsers for Whens My Transport?
 """
 import logging
+import os
 import re
 from datetime import datetime, timedelta
 from time import localtime
@@ -16,9 +17,32 @@ from lib.stringutils import capwords
 #
 # Live API URLs
 #
-BUS_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
-DLR_URL = "http://www.dlrlondon.co.uk/xml/mobile/%s.xml"
-TUBE_URL = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s"
+HOME_DIR = os.path.dirname(os.path.abspath(__file__)) + '/..'
+URL_SETS = {
+    'live': {
+        'BUS_URL':  "http://countdown.tfl.gov.uk/stopBoard/%s",
+        'DLR_URL':  "http://www.dlrlondon.co.uk/xml/mobile/%s.xml",
+        'TUBE_URL': "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s",
+    },
+    'test': {
+        'BUS_URL':  "file://" + HOME_DIR + "/testdata/bus/%s.json",   # TODO Fill testdata/ dir with test data
+        'DLR_URL':  "file://" + HOME_DIR + "/testdata/dlr/%s.xml",
+        'TUBE_URL': "file://" + HOME_DIR + "/testdata/tube/%s-%s.xml",
+    }
+}
+
+class WMTURLProvider():
+    """
+    Wrapper class that provides URLs for the TfL APIs
+    """
+    def __init__(self, use_test_data=False):
+        if use_test_data:
+            self.urls = URL_SETS['test']
+        else:
+            self.urls = URL_SETS['live']
+
+    def __getattr__(self, key):
+        return self.urls[key]
 
 
 def parse_bus_data(bus_data, stop, route_number):
