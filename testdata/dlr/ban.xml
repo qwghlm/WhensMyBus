@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ttBoxset xmlns="http://www.dlrmobile.org/schemas/sitemap/0.9">
+  <div id="ttbox">
+    <div id="platformleft">
+      <img src="p9l.gif" alt="" width="54" height="86" border="0" />
+    </div>
+    <div id="platformmiddle">
+      <div id="line1">
+1 W'wich Arsenal  2 mins
+				</div>
+      <div id="clearall">
+      </div>
+      <div id="line23">
+        <p>
+2 LEWISHAM        8 MINS
+ 
+<br />
+ 
+3 W'WICH ARSENAL 12 MINS
+				</p>
+      </div>
+      <div id="time">
+21:01
+				</div>
+    </div>
+    <div id="platformright">
+      <img src="p9r.gif" alt="" width="57" height="86" border="0" />
+    </div>
+  </div>
+  <div id="ttbox">
+    <div id="platformleft">
+      <img src="p10l.gif" alt="" width="54" height="86" border="0" />
+    </div>
+    <div id="platformmiddle">
+      <div id="line1">
+1 Terminates here
+				</div>
+      <div id="clearall">
+      </div>
+      <div id="line23">
+        <p>
+2 TERMINATES HERE 5 MINS
+ 
+<br />
+ 
+3 TERMINATES HERE 9 MINS
+				</p>
+      </div>
+      <div id="time">
+21:01
+ 
+			</div>
+    </div>
+    <div id="platformright">
+      <img src="p10r.gif" alt="" width="57" height="86" border="0" />
+    </div>
+  </div>
+</ttBoxset>

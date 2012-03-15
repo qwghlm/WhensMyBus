@@ -1,0 +1,112 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<ttBoxset xmlns="http://www.dlrmobile.org/schemas/sitemap/0.9">
+  <div id="ttbox">
+    <div id="platformleft">
+      <img src="p1l.gif" alt="" width="54" height="86" border="0" />
+    </div>
+    <div id="platformmiddle">
+      <div id="line1">
+1 Beckton         3 mins
+				</div>
+      <div id="clearall">
+      </div>
+      <div id="line23">
+        <p>
+2 W'WICH ARSENAL  9 MINS
+
+<br />
+ 
+3 BECKTON        13 MINS 
+				</p>
+      </div>
+      <div id="time">
+21:04
+				</div>
+    </div>
+    <div id="platformright">
+      <img src="p1r.gif" alt="" width="57" height="86" border="0" />
+    </div>
+  </div>
+  <div id="ttbox">
+    <div id="platformleft">
+      <img src="p2l.gif" alt="" width="54" height="86" border="0" />
+    </div>
+    <div id="platformmiddle">
+      <div id="line1">
+1 Stratford       3 mins
+				</div>
+      <div id="clearall">
+      </div>
+      <div id="line23">
+        <p>
+2 ALL SAINTS     10 MINS 
+<br />
+ 
+3 STRATFORD      13 MINS
+				</p>
+      </div>
+      <div id="time">
+21:04
+ 
+			</div>
+    </div>
+    <div id="platformright">
+      <img src="p2r.gif" alt="" width="57" height="86" border="0" />
+    </div>
+  </div>
+  <div id="ttbox">
+    <div id="platformleft">
+      <img src="p3l.gif" alt="" width="54" height="86" border="0" />
+    </div>
+    <div id="platformmiddle">
+      <div id="line1">
+1 Canary Wharf    6 mins
+				</div>
+      <div id="clearall">
+      </div>
+      <div id="line23">
+        <p>
+2 CANARY WHARF   11 MINS
+ 
+<br />
+ 
+3 CANARY WHARF   21 MINS
+				</p>
+      </div>
+      <div id="time">
+21:04
+ 
+			</div>
+    </div>
+    <div id="platformright">
+      <img src="p3r.gif" alt="" width="57" height="86" border="0" />
+    </div>
+  </div>
+  <div id="ttbox">
+    <div id="platformleft">
+      <img src="p4l.gif" alt="" width="54" height="86" border="0" />
+    </div>
+    <div id="platformmiddle">
+      <div id="line1">
+1 Tower Gateway				</div>
+      <div id="clearall">
+      </div>
+      <div id="line23">
+        <p>
+2 BANK            5 MINS
+ 
+<br />
+ 
+3 TOWER GATEWAY   9 MINS
+				</p>
+      </div>
+      <div id="time">
+21:04
+ 
+			</div>
+    </div>
+    <div id="platformright">
+      <img src="p4r.gif" alt="" width="57" height="86" border="0" />
+    </div>
+  </div>
+</ttBoxset>
