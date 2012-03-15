@@ -12,16 +12,15 @@ from lib.locations import WMTLocations
 from lib.models import TubeTrain, RailStation
 
 
-line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
-
-
 def scrape_tfl_destination_codes():
     """
     Scrape codes from TfL's TrackerNet and save to a database
     """
+    #pylint: disable=W0703
     database = WMTDatabase("whensmytube.destinationcodes.db")
     browser = WMTBrowser()
     destination_summary = {}
+    line_codes = ('B', 'C', 'D', 'H', 'J', 'M', 'N', 'P', 'V', 'W')
     for line_code in line_codes:
         tfl_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionSummary/%s" % line_code
         try:
