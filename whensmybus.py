@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#pylint: disable=W0142,R0201
 """
 
 When's My Bus?
@@ -26,6 +25,7 @@ from lib.dataparsers import parse_bus_data
 from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
 from lib.models import BusStop, NullDeparture
+
 
 class WhensMyBus(WhensMyTransport):
     """

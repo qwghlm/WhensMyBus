@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#pylint: disable=C0103,W0141,R0904,W0142
+#pylint: disable=C0103,W0142
 """
 A set of unit tests for When's My Bus?
 
@@ -766,7 +766,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
             to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
-            line_fragments = [value % test_variables for value in ("%(line)s",)]  # FIXME blank?
+            line_fragments = [value % test_variables for value in ("%(line)s",)]  # FIXME Add in test for blank Tweet
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:

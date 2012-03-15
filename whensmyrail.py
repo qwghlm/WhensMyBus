@@ -147,6 +147,7 @@ class WhensMyRailTransport(WhensMyTransport):
         Take a station object and a line ID, and get departure data for that station
         Returns a dictionary; keys are slot names (platform for DLR, direction for Tube), values lists of Train objects
         """
+        #pylint: disable=W0108
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         self.check_station_is_open(station)
         # Circle line these days is coded H as it shares with the Hammersmith & City
@@ -203,7 +204,7 @@ def get_line_code(line_name):
     else:
         return line_name[0]
 
-
+# FIXME Use command line options to specify instance name
 if __name__ == "__main__":
-    WMD = WhensMyRailTransport("whensmydlr")  # FIXME use command line options?
+    WMD = WhensMyRailTransport("whensmydlr")
     WMD.check_tweets()
