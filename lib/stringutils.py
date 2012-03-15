@@ -55,6 +55,8 @@ def get_best_fuzzy_match(search_term, possible_items, minimum_confidence=70):
 
     # Sort in order of confidence and pick the last one
     fuzzy_matches.sort(lambda a, b: cmp(a[1], b[1]))
+    # Sort in order of confidence (with length as a tiebreaker)
+    fuzzy_matches.sort(lambda a, b: cmp(a[1], b[1]) or cmp(len(b[0]), len(a[0])))
     (best_value, confidence) = fuzzy_matches[-1]
     if confidence >= minimum_confidence:
         return best_value
