@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ROOT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://trackernet.lul.co.uk">
+  <Disclaimer>This system is an INFORMATION ONLY system, relying entirely on 
+				information received from the relevant Operational Railway Control System(s). It is NOT 
+				considered a safety related system in the Railway Engineering sense. However, 
+				the information reported may trigger user intervention by staff regarding possible 
+				incidents on the railway, and confirmation of the situation observed should be obtained prior 
+				to any corrective action being taken.</Disclaimer>
+  <WhenCreated>15 Mar 2012 21:41:29</WhenCreated>
+  <Line>N</Line>
+  <LineName>Northern Line</LineName>
+  <S Code="CTN" Mess="" N="Camden Town." CurTime="21:41:29">
+    <P N="Northbound - Platform 1" Num="1" TrackCode="TNM(5)">
+      <T LCID="1305875" SetNo="124" TripNo="14" SecondsTo="54" TimeTo="1:00" Location="Between Mornington Crescent and Camden Town " Destination="Edgware via CX" DestCode="153" Order="0" DepartTime="21:41:19" DepartInterval="54" Departed="0" Direction="0" IsStalled="0" TrackCode="TNF(4)" LN="N" />
+      <T LCID="1306515" SetNo="063" TripNo="15" SecondsTo="460" TimeTo="8:00" Location="At Goodge Street Platform 1" Destination="Edgware via CX" DestCode="153" Order="0" DepartTime="21:40:40" DepartInterval="460" Departed="0" Direction="0" IsStalled="0" TrackCode="TN86AB" LN="N" />
+      <T LCID="1306979" SetNo="045" TripNo="13" SecondsTo="773" TimeTo="13:00" Location="Between Bank and Moorgate" Destination="Edgware via Bank" DestCode="152" Order="0" DepartTime="21:41:22" DepartInterval="773" Departed="0" Direction="0" IsStalled="0" TrackCode="TN6341" LN="N" />
+      <T LCID="1303191" SetNo="142" TripNo="10" SecondsTo="893" TimeTo="15:00" Location="At Bank Platform 4" Destination="Edgware via Bank" DestCode="152" Order="0" DepartTime="21:41:16" DepartInterval="893" Departed="0" Direction="0" IsStalled="0" TrackCode="TN636AB" LN="N" />
+      <T LCID="1299699" SetNo="131" TripNo="9" SecondsTo="948" TimeTo="16:00" Location="Between Kennington and Waterloo" Destination="Edgware via CX" DestCode="153" Order="0" DepartTime="21:40:49" DepartInterval="948" Departed="0" Direction="0" IsStalled="0" TrackCode="TN56B.58ABCD" LN="N" />
+      <T LCID="1305949" SetNo="121" TripNo="14" SecondsTo="1295" TimeTo="22:00" Location="Between Kennington and Elephant &amp; Castle" Destination="Edgware via Bank" DestCode="152" Order="0" DepartTime="21:40:49" DepartInterval="1295" Departed="0" Direction="0" IsStalled="0" TrackCode="TNU.V.W" LN="N" />
+      <T LCID="1302609" SetNo="062" TripNo="14" SecondsTo="1766" TimeTo="29:00" Location="At Clapham North Platform 1" Destination="Edgware via Bank" DestCode="152" Order="0" DepartTime="21:41:04" DepartInterval="1766" Departed="0" Direction="0" IsStalled="0" TrackCode="TN672ABC" LN="N" />
+    </P>
+    <P N="Southbound - Platform 2" Num="2" TrackCode="TN189AB">
+      <T LCID="1303806" SetNo="072" TripNo="17" SecondsTo="0" TimeTo="-" Location="At Platform" Destination="Morden via Bank" DestCode="308" Order="0" DepartTime="21:41:16" DepartInterval="0" Departed="0" Direction="0" IsStalled="0" TrackCode="TN189AB" LN="N" />
+      <T LCID="1306745" SetNo="016" TripNo="21" SecondsTo="272" TimeTo="5:00" Location="Between Hampstead and Belsize Park" Destination="Kennington via CX" DestCode="249" Order="0" DepartTime="21:41:13" DepartInterval="272" Departed="0" Direction="0" IsStalled="0" TrackCode="TN165AB" LN="N" />
+      <T LCID="1304114" SetNo="125" TripNo="15" SecondsTo="617" TimeTo="10:00" Location="At Golders Green Platform 5" Destination="Morden via Bank" DestCode="308" Order="0" DepartTime="21:41:07" DepartInterval="617" Departed="0" Direction="0" IsStalled="0" TrackCode="TNBB(3)" LN="N" />
+      <T LCID="1305324" SetNo="065" TripNo="14" SecondsTo="727" TimeTo="12:00" Location="Between Brent Cross and Golders Green" Destination="Kennington via CX" DestCode="249" Order="0" DepartTime="21:41:10" DepartInterval="727" Departed="0" Direction="0" IsStalled="0" TrackCode="TN419C.417AB" LN="N" />
+      <T LCID="1307077" SetNo="107" TripNo="14" SecondsTo="1045" TimeTo="17:00" Location="Between Colindale and Hendon Central" Destination="Morden via Bank" DestCode="308" Order="0" DepartTime="21:41:22" DepartInterval="1045" Departed="0" Direction="0" IsStalled="0" TrackCode="TN433B.431A" LN="N" />
+      <T LCID="1307125" SetNo="110" TripNo="15" SecondsTo="1259" TimeTo="21:00" Location="At Burnt Oak Platform 2" Destination="Kennington via CX" DestCode="249" Order="0" DepartTime="21:40:58" DepartInterval="1259" Departed="0" Direction="0" IsStalled="0" TrackCode="TN445AB" LN="N" />
+      <T LCID="1304484" SetNo="050" TripNo="12" SecondsTo="1558" TimeTo="26:00" Location="At Edgware Platform 2" Destination="Morden via Bank" DestCode="308" Order="0" DepartTime="21:41:13" DepartInterval="1558" Departed="0" Direction="0" IsStalled="0" TrackCode="TND(1)" LN="N" />
+      <T LCID="1307049" SetNo="037" TripNo="12" SecondsTo="1568" TimeTo="26:00" Location="At Edgware Platform 1" Destination="Morden via Bank" DestCode="308" Order="0" DepartTime="21:40:22" DepartInterval="1568" Departed="0" Direction="0" IsStalled="0" TrackCode="TNF(1)" LN="N" />
+    </P>
+    <P N="Northbound - Platform 3" Num="3" TrackCode="TNP(3)">
+      <T LCID="1288043" SetNo="042" TripNo="13" SecondsTo="165" TimeTo="3:00" Location="Between Euston and Camden Town" Destination="High Barnet via Bank" DestCode="225" Order="0" DepartTime="21:41:16" DepartInterval="165" Departed="0" Direction="0" IsStalled="0" TrackCode="TN608A.610C" LN="N" />
+      <T LCID="1302778" SetNo="001" TripNo="20" SecondsTo="280" TimeTo="5:00" Location="At Euston Platform 1" Destination="High Barnet via CX" DestCode="226" Order="0" DepartTime="21:40:34" DepartInterval="280" Departed="0" Direction="0" IsStalled="0" TrackCode="TN96AB" LN="N" />
+      <T LCID="1304599" SetNo="144" TripNo="8" SecondsTo="638" TimeTo="11:00" Location="Between Charing Cross and Leicester Square" Destination="High Barnet via CX" DestCode="226" Order="0" DepartTime="21:41:19" DepartInterval="638" Departed="0" Direction="0" IsStalled="0" TrackCode="TNAJ.AK.AL" LN="N" />
+      <T LCID="1307009" SetNo="141" TripNo="7" SecondsTo="1011" TimeTo="17:00" Location="At London Bridge Platform 1" Destination="High Barnet via Bank" DestCode="225" Order="0" DepartTime="21:40:43" DepartInterval="1011" Departed="0" Direction="0" IsStalled="0" TrackCode="TN640B" LN="N" />
+      <T LCID="1304485" SetNo="010" TripNo="15" SecondsTo="1110" TimeTo="18:00" Location="At Kennington Platform 1" Destination="High Barnet via CX" DestCode="226" Order="0" DepartTime="21:40:13" DepartInterval="1110" Departed="0" Direction="0" IsStalled="0" TrackCode="TNLL.MM.NN" LN="N" />
+      <T LCID="1302198" SetNo="166" TripNo="12" SecondsTo="1442" TimeTo="24:00" Location="Between Oval and Kennington" Destination="High Barnet via Bank" DestCode="225" Order="0" DepartTime="21:41:25" DepartInterval="1442" Departed="0" Direction="0" IsStalled="0" TrackCode="TN660A" LN="N" />
+    </P>
+    <P N="Southbound - Platform 4" Num="4" TrackCode="TN301B">
+      <T LCID="1301411" SetNo="033" TripNo="15" SecondsTo="144" TimeTo="2:30" Location="At Kentish Town Platform 2" Destination="Kennington via CX" DestCode="249" Order="0" DepartTime="21:41:22" DepartInterval="144" Departed="0" Direction="0" IsStalled="0" TrackCode="TN309A" LN="N" />
+      <T LCID="1300339" SetNo="163" TripNo="13" SecondsTo="262" TimeTo="4:30" Location="Between Archway and Tufnell Park" Destination="Morden via Bank" DestCode="308" Order="0" DepartTime="21:41:22" DepartInterval="262" Departed="0" Direction="0" IsStalled="0" TrackCode="TN319A" LN="N" />
+      <T LCID="1302091" SetNo="034" TripNo="14" SecondsTo="543" TimeTo="9:00" Location="At Highgate Platform 2" Destination="Kennington via CX" DestCode="249" Order="0" DepartTime="21:41:25" DepartInterval="543" Departed="0" Direction="0" IsStalled="0" TrackCode="TN515ABCD" LN="N" />
+      <T LCID="1303381" SetNo="071" TripNo="14" SecondsTo="746" TimeTo="12:00" Location="Between Finchley Central and East Finchley" Destination="Morden Depot via Bank" DestCode="305" Order="0" DepartTime="21:41:13" DepartInterval="746" Departed="0" Direction="0" IsStalled="0" TrackCode="TNDF_1" LN="N" />
+      <T LCID="1295426" SetNo="073" TripNo="14" SecondsTo="953" TimeTo="16:00" Location="Between West Finchley and Finchley Central " Destination="Kennington via CX" DestCode="249" Order="0" DepartTime="21:41:22" DepartInterval="953" Departed="0" Direction="0" IsStalled="0" TrackCode="TN201F" LN="N" />
+      <T LCID="1306295" SetNo="150" TripNo="9" SecondsTo="1194" TimeTo="20:00" Location="At Woodside Park Platform 2" Destination="Kennington via CX" DestCode="249" Order="0" DepartTime="21:41:13" DepartInterval="1194" Departed="0" Direction="0" IsStalled="0" TrackCode="TN215A" LN="N" />
+      <T LCID="1304488" SetNo="162" TripNo="15" SecondsTo="1483" TimeTo="25:00" Location="Left High Barnet" Destination="Morden via Bank" DestCode="308" Order="0" DepartTime="21:41:16" DepartInterval="1483" Departed="0" Direction="0" IsStalled="0" TrackCode="TNBH_1" LN="N" />
+      <T LCID="1301994" SetNo="101" TripNo="15" SecondsTo="1568" TimeTo="26:00" Location="At High Barnet Platform 1" Destination="Kennington via CX" DestCode="249" Order="0" DepartTime="21:38:13" DepartInterval="1568" Departed="0" Direction="0" IsStalled="0" TrackCode="TNAF(1)" LN="N" />
+    </P>
+  </S>
+</ROOT>

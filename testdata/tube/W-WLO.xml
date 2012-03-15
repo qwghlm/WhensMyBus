@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ROOT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://trackernet.lul.co.uk">
+  <Disclaimer>This system is an INFORMATION ONLY system, relying entirely on 
+				information received from the relevant Operational Railway Control System(s). It is NOT 
+				considered a safety related system in the Railway Engineering sense. However, 
+				the information reported may trigger user intervention by staff regarding possible 
+				incidents on the railway, and confirmation of the situation observed should be obtained prior 
+				to any corrective action being taken.</Disclaimer>
+  <WhenCreated>15 Mar 2012 21:41:37</WhenCreated>
+  <Line>W</Line>
+  <LineName>Waterloo &amp; City Line</LineName>
+  <S Code="WLO" Mess="" N="Waterloo." CurTime="21:41:37">
+    <P N="Eastbound Platform 25" Num="25" TrackCode="TWBNWLO">
+      <T LCID="203" SetNo="203" TripNo="0" SecondsTo="0" TimeTo="-" Location="At Platform" Destination="Bank" DestCode="593" Order="0" DepartTime="21:41:00" DepartInterval="0" Departed="0" Direction="0" IsStalled="0" TrackCode="TWBNWLO" LN="W" />
+    </P>
+    <P N="Westbound Platform 26" Num="26" TrackCode="TWAQWLO">
+      <T LCID="204" SetNo="204" TripNo="0" SecondsTo="0" TimeTo="-" Location="At Platform" Destination="Waterloo" DestCode="594" Order="0" DepartTime="21:40:52" DepartInterval="0" Departed="0" Direction="0" IsStalled="0" TrackCode="TWAQWLO" LN="W" />
+    </P>
+  </S>
+</ROOT>

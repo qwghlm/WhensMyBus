@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ROOT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://trackernet.lul.co.uk">
+  <Disclaimer>This system is an INFORMATION ONLY system, relying entirely on 
+				information received from the relevant Operational Railway Control System(s). It is NOT 
+				considered a safety related system in the Railway Engineering sense. However, 
+				the information reported may trigger user intervention by staff regarding possible 
+				incidents on the railway, and confirmation of the situation observed should be obtained prior 
+				to any corrective action being taken.</Disclaimer>
+  <WhenCreated>15 Mar 2012 21:39:40</WhenCreated>
+  <Line>C</Line>
+  <LineName>Central Line</LineName>
+  <S Code="WCT" Mess="" N="White City." CurTime="21:39:40">
+    <P N="Westbound - Platform 1" Num="1" TrackCode="TC2614">
+      <T LCID="1288353" SetNo="010" TripNo="15" SecondsTo="361" TimeTo="6:00" Location="At Notting Hill Gate" Destination="Ealing Broadway" DestCode="548" Order="0" DepartTime="21:38:44" DepartInterval="361" Departed="0" Direction="0" IsStalled="0" TrackCode="TC3006" LN="C" />
+      <T LCID="1296173" SetNo="055" TripNo="13" SecondsTo="402" TimeTo="7:00" Location="Left Queensway" Destination="West Ruislip" DestCode="547" Order="0" DepartTime="21:39:31" DepartInterval="402" Departed="0" Direction="0" IsStalled="0" TrackCode="TC3210" LN="C" />
+      <T LCID="1289191" SetNo="101" TripNo="15" SecondsTo="563" TimeTo="9:00" Location="At Lancaster Gate" Destination="White City" DestCode="550" Order="0" DepartTime="21:39:34" DepartInterval="563" Departed="0" Direction="0" IsStalled="0" TrackCode="TC3506" LN="C" />
+      <T LCID="1288509" SetNo="017" TripNo="12" SecondsTo="872" TimeTo="15:00" Location="Between Tottenham Court Road and Oxford Circus" Destination="Ealing Broadway" DestCode="548" Order="0" DepartTime="21:39:31" DepartInterval="872" Departed="0" Direction="0" IsStalled="0" TrackCode="TC4000" LN="C" />
+      <T LCID="1301339" SetNo="023" TripNo="11" SecondsTo="1142" TimeTo="19:00" Location="At Chancery Lane" Destination="West Ruislip" DestCode="547" Order="0" DepartTime="21:39:11" DepartInterval="1142" Departed="0" Direction="0" IsStalled="0" TrackCode="TC4512" LN="C" />
+      <T LCID="1291567" SetNo="103" TripNo="17" SecondsTo="1364" TimeTo="23:00" Location="At Bank" Destination="Ealing Broadway" DestCode="548" Order="0" DepartTime="21:39:01" DepartInterval="1364" Departed="0" Direction="0" IsStalled="0" TrackCode="TC4710" LN="C" />
+      <T LCID="1297667" SetNo="122" TripNo="5" SecondsTo="1584" TimeTo="26:00" Location="Between Bethnal Green and Liverpool Street" Destination="West Ruislip" DestCode="547" Order="0" DepartTime="21:39:29" DepartInterval="1584" Departed="0" Direction="0" IsStalled="0" TrackCode="TC5228" LN="C" />
+    </P>
+    <P N="Platform 2/3" Num="2" TrackCode="TC2743">
+      <T LCID="1290388" SetNo="016" TripNo="11" SecondsTo="0" TimeTo="-" Location="At Platform" Destination="Hainault via Newbury Park" DestCode="532" Order="0" DepartTime="21:35:05" DepartInterval="0" Departed="0" Direction="0" IsStalled="0" TrackCode="TC2739" LN="C" />
+      <T LCID="1288673" SetNo="007" TripNo="14" SecondsTo="294" TimeTo="5:00" Location="At East Acton" Destination="Epping" DestCode="530" Order="0" DepartTime="21:39:03" DepartInterval="294" Departed="0" Direction="0" IsStalled="0" TrackCode="TC2511" LN="C" />
+      <T LCID="1288353" SetNo="010" TripNo="15" SecondsTo="369" TimeTo="6:00" Location="At Notting Hill Gate" Destination="Ealing Broadway" DestCode="548" Order="0" DepartTime="21:38:44" DepartInterval="369" Departed="0" Direction="0" IsStalled="0" TrackCode="TC3006" LN="C" />
+      <T LCID="1296173" SetNo="055" TripNo="13" SecondsTo="508" TimeTo="8:00" Location="Left Queensway" Destination="West Ruislip" DestCode="547" Order="0" DepartTime="21:39:31" DepartInterval="508" Departed="0" Direction="0" IsStalled="0" TrackCode="TC3210" LN="C" />
+      <T LCID="1289191" SetNo="101" TripNo="15" SecondsTo="567" TimeTo="9:00" Location="At Lancaster Gate" Destination="White City" DestCode="550" Order="0" DepartTime="21:39:34" DepartInterval="567" Departed="0" Direction="0" IsStalled="0" TrackCode="TC3506" LN="C" />
+      <T LCID="1290412" SetNo="112" TripNo="14" SecondsTo="633" TimeTo="11:00" Location="At West Acton" Destination="Woodford via Hainault" DestCode="531" Order="0" DepartTime="21:39:04" DepartInterval="633" Departed="0" Direction="0" IsStalled="0" TrackCode="TC2209" LN="C" />
+      <T LCID="1304011" SetNo="011" TripNo="12" SecondsTo="721" TimeTo="12:00" Location="At Ealing Broadway" Destination="Hainault via Newbury Park" DestCode="532" Order="0" DepartTime="21:35:46" DepartInterval="721" Departed="0" Direction="0" IsStalled="0" TrackCode="TC2007" LN="C" />
+      <T LCID="1275686" SetNo="006" TripNo="12" SecondsTo="803" TimeTo="13:00" Location="Between Greenford and Perivale" Destination="Epping" DestCode="530" Order="0" DepartTime="21:39:28" DepartInterval="803" Departed="0" Direction="0" IsStalled="0" TrackCode="TC1803" LN="C" />
+      <T LCID="1288509" SetNo="017" TripNo="12" SecondsTo="880" TimeTo="15:00" Location="Between Tottenham Court Road and Oxford Circus" Destination="Ealing Broadway" DestCode="548" Order="0" DepartTime="21:39:31" DepartInterval="880" Departed="0" Direction="0" IsStalled="0" TrackCode="TC4000" LN="C" />
+      <T LCID="1301339" SetNo="023" TripNo="11" SecondsTo="1248" TimeTo="21:00" Location="At Chancery Lane" Destination="West Ruislip" DestCode="547" Order="0" DepartTime="21:39:11" DepartInterval="1248" Departed="0" Direction="0" IsStalled="0" TrackCode="TC4512" LN="C" />
+      <T LCID="1291567" SetNo="103" TripNo="17" SecondsTo="1372" TimeTo="23:00" Location="At Bank" Destination="Ealing Broadway" DestCode="548" Order="0" DepartTime="21:39:01" DepartInterval="1372" Departed="0" Direction="0" IsStalled="0" TrackCode="TC4710" LN="C" />
+      <T LCID="1306992" SetNo="014" TripNo="14" SecondsTo="1496" TimeTo="25:00" Location="At West Ruislip" Destination="Epping" DestCode="530" Order="0" DepartTime="21:37:12" DepartInterval="1496" Departed="0" Direction="0" IsStalled="0" TrackCode="TC1003" LN="C" />
+      <T LCID="1297667" SetNo="122" TripNo="5" SecondsTo="1690" TimeTo="28:00" Location="Between Bethnal Green and Liverpool Street" Destination="West Ruislip" DestCode="547" Order="0" DepartTime="21:39:29" DepartInterval="1690" Departed="0" Direction="0" IsStalled="0" TrackCode="TC5228" LN="C" />
+    </P>
+    <P N="Eastbound - Platform 4" Num="3" TrackCode="TC2627">
+      <T LCID="1288673" SetNo="007" TripNo="14" SecondsTo="206" TimeTo="3:30" Location="At East Acton" Destination="Epping" DestCode="530" Order="0" DepartTime="21:39:03" DepartInterval="206" Departed="0" Direction="0" IsStalled="0" TrackCode="TC2511" LN="C" />
+      <T LCID="1290412" SetNo="112" TripNo="14" SecondsTo="535" TimeTo="9:00" Location="At West Acton" Destination="Woodford via Hainault" DestCode="531" Order="0" DepartTime="21:39:04" DepartInterval="535" Departed="0" Direction="0" IsStalled="0" TrackCode="TC2209" LN="C" />
+      <T LCID="1304011" SetNo="011" TripNo="12" SecondsTo="623" TimeTo="10:00" Location="At Ealing Broadway" Destination="Hainault via Newbury Park" DestCode="532" Order="0" DepartTime="21:35:46" DepartInterval="623" Departed="0" Direction="0" IsStalled="0" TrackCode="TC2007" LN="C" />
+      <T LCID="1275686" SetNo="006" TripNo="12" SecondsTo="715" TimeTo="12:00" Location="Between Greenford and Perivale" Destination="Epping" DestCode="530" Order="0" DepartTime="21:39:28" DepartInterval="715" Departed="0" Direction="0" IsStalled="0" TrackCode="TC1803" LN="C" />
+      <T LCID="1306992" SetNo="014" TripNo="14" SecondsTo="1408" TimeTo="23:00" Location="At West Ruislip" Destination="Epping" DestCode="530" Order="0" DepartTime="21:37:12" DepartInterval="1408" Departed="0" Direction="0" IsStalled="0" TrackCode="TC1003" LN="C" />
+    </P>
+  </S>
+</ROOT>

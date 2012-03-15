@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ROOT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://trackernet.lul.co.uk">
+  <Disclaimer>This system is an INFORMATION ONLY system, relying entirely on 
+				information received from the relevant Operational Railway Control System(s). It is NOT 
+				considered a safety related system in the Railway Engineering sense. However, 
+				the information reported may trigger user intervention by staff regarding possible 
+				incidents on the railway, and confirmation of the situation observed should be obtained prior 
+				to any corrective action being taken.</Disclaimer>
+  <WhenCreated>15 Mar 2012 21:39:40</WhenCreated>
+  <Line>D</Line>
+  <LineName>District Line</LineName>
+  <S Code="ECT" Mess="" N="Earls Court." CurTime="21:39:40">
+    <P N="Eastbound - Platform 1" Num="1" TrackCode="TD697A">
+      <T LCID="2009065" SetNo="052" TripNo="0" SecondsTo="0" TimeTo="-" Location="At Platform" Destination="Upminster" DestCode="440" Order="0" DepartTime="21:39:28" DepartInterval="0" Departed="0" Direction="0" IsStalled="0" TrackCode="TD697A" LN="D" />
+      <T LCID="1306722" SetNo="053" TripNo="0" SecondsTo="300" TimeTo="5:30" Location="Between Hammersmith and Barons Court" Destination="Barking" DestCode="68" Order="0" DepartTime="21:39:36" DepartInterval="300" Departed="0" Direction="0" IsStalled="0" TrackCode="TPDG.DZ" LN="D" />
+      <T LCID="1305360" SetNo="057" TripNo="0" SecondsTo="542" TimeTo="9:00" Location="Between Stamford Brook and Ravenscourt Park" Destination="Upminster" DestCode="440" Order="0" DepartTime="21:39:29" DepartInterval="542" Departed="0" Direction="0" IsStalled="0" TrackCode="TP577C.579ABCD" LN="D" />
+      <T LCID="1306854" SetNo="000" TripNo="0" SecondsTo="828" TimeTo="14:00" Location="At Gunnersbury Platform 2" Destination="District Line" DestCode="510" Order="0" DepartTime="21:39:34" DepartInterval="828" Departed="0" Direction="0" IsStalled="0" TrackCode="TDGB08" LN="D" />
+      <T LCID="1306959" SetNo="000" TripNo="0" SecondsTo="978" TimeTo="16:00" Location="At Richmond Platform 7" Destination="District Line" DestCode="510" Order="0" DepartTime="21:32:02" DepartInterval="978" Departed="0" Direction="0" IsStalled="0" TrackCode="TDGB24" LN="D" />
+      <T LCID="1305621" SetNo="003" TripNo="0" SecondsTo="1358" TimeTo="23:00" Location="Between Ealing Broadway and Ealing Common" Destination="Upminster" DestCode="440" Order="0" DepartTime="21:39:24" DepartInterval="1358" Departed="0" Direction="0" IsStalled="0" TrackCode="TPDT.DVEBY" LN="D" />
+      <T LCID="1305748" SetNo="032" TripNo="0" SecondsTo="1435" TimeTo="24:00" Location="At Ealing Broadway Platform 7" Destination="Upminster" DestCode="440" Order="0" DepartTime="21:36:05" DepartInterval="1435" Departed="0" Direction="0" IsStalled="0" TrackCode="TPCLEBY" LN="D" />
+    </P>
+    <P N="Eastbound - Platform 2" Num="2" TrackCode="TDCDEAC">
+      <T LCID="1306660" SetNo="075" TripNo="0" SecondsTo="0" TimeTo="-" Location="At Platform" Destination="Edgware Road" DestCode="147" Order="0" DepartTime="21:38:29" DepartInterval="0" Departed="0" Direction="0" IsStalled="0" TrackCode="TDCDEAC" LN="D" />
+      <T LCID="1306623" SetNo="024" TripNo="0" SecondsTo="103" TimeTo="2:00" Location="Left West Brompton" Destination="Tower Hill" DestCode="432" Order="0" DepartTime="21:39:30" DepartInterval="103" Departed="0" Direction="0" IsStalled="0" TrackCode="TD685C.D" LN="D" />
+      <T LCID="1306722" SetNo="053" TripNo="0" SecondsTo="293" TimeTo="5:00" Location="Between Hammersmith and Barons Court" Destination="Barking" DestCode="68" Order="0" DepartTime="21:39:36" DepartInterval="293" Departed="0" Direction="0" IsStalled="0" TrackCode="TPDG.DZ" LN="D" />
+      <T LCID="1306732" SetNo="076" TripNo="0" SecondsTo="452" TimeTo="8:00" Location="Left Putney Bridge" Destination="District Line" DestCode="510" Order="0" DepartTime="21:39:36" DepartInterval="452" Departed="0" Direction="0" IsStalled="0" TrackCode="TDMPUB_1" LN="D" />
+      <T LCID="1305360" SetNo="057" TripNo="0" SecondsTo="535" TimeTo="9:00" Location="Between Stamford Brook and Ravenscourt Park" Destination="Upminster" DestCode="440" Order="0" DepartTime="21:39:29" DepartInterval="535" Departed="0" Direction="0" IsStalled="0" TrackCode="TP577C.579ABCD" LN="D" />
+      <T LCID="1306794" SetNo="043" TripNo="0" SecondsTo="635" TimeTo="11:00" Location="Left Southfields" Destination="District Line" DestCode="510" Order="0" DepartTime="21:39:14" DepartInterval="635" Departed="0" Direction="0" IsStalled="0" TrackCode="TD0362" LN="D" />
+      <T LCID="1306854" SetNo="000" TripNo="0" SecondsTo="821" TimeTo="14:00" Location="At Gunnersbury Platform 2" Destination="District Line" DestCode="510" Order="0" DepartTime="21:39:34" DepartInterval="821" Departed="0" Direction="0" IsStalled="0" TrackCode="TDGB08" LN="D" />
+      <T LCID="1306827" SetNo="000" TripNo="0" SecondsTo="845" TimeTo="14:00" Location="At Wimbledon Platform 3" Destination="District Line" DestCode="510" Order="0" DepartTime="21:38:11" DepartInterval="845" Departed="0" Direction="0" IsStalled="0" TrackCode="TD0378" LN="D" />
+      <T LCID="1307008" SetNo="064" TripNo="0" SecondsTo="845" TimeTo="14:00" Location="At Wimbledon Platform 1" Destination="District Line" DestCode="510" Order="0" DepartTime="21:37:45" DepartInterval="845" Departed="0" Direction="0" IsStalled="0" TrackCode="TD0382" LN="D" />
+      <T LCID="1306883" SetNo="002" TripNo="0" SecondsTo="845" TimeTo="14:00" Location="At Wimbledon Platform 2" Destination="District Line" DestCode="510" Order="0" DepartTime="21:32:54" DepartInterval="845" Departed="0" Direction="0" IsStalled="0" TrackCode="TD0380" LN="D" />
+      <T LCID="1306959" SetNo="000" TripNo="0" SecondsTo="971" TimeTo="16:00" Location="At Richmond Platform 7" Destination="District Line" DestCode="510" Order="0" DepartTime="21:32:02" DepartInterval="971" Departed="0" Direction="0" IsStalled="0" TrackCode="TDGB24" LN="D" />
+      <T LCID="1305621" SetNo="003" TripNo="0" SecondsTo="1351" TimeTo="23:00" Location="Between Ealing Broadway and Ealing Common" Destination="Upminster" DestCode="440" Order="0" DepartTime="21:39:24" DepartInterval="1351" Departed="0" Direction="0" IsStalled="0" TrackCode="TPDT.DVEBY" LN="D" />
+      <T LCID="1305748" SetNo="032" TripNo="0" SecondsTo="1428" TimeTo="24:00" Location="At Ealing Broadway Platform 7" Destination="Upminster" DestCode="440" Order="0" DepartTime="21:36:05" DepartInterval="1428" Departed="0" Direction="0" IsStalled="0" TrackCode="TPCLEBY" LN="D" />
+    </P>
+    <P N="Westbound - Platform 3" Num="3" TrackCode="TDBNEAC">
+      <T LCID="1306064" SetNo="067" TripNo="0" SecondsTo="433" TimeTo="7:00" Location="Between Sloane Square and South Kensington" Destination="Richmond" DestCode="374" Order="0" DepartTime="21:39:24" DepartInterval="433" Departed="0" Direction="0" IsStalled="0" TrackCode="TD768A" LN="D" />
+      <T LCID="1306041" SetNo="006" TripNo="0" SecondsTo="574" TimeTo="10:00" Location="Between Victoria and Sloane Square" Destination="Wimbledon" DestCode="500" Order="0" DepartTime="21:39:18" DepartInterval="574" Departed="0" Direction="0" IsStalled="0" TrackCode="TD778A" LN="D" />
+      <T LCID="1306417" SetNo="020" TripNo="0" SecondsTo="611" TimeTo="10:00" Location="Between St. James's Park and Victoria" Destination="Ealing Broadway" DestCode="116" Order="0" DepartTime="21:39:22" DepartInterval="611" Departed="0" Direction="0" IsStalled="0" TrackCode="TD788B.A" LN="D" />
+      <T LCID="1306211" SetNo="035" TripNo="0" SecondsTo="746" TimeTo="12:00" Location="Between Westminster and St. James's Park" Destination="Richmond" DestCode="374" Order="0" DepartTime="21:39:24" DepartInterval="746" Departed="0" Direction="0" IsStalled="0" TrackCode="TD798B.A" LN="D" />
+      <T LCID="1306746" SetNo="060" TripNo="0" SecondsTo="964" TimeTo="16:00" Location="At Temple Platform 1" Destination="Ealing Broadway" DestCode="116" Order="0" DepartTime="21:39:06" DepartInterval="964" Departed="0" Direction="0" IsStalled="0" TrackCode="TD824C.B.A" LN="D" />
+      <T LCID="1306147" SetNo="051" TripNo="0" SecondsTo="1173" TimeTo="20:00" Location="Left Mansion House" Destination="Wimbledon" DestCode="500" Order="0" DepartTime="21:39:30" DepartInterval="1173" Departed="0" Direction="0" IsStalled="0" TrackCode="TDJBLA" LN="D" />
+      <T LCID="2009117" SetNo="055" TripNo="0" SecondsTo="1330" TimeTo="22:00" Location="At Monument Platform 1" Destination="Richmond" DestCode="374" Order="0" DepartTime="21:39:04" DepartInterval="1330" Departed="0" Direction="0" IsStalled="0" TrackCode="TD848" LN="D" />
+      <T LCID="1306263" SetNo="010" TripNo="0" SecondsTo="1528" TimeTo="25:00" Location="At Tower Hill Platform 2" Destination="District Line" DestCode="511" Order="0" DepartTime="21:36:15" DepartInterval="1528" Departed="0" Direction="0" IsStalled="0" TrackCode="TDBB.BATHL" LN="D" />
+      <T LCID="1306427" SetNo="000" TripNo="0" SecondsTo="1659" TimeTo="28:00" Location="At Aldgate East Platform 1" Destination="Ealing Broadway" DestCode="116" Order="0" DepartTime="21:39:19" DepartInterval="1659" Departed="0" Direction="0" IsStalled="0" TrackCode="TJJF/JEALD" LN="D" />
+    </P>
+    <P N="Westbound - Platform 4" Num="4" TrackCode="TDAREAC">
+      <T LCID="1305920" SetNo="103" TripNo="0" SecondsTo="0" TimeTo="-" Location="At Platform" Destination="Wimbledon" DestCode="500" Order="0" DepartTime="21:38:59" DepartInterval="0" Departed="0" Direction="0" IsStalled="0" TrackCode="TDAREAC" LN="D" />
+      <T LCID="1306064" SetNo="067" TripNo="0" SecondsTo="415" TimeTo="7:00" Location="Between Sloane Square and South Kensington" Destination="Richmond" DestCode="374" Order="0" DepartTime="21:39:24" DepartInterval="415" Departed="0" Direction="0" IsStalled="0" TrackCode="TD768A" LN="D" />
+      <T LCID="1306041" SetNo="006" TripNo="0" SecondsTo="556" TimeTo="9:00" Location="Between Victoria and Sloane Square" Destination="Wimbledon" DestCode="500" Order="0" DepartTime="21:39:18" DepartInterval="556" Departed="0" Direction="0" IsStalled="0" TrackCode="TD778A" LN="D" />
+      <T LCID="1306417" SetNo="020" TripNo="0" SecondsTo="593" TimeTo="10:00" Location="Between St. James's Park and Victoria" Destination="Ealing Broadway" DestCode="116" Order="0" DepartTime="21:39:22" DepartInterval="593" Departed="0" Direction="0" IsStalled="0" TrackCode="TD788B.A" LN="D" />
+      <T LCID="1306211" SetNo="035" TripNo="0" SecondsTo="728" TimeTo="12:00" Location="Between Westminster and St. James's Park" Destination="Richmond" DestCode="374" Order="0" DepartTime="21:39:24" DepartInterval="728" Departed="0" Direction="0" IsStalled="0" TrackCode="TD798B.A" LN="D" />
+      <T LCID="1306746" SetNo="060" TripNo="0" SecondsTo="946" TimeTo="16:00" Location="At Temple Platform 1" Destination="Ealing Broadway" DestCode="116" Order="0" DepartTime="21:39:06" DepartInterval="946" Departed="0" Direction="0" IsStalled="0" TrackCode="TD824C.B.A" LN="D" />
+      <T LCID="1306147" SetNo="051" TripNo="0" SecondsTo="1155" TimeTo="19:00" Location="Left Mansion House" Destination="Wimbledon" DestCode="500" Order="0" DepartTime="21:39:30" DepartInterval="1155" Departed="0" Direction="0" IsStalled="0" TrackCode="TDJBLA" LN="D" />
+      <T LCID="2009117" SetNo="055" TripNo="0" SecondsTo="1312" TimeTo="22:00" Location="At Monument Platform 1" Destination="Richmond" DestCode="374" Order="0" DepartTime="21:39:04" DepartInterval="1312" Departed="0" Direction="0" IsStalled="0" TrackCode="TD848" LN="D" />
+      <T LCID="1306263" SetNo="010" TripNo="0" SecondsTo="1510" TimeTo="25:00" Location="At Tower Hill Platform 2" Destination="District Line" DestCode="511" Order="0" DepartTime="21:36:15" DepartInterval="1510" Departed="0" Direction="0" IsStalled="0" TrackCode="TDBB.BATHL" LN="D" />
+      <T LCID="1306427" SetNo="000" TripNo="0" SecondsTo="1641" TimeTo="27:00" Location="At Aldgate East Platform 1" Destination="Ealing Broadway" DestCode="116" Order="0" DepartTime="21:39:19" DepartInterval="1641" Departed="0" Direction="0" IsStalled="0" TrackCode="TJJF/JEALD" LN="D" />
+    </P>
+  </S>
+</ROOT>
