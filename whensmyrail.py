@@ -19,7 +19,7 @@ import logging
 import re
 
 from whensmytransport import WhensMyTransport
-from lib.dataparsers import parse_dlr_data, parse_tube_data, DLR_URL, TUBE_URL
+from lib.dataparsers import parse_dlr_data, parse_tube_data
 from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.models import RailStation, NullDeparture
@@ -34,11 +34,11 @@ class WhensMyRailTransport(WhensMyTransport):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, instance_name, testing=False, silent=False):
+    def __init__(self, instance_name, testing=False):
         """
         Constructor
         """
-        WhensMyTransport.__init__(self, instance_name, testing, silent)
+        WhensMyTransport.__init__(self, instance_name, testing)
         self.allow_blank_tweets = instance_name == 'whensmydlr'
 
         # Build internal lookup table of possible line name -> "official" line name
@@ -66,6 +66,20 @@ class WhensMyRailTransport(WhensMyTransport):
         # FIXME Hammersmith, Piccadilly, Victoria and Waterloo are all first words of tube station names and may cause confusion
         tube_line_words = unique_values([word for line_name in line_names for word in line_name.split(' ')]) + ["Line", "and"]
         self.tube_line_regex = "(%s)" % "|".join(tube_line_words)
+
+    def parse_message(self, message):
+        """
+        Parse a Tweet - tokenize it, and get the line, origin and destination specified by the user
+        """
+        (line_name, origin, destination) = self.tokenize_message(message, self.tube_line_regex)
+        line_name = line_name and re.sub(" Line", "", line_name, flags=re.I)
+        origin = origin and re.sub(" Station", "", origin, flags=re.I)
+        destination = destination and re.sub(" Station", "", destination, flags=re.I)
+
+        if not line_name and self.instance_name == "whensmydlr":
+            line_name = 'DLR'
+
+        return ((line_name,), origin, destination)
 
     def process_individual_request(self, line_name, origin, destination, position):
         """
@@ -128,20 +142,6 @@ class WhensMyRailTransport(WhensMyTransport):
         station_obj = self.get_station_by_station_name(line_code, origin)
         return station_obj and station_obj.name or ""
 
-    def parse_message(self, message):
-        """
-        Parse a Tweet - tokenize it, and get the line, origin and destination specified by the user
-        """
-        (line_name, origin, destination) = self.tokenize_message(message, self.tube_line_regex)
-        line_name = line_name and re.sub(" Line", "", line_name, flags=re.I)
-        origin = origin and re.sub(" Station", "", origin, flags=re.I)
-        destination = destination and re.sub(" Station", "", destination, flags=re.I)
-
-        if not line_name and self.instance_name == "whensmydlr":
-            line_name = 'DLR'
-
-        return ((line_name,), origin, destination)
-
     def get_departure_data(self, station, line_code, via=None):
         """
         Take a station object and a line ID, and get departure data for that station
@@ -150,16 +150,16 @@ class WhensMyRailTransport(WhensMyTransport):
         #pylint: disable=W0108
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         self.check_station_is_open(station)
+
         # Circle line these days is coded H as it shares with the Hammersmith & City
         if line_code == 'O':
             line_code = 'H'
-
         if line_code == 'DLR':
-            dlr_data = self.browser.fetch_xml_tree(DLR_URL % station.code)
+            dlr_data = self.browser.fetch_xml_tree(self.urls.DLR_URL % station.code)
             departure_data = parse_dlr_data(dlr_data, station)
             null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
-            tube_data = self.browser.fetch_xml_tree(TUBE_URL % (line_code, station.code))
+            tube_data = self.browser.fetch_xml_tree(self.urls.TUBE_URL % (line_code, station.code))
             departure_data = parse_tube_data(tube_data, station, line_code)
             null_constructor = lambda direction: NullDeparture(direction)
 

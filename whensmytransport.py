@@ -43,6 +43,7 @@ from pprint import pprint # For debugging
 
 # From library modules in this package
 from lib.browser import WMTBrowser
+from lib.dataparsers import WMTURLProvider
 from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
 from lib.listutils import unique_values
@@ -54,6 +55,10 @@ from lib.twitterclient import WMTTwitterClient, is_direct_message
 VERSION_NUMBER = 0.60
 HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
+TESTING_NONE = 0
+TESTING_TEST_LOCAL_DATA = 1
+TESTING_TEST_LIVE_DATA = 2
+
 
 class WhensMyTransport:
     """
@@ -61,7 +66,7 @@ class WhensMyTransport:
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, instance_name, testing=None, silent_mode=False):
+    def __init__(self, instance_name, testing=TESTING_NONE):
         """
         Read config and set up logging, settings database, geocoding and Twitter OAuth
         """
@@ -72,8 +77,7 @@ class WhensMyTransport:
         try:
             config_file = 'config.cfg'
             open(HOME_DIR + '/' + config_file)
-            config = ConfigParser.SafeConfigParser({'test_mode': False,
-                                                    'debug_level': 'INFO',
+            config = ConfigParser.SafeConfigParser({'debug_level': 'INFO',
                                                     'yahoo_app_id': None})
             config.read(HOME_DIR + '/' + config_file)
             config.get(self.instance_name, 'debug_level')
@@ -82,18 +86,21 @@ class WhensMyTransport:
             print """Please make sure there is a %s file in this directory""" % config_file
             sys.exit(1)
 
-        # Name of the admin so we know who to alert if there is an issue
-        self.admin_name = config.get(self.instance_name, 'admin_name')
-
         # Setup debugging
         debug_level = config.get(self.instance_name, 'debug_level')
-        setup_logging(self.instance_name, silent_mode, debug_level)
+        setup_logging(self.instance_name, testing, debug_level)
+        if testing != TESTING_NONE:
+            logging.info("In TEST MODE - No Tweets will be made and local test data will be used!")
+
+        # Name of the admin so we know who to alert if there is an issue
+        self.admin_name = config.get(self.instance_name, 'admin_name')
 
         # Setup database of stops/stations and their locations
         self.geodata = WMTLocations(self.instance_name)
 
         # Setup browser for JSON & XML
         self.browser = WMTBrowser()
+        self.urls = WMTURLProvider(use_test_data=(testing == TESTING_TEST_LOCAL_DATA))
 
         # Setup geocoder for looking up place names
         yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')
@@ -105,10 +112,6 @@ class WhensMyTransport:
         consumer_secret = config.get(self.instance_name, 'consumer_secret')
         access_token = config.get(self.instance_name, 'key')
         access_token_secret = config.get(self.instance_name, 'secret')
-        if testing is None:
-            testing = config.get(self.instance_name, 'test_mode')
-        if testing:
-            logging.info("In TEST MODE - No Tweets will be made!")
         self.twitter_client = WMTTwitterClient(self.instance_name, consumer_key, consumer_secret, access_token, access_token_secret, testing)
 
         # This can be overridden by child classes

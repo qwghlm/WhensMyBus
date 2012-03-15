@@ -21,7 +21,7 @@ from pprint import pprint  # For debugging
 
 # From other modules in this package
 from whensmytransport import WhensMyTransport
-from lib.dataparsers import parse_bus_data, BUS_URL
+from lib.dataparsers import parse_bus_data
 from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
 from lib.models import BusStop, NullDeparture
@@ -31,11 +31,11 @@ class WhensMyBus(WhensMyTransport):
     """
     Main class devoted to checking for bus-related Tweets and replying to them.
     """
-    def __init__(self, testing=None, silent=False):
+    def __init__(self, testing=False):
         """
         Constructor for the WhensMyBus class
         """
-        WhensMyTransport.__init__(self, 'whensmybus', testing, silent)
+        WhensMyTransport.__init__(self, 'whensmybus', testing)
 
     def parse_message(self, message):
         """
@@ -191,7 +191,7 @@ class WhensMyBus(WhensMyTransport):
         stop_directions = dict([(run, heading_to_direction(stop.heading)) for (run, stop) in relevant_stops.items()])
         relevant_buses = {}
         for (run, stop) in relevant_stops.items():
-            tfl_url = BUS_URL % stop.number
+            tfl_url = self.urls.BUS_URL % stop.number
             bus_data = self.browser.fetch_json(tfl_url)
             relevant_buses[run] = parse_bus_data(bus_data, stop, route_number)
 

@@ -12,6 +12,7 @@ if sys.version_info < (2, 7):
     print "Please upgrade!"
     sys.exit(1)
 
+from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
 from whensmybus import WhensMyBus
 from whensmyrail import WhensMyRailTransport
 
@@ -334,7 +335,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Test to see if our OAuth login details are correct
         """
-        self.assertTrue(self.bot.twitter_client.api.verify_credentials())
+        self.assertTrue(self.bot.twitter_client.api.verify_credentials(), msg="Twitter API credentials failed. Fix or try running with --local-only")
 
     #
     # Tests that Tweets are in the right format
@@ -426,7 +427,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyBus(testing=True, silent=True)
+        self.bot = WhensMyBus(testing=TESTING_TEST_LOCAL_DATA)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -592,7 +593,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyRailTransport("whensmytube", testing=True, silent=True)
+        self.bot = WhensMyRailTransport("whensmytube", testing=TESTING_TEST_LOCAL_DATA)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -696,7 +697,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyRailTransport("whensmydlr", testing=True, silent=True)
+        self.bot = WhensMyRailTransport("whensmydlr", testing=TESTING_TEST_LOCAL_DATA)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -709,7 +710,6 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
            ('DLR', 'Canning Town',  51.5140,  0.0083, 'Westferry',    'Canning Town',  'Beckton'),
            ('DLR', 'Popular',       51.5077, -0.0174, 'All Saints',   'Poplar',        'Bank'),
            ('DLR', 'Stratford',     51.5422, -0.0033, 'Canary Wharf', 'Stratford',     'Beckton'),
-           ('DLR', 'Becton',        51.5142,  0.0616, 'Limehouse',    'Beckton',       'Stratford Int'),
         )
         self.test_nonstandard_data = ()
 
@@ -789,14 +789,14 @@ def run_tests():
     """
     parser = argparse.ArgumentParser(description="Unit testing for When's My Transport?")
     parser.add_argument("test_case_name", action="store", default="", help="Name of the class to test (e.g. WhensMyBus, WhensMyTube)")
-    parser.add_argument("--local-only", dest="local_only", action="store_true", default=False, help="Test local app only, not remote services")
-
+    parser.add_argument("--remote-apis", dest="remote_apis", action="store_true", default=False, help="Test Twitter & Yahoo APIs as well")
+    parser.add_argument("--live-data", dest="live_data", action="store_true", default=False, help="Test with live TfL data (may fail unpredictably)")
     test_case_name = parser.parse_args().test_case_name
 
     # Init tests (same for all)
     unit_tests = ('geo', 'listutils', 'stringutils', 'models',)
-    local_tests = ('init', 'database', 'location', 'logger', 'settings',)
-    remote_tests = ('browser', 'geocoder', 'twitter_client',)
+    local_tests = ('init', 'database', 'location', 'logger', 'settings', 'browser',)
+    remote_tests = ('geocoder', 'twitter_client',)
 
     # Common errors for all
     format_errors = ('politeness', 'talking_to_myself', 'mention', 'blank_tweet',)
@@ -821,10 +821,10 @@ def run_tests():
         print "Error - %s is not a valid Test Case Name" % test_case_name
         sys.exit(1)
 
-    if parser.parse_args().local_only:
-        test_names = unit_tests + local_tests + failures
-    else:
+    if parser.parse_args().remote_apis:
         test_names = unit_tests + local_tests + remote_tests + failures + successes
+    else:
+        test_names = unit_tests + local_tests + failures + successes
 
     suite = unittest.TestSuite(map(eval(test_case_name + 'TestCase'), ['test_%s' % t for t in test_names]))
     runner = unittest.TextTestRunner(verbosity=2, failfast=1, buffer=True)
