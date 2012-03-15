@@ -13,6 +13,13 @@ from lib.locations import WMTLocations
 from lib.models import RailStation, TubeTrain, Bus, Train as DLRTrain
 from lib.stringutils import capwords
 
+#
+# Live API URLs
+#
+BUS_URL = "http://countdown.tfl.gov.uk/stopBoard/%s"
+DLR_URL = "http://www.dlrlondon.co.uk/xml/mobile/%s.xml"
+TUBE_URL = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s"
+
 
 def parse_bus_data(bus_data, stop, route_number):
     """

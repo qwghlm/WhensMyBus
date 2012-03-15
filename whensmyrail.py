@@ -19,7 +19,7 @@ import logging
 import re
 
 from whensmytransport import WhensMyTransport
-from lib.dataparsers import parse_dlr_data, parse_tube_data
+from lib.dataparsers import parse_dlr_data, parse_tube_data, DLR_URL, TUBE_URL
 from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
 from lib.models import RailStation, NullDeparture
@@ -155,13 +155,11 @@ class WhensMyRailTransport(WhensMyTransport):
             line_code = 'H'
 
         if line_code == 'DLR':
-            dlr_url = "http://www.dlrlondon.co.uk/xml/mobile/%s.xml" % station.code
-            dlr_data = self.browser.fetch_xml_tree(dlr_url)
+            dlr_data = self.browser.fetch_xml_tree(DLR_URL % station.code)
             departure_data = parse_dlr_data(dlr_data, station)
             null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
-            tube_url = "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s" % (line_code, station.code)
-            tube_data = self.browser.fetch_xml_tree(tube_url)
+            tube_data = self.browser.fetch_xml_tree(TUBE_URL % (line_code, station.code))
             departure_data = parse_tube_data(tube_data, station, line_code)
             null_constructor = lambda direction: NullDeparture(direction)
 
