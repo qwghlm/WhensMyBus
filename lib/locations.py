@@ -63,7 +63,7 @@ class WMTLocations():
         Find the best fuzzy match to the query_string, querying the database with dictionary params, of the format
         { Column Name : value, }. Returns an object of class returned_object, or None if no fuzzy match found
         """
-        # First off, try to get a match against station names in database
+        # Try to get a match against station names in database
         # Users may not give exact details, so we try to match fuzzily
         (where_statement, where_values) = self.make_where_statement(params)
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
@@ -130,6 +130,8 @@ class WMTLocations():
         """
         Return whether there is a direct route (i.e. one that does work without changing) on a list of stops
         """
+        if not origin or not destination:
+            return False
         path_taken = self.describe_route(origin, destination, via=via, line=line)
         for i in range(1, len(path_taken)):
             # If same station twice in a row, then we must have a change
