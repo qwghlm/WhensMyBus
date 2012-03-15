@@ -67,9 +67,14 @@ class WhensMyBus(WhensMyTransport):
         # Else there will be an origin (either a number or a placename), so try parsing it properly
         else:
             relevant_stops = self.get_stops_by_stop_name(route_number, origin)
+        if not relevant_stops:
+            if re.match('^[0-9]{5}$', origin):
+                raise WhensMyTransportException('stop_id_not_found', route_number, origin)
+            else:
+                raise WhensMyTransportException('stop_name_not_found', route_number, origin)
 
         # See if we can narrow down the runs offered by destination
-        if relevant_stops and destination:
+        if destination:
             try:
                 possible_destinations = self.get_stops_by_stop_name(route_number, destination)
                 if possible_destinations:
@@ -84,20 +89,14 @@ class WhensMyBus(WhensMyTransport):
                 logging.debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
 
         # If the above has found stops on this route, get data for each
-        if relevant_stops:
-            departure_data = self.get_departure_data(relevant_stops, route_number)
-            if departure_data:
-                return "%s %s" % (route_number, self.format_departure_data(departure_data))
-            else:
-                if destination:
-                    raise WhensMyTransportException('no_buses_shown_to', route_number, destination)
-                else:
-                    raise WhensMyTransportException('no_buses_shown', route_number)
+        departure_data = self.get_departure_data(relevant_stops, route_number)
+        if departure_data:
+            return "%s %s" % (route_number, self.format_departure_data(departure_data))
         else:
-            if re.match('^[0-9]{5}$', origin):
-                raise WhensMyTransportException('stop_id_not_found', route_number, origin)
+            if destination:
+                raise WhensMyTransportException('no_buses_shown_to', route_number, destination)
             else:
-                raise WhensMyTransportException('stop_name_not_found', route_number, origin)
+                raise WhensMyTransportException('no_buses_shown', route_number)
 
     def get_stops_by_geolocation(self, route_number, position):
         """

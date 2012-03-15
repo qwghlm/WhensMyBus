@@ -85,29 +85,26 @@ class WhensMyRailTransport(WhensMyTransport):
             station = self.get_station_by_geolocation(line_code, position)
         else:
             station = self.get_station_by_station_name(line_code, origin)
+        if not station:
+            raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
+        if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
+            raise WhensMyTransportException('rail_station_not_in_system', station.name)
 
-        destination_name = None
         if destination:
             destination_name = self.get_canonical_station_name(line_code, destination) or None
-
+        else:
+            destination_name = None
         if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line=line):
             raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
-        # If we have a station code, go get the data for it
-        if station:
-            if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
-                raise WhensMyTransportException('rail_station_not_in_system', station.name)
-
-            departure_data = self.get_departure_data(station, line_code, via=destination_name)
-            if departure_data:
-                return "%s to %s" % (station.get_abbreviated_name(), self.format_departure_data(departure_data))
-            else:
-                if destination_name:
-                    raise WhensMyTransportException('no_trains_shown_to', line_name, station.name, destination_name)
-                else:
-                    raise WhensMyTransportException('no_trains_shown', line_name, station.name)
+        departure_data = self.get_departure_data(station, line_code, via=destination_name)
+        if departure_data:
+            return "%s to %s" % (station.get_abbreviated_name(), self.format_departure_data(departure_data))
         else:
-            raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
+            if destination_name:
+                raise WhensMyTransportException('no_trains_shown_to', line_name, station.name, destination_name)
+            else:
+                raise WhensMyTransportException('no_trains_shown', line_name, station.name)
 
     def get_station_by_geolocation(self, line_code, position):
         """
