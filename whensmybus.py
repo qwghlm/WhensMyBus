@@ -61,10 +61,9 @@ class WhensMyBus(WhensMyTransport):
         if not self.geodata.check_existence_of('Route', route_number):
             raise WhensMyTransportException('nonexistent_bus', route_number)
 
-        # Dig out relevant stop for this route from the geotag, if provided
+        # Dig out relevant bus stop for this route from the geotag, if provided, or else the stop name
         if position:
             relevant_stops = self.get_stops_by_geolocation(route_number, position)
-        # Else there will be an origin (either a number or a placename), so try parsing it properly
         else:
             relevant_stops = self.get_stops_by_stop_name(route_number, origin)
         if not relevant_stops:

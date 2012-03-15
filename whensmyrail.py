@@ -79,17 +79,17 @@ class WhensMyRailTransport(WhensMyTransport):
         if line != 'DLR':
             line_name += " Line"
 
-        # Dig out relevant station for this line from the geotag, if provided
-        # Else there will be an origin (either a number or a placename), so try parsing it properly
+        # Dig out relevant departure station for this line from the geotag, if provided, or else the station name
         if position:
             station = self.get_station_by_geolocation(line_code, position)
         else:
             station = self.get_station_by_station_name(line_code, origin)
         if not station:
             raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
-        if station.code == "XXX":  # XXX is the code for a station that does not have data given to it
+        if station.code == "XXX":  # XXX is the code for a station that does not have TrackerNet data on the API
             raise WhensMyTransportException('rail_station_not_in_system', station.name)
 
+        # If user has specified a destination, work out what it is, and check a direct route to it exists
         if destination:
             destination_name = self.get_canonical_station_name(line_code, destination) or None
         else:
@@ -97,6 +97,7 @@ class WhensMyRailTransport(WhensMyTransport):
         if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line=line):
             raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
+        # All being well, we can now get the departure data for this station and return it
         departure_data = self.get_departure_data(station, line_code, via=destination_name)
         if departure_data:
             return "%s to %s" % (station.get_abbreviated_name(), self.format_departure_data(departure_data))
