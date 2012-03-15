@@ -130,10 +130,10 @@ class WhensMyTransport:
             try:
                 replies = self.process_tweet(tweet)
             except WhensMyTransportException as exc:
-                replies = (self.process_wmt_exception(exc),)
+                replies = (exc.get_user_message(),)
             except Exception as exc:
                 self.alert_admin_about_exception(tweet, exc.__class__.__name__)
-                replies = (self.process_wmt_exception(WhensMyTransportException('unknown_error')),)
+                replies = (WhensMyTransportException('unknown_error').get_user_message(),)
 
             # If the reply is blank, probably didn't contain a bus number or Tube line, so check to see if there was a thank-you
             if not replies:
@@ -213,7 +213,7 @@ class WhensMyTransport:
                 if exc.msgid == 'tfl_server_down':
                     raise
                 else:
-                    replies.append(self.process_wmt_exception(exc))
+                    replies.append(exc.get_user_message())
         return replies
 
     def check_politeness(self, tweet):
@@ -303,9 +303,8 @@ class WhensMyTransport:
             logging.debug("Detect geolocation on Tweet")
             position = tweet.geo['coordinates']
             easting, northing = convertWGS84toOSEastingNorthing(*position)
-            gridref = gridrefNumToLet(easting, northing)
             # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
-            if not gridref:
+            if not gridrefNumToLet(easting, northing):
                 raise WhensMyTransportException('not_in_uk')
             # Check minimums & maximum numeric grid references - corresponding to Chesham (W), Shenfield (E), Dorking (S) and Potters Bar (N)
             elif not (495000 <= easting <= 565000 and 145000 <= northing <= 205000):
@@ -394,13 +393,6 @@ class WhensMyTransport:
 
         departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
         return '; '.join([departure.strip() for departure in departures_list])
-
-    def process_wmt_exception(self, exc):
-        """
-        Takes a WhensMyTransportException and returns a string (reply) for the user
-        """
-        logging.debug("Exception encountered: %s", exc.get_value())
-        return "Sorry! %s" % exc.get_value()
 
     def alert_admin_about_exception(self, tweet, exception_name):
         """

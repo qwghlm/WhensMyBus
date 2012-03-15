@@ -69,9 +69,10 @@ class WhensMyTransportException(Exception):
         """
         return repr(self.value)
 
-    def get_value(self):
+    def get_user_message(self):
         """
-        Return a Twitter-friendly string representation of this Exception
+        Returns a string representation of this exception for use in a Twitter message. 115 characters allows space for Sorry and @username
         """
-        # Error message should be no longer than 115 chars so we can put a username and the word Sorry and still be under 140
-        return self.value[:115]
+        logging.debug("Returning exception to user: %s", self.value[:115])
+        return "Sorry! %s" % self.value[:115]
+
