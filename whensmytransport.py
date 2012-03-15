@@ -175,43 +175,6 @@ class WhensMyTransport:
 
         return True
 
-    def get_tweet_geolocation(self, tweet, user_request):
-        """
-        Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a (latitude, longitude) tuple
-        """
-        if hasattr(tweet, 'geo') and tweet.geo and 'coordinates' in tweet.geo:
-            logging.debug("Detect geolocation on Tweet")
-            position = tweet.geo['coordinates']
-            easting, northing = convertWGS84toOSEastingNorthing(*position)
-            gridref = gridrefNumToLet(easting, northing)
-            # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
-            if not gridref:
-                raise WhensMyTransportException('not_in_uk')
-            # Check minimums & maximum numeric grid references - corresponding to Chesham (W), Shenfield (E), Dorking (S) and Potters Bar (N)
-            elif not (495000 <= easting <= 565000 and 145000 <= northing <= 205000):
-                raise WhensMyTransportException('not_in_london')
-            else:
-                return position
-
-        # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough lat & long
-        elif hasattr(tweet, 'place') and tweet.place:
-            raise WhensMyTransportException('placeinfo_only', user_request)
-        # If there's no geoinformation at all then raise the appropriate exception
-        else:
-            if hasattr(tweet, 'geo'):
-                raise WhensMyTransportException('no_geotag', user_request)
-            else:
-                raise WhensMyTransportException('dms_not_taggable', user_request)
-
-    def check_politeness(self, tweet):
-        """
-        In case someone's just being nice to us, send them a "No problem"
-        """
-        message = self.sanitize_message(tweet.text).lower()
-        if message.startswith('thanks') or message.startswith('thank you'):
-            return ("No problem :)",)
-        return ()
-
     def process_tweet(self, tweet):
         """
         Process a single Tweet object and return a list of replies, one per route or line
@@ -255,24 +218,40 @@ class WhensMyTransport:
 
         return replies
 
-    def process_wmt_exception(self, exc):
+    def check_politeness(self, tweet):
         """
-        Turns a WhensMyTransportException into a message for the user
+        In case someone's just being nice to us, send them a "No problem"
         """
-        logging.debug("Exception encountered: %s", exc.get_value())
-        return "Sorry! %s" % exc.get_value()
+        message = self.sanitize_message(tweet.text).lower()
+        if message.startswith('thanks') or message.startswith('thank you'):
+            return ("No problem :)",)
+        return ()
 
-    def alert_admin_about_exception(self, tweet, exception_name):
+    def sanitize_message(self, message):
         """
-        Alert the administrator about a non-WhensMyTransportException encountered when processing a Tweet
+        Takes a message and scrubs out any @username or #hashtags
         """
-        if is_direct_message(tweet):
-            tweet_time = tweet.created_at.strftime('%d-%m-%y %H:%M:%S')
-            error_message = "Hey! A DM from @%s at %s GMT caused me to crash with a %s" % (tweet.sender.screen_name, tweet_time, exception_name)
+        # Remove hashtags and @username
+        message = re.sub(r"\s#\w+\b", '', message)
+        if message.lower().startswith('@%s' % self.username.lower()):
+            message = message[len('@%s ' % self.username):].lstrip()
         else:
-            twitter_permalink = "https://twitter.com/#!/%s/status/%s" % (tweet.user.screen_name, tweet.id)
-            error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
-        self.twitter_client.send_reply_back(error_message, self.admin_name, True)
+            message = message.strip()
+
+        # Exception if the Tweet contains nothing useful
+        if not message and not self.allow_blank_tweets:
+            raise WhensMyTransportException('blank_%s_tweet' % self.instance_name.replace('whensmy', ''))
+
+        return message
+
+    @abstractmethod
+    def parse_message(self, message):
+        """
+        Abstract method. This must be overridden by a child class to do anything useful
+        Takes message, the message from the user. Returns a tuple of (line_or_routes_specified, origin, destination)
+        """
+        #pylint: disable=W0613,R0201
+        return (None, None, None)
 
     def tokenize_message(self, message, request_token_regex=None, request_token_optional=False):
         """
@@ -317,6 +296,55 @@ class WhensMyTransport:
             destination = ' '.join(tokens[to_index + 1:from_index]) or None
 
         return (request, origin, destination)
+
+    def get_tweet_geolocation(self, tweet, user_request):
+        """
+        Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a (latitude, longitude) tuple
+        """
+        if hasattr(tweet, 'geo') and tweet.geo and 'coordinates' in tweet.geo:
+            logging.debug("Detect geolocation on Tweet")
+            position = tweet.geo['coordinates']
+            easting, northing = convertWGS84toOSEastingNorthing(*position)
+            gridref = gridrefNumToLet(easting, northing)
+            # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
+            if not gridref:
+                raise WhensMyTransportException('not_in_uk')
+            # Check minimums & maximum numeric grid references - corresponding to Chesham (W), Shenfield (E), Dorking (S) and Potters Bar (N)
+            elif not (495000 <= easting <= 565000 and 145000 <= northing <= 205000):
+                raise WhensMyTransportException('not_in_london')
+            else:
+                return position
+
+        # Some people (especially Tweetdeck users) add a Place on the Tweet, but not an accurate enough lat & long
+        elif hasattr(tweet, 'place') and tweet.place:
+            raise WhensMyTransportException('placeinfo_only', user_request)
+        # If there's no geoinformation at all then raise the appropriate exception
+        else:
+            if hasattr(tweet, 'geo'):
+                raise WhensMyTransportException('no_geotag', user_request)
+            else:
+                raise WhensMyTransportException('dms_not_taggable', user_request)
+
+    @abstractmethod
+    def process_individual_request(self, code, origin, destination, position):
+        """
+        Abstract method. This must be overridden by a child class to do anything useful
+        Takes a code (e.g. a bus route or line name), origin, destination and (latitude, longitude) tuple
+        Returns a string repesenting the message sent back to the user. This can be more than 140 characters
+        """
+        #pylint: disable=W0613,R0201
+        return ""
+
+    @abstractmethod
+    def get_departure_data(self, station_or_stops, line_or_route, via):
+        """
+        Abstract method. This must be overridden by a child class to do anything useful
+        Takes a string or list of strings representing a station or stop, and a string representing the line or route
+        Returns a dictionary; items are lists of Departure objects, keys are however we have grouped those Departures
+        e.g. buses are grouped by Run and the keys are thus the Run numbers
+        """
+        #pylint: disable=W0613,R0201
+        return {}
 
     def cleanup_departure_data(self, departure_data, null_object_constructor):
         """
@@ -364,52 +392,24 @@ class WhensMyTransport:
         departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
         return '; '.join([departure.strip() for departure in departures_list])
 
-    def sanitize_message(self, message):
+    def process_wmt_exception(self, exc):
         """
-        Takes a message and scrubs out any @username or #hashtags
+        Turns a WhensMyTransportException into a message for the user
         """
-        # Remove hashtags and @username
-        message = re.sub(r"\s#\w+\b", '', message)
-        if message.lower().startswith('@%s' % self.username.lower()):
-            message = message[len('@%s ' % self.username):].lstrip()
+        logging.debug("Exception encountered: %s", exc.get_value())
+        return "Sorry! %s" % exc.get_value()
+
+    def alert_admin_about_exception(self, tweet, exception_name):
+        """
+        Alert the administrator about a non-WhensMyTransportException encountered when processing a Tweet
+        """
+        if is_direct_message(tweet):
+            tweet_time = tweet.created_at.strftime('%d-%m-%y %H:%M:%S')
+            error_message = "Hey! A DM from @%s at %s GMT caused me to crash with a %s" % (tweet.sender.screen_name, tweet_time, exception_name)
         else:
-            message = message.strip()
-
-        # Exception if the Tweet contains nothing useful
-        if not message and not self.allow_blank_tweets:
-            raise WhensMyTransportException('blank_%s_tweet' % self.instance_name.replace('whensmy', ''))
-
-        return message
-
-    @abstractmethod
-    def parse_message(self, message):
-        """
-        Abstract method. This must be overridden by a child class to do anything useful
-        Takes message, the message from the user. Returns a tuple of (line_or_routes_specified, origin, destination)
-        """
-        #pylint: disable=W0613,R0201
-        return (None, None, None)
-
-    @abstractmethod
-    def process_individual_request(self, code, origin, destination, position):
-        """
-        Abstract method. This must be overridden by a child class to do anything useful
-        Takes a code (e.g. a bus route or line name), origin, destination and (latitude, longitude) tuple
-        Returns a string repesenting the message sent back to the user. This can be more than 140 characters
-        """
-        #pylint: disable=W0613,R0201
-        return ""
-
-    @abstractmethod
-    def get_departure_data(self, station_or_stops, line_or_route, via):
-        """
-        Abstract method. This must be overridden by a child class to do anything useful
-        Takes a string or list of strings representing a station or stop, and a string representing the line or route
-        Returns a dictionary; items are lists of Departure objects, keys are however we have grouped those Departures
-        e.g. buses are grouped by Run and the keys are thus the Run numbers
-        """
-        #pylint: disable=W0613,R0201
-        return {}
+            twitter_permalink = "https://twitter.com/#!/%s/status/%s" % (tweet.user.screen_name, tweet.id)
+            error_message = "Hey! A tweet from @%s caused me to crash with a %s: %s" % (tweet.user.screen_name, exception_name, twitter_permalink)
+        self.twitter_client.send_reply_back(error_message, self.admin_name, True)
 
 
 if __name__ == "__main__":
