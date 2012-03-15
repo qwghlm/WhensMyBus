@@ -596,25 +596,26 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
+        # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted train (if destination specified)
         self.test_standard_data = (
-                                   ('Central', "White City", 51.5121, -0.2246, "Ruislip Gardens", "White City"),
-                                   ('District', "Earl's Court", 51.4913, -0.1947, "Edgware Road", "Earls Ct"),
-                                   ('Piccadilly', "Acton Town", 51.5028, -0.28, "Arsenal", "Acton Town"),
-                                   ('Northern', "Camden Town", 51.5394, -0.1427, "Morden", "Camden Town"),
-                                   ('Circle', "Edgware Road", 51.52, -0.167778, "Moorgate", "Edgware Rd"),
-                                   ('Waterloo & City', "Waterloo", 51.5031, -0.1132, "Bank", "Waterloo"),
-                                   ('Victoria', "Victoria", 51.4966, -0.1448, "Walthamstow", "Victoria"),
-                                  )
+           ('Central',         "White City",    51.5121, -0.2246, "Ruislip Gardens", "White City",  'Ealing'),
+           ('District',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",    'Upminster'),
+           ('Piccadilly',      "Acton Town",    51.5028, -0.2800, "Arsenal",         "Acton Town",  'Heathrow'),
+           ('Northern',        "Camden Town",   51.5394, -0.1427, "Morden",          "Camden Town", 'High Barnet'),
+           ('Circle',          "Edgware Road",  51.5200, -0.1678, "Moorgate",        "Edgware Rd",  'Barking'),
+           ('Waterloo & City', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",    ''),
+           ('Victoria',        "Victoria",      51.4966, -0.1448, "Walthamstow",     "Victoria",    'Brixton'),
+        )
         self.test_nonstandard_data = ()
 
-    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_not_specified=True):
+    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_to_avoid=''):
         """
         Generic test to confirm message is being produced correctly
         """
         self.assertNotEqual(result, result.upper())
         self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There are no %s Line trains)" % (expected_origin, routes_specified))
-        if destination_not_specified:
-            pass  # TODO Tests for when a destination is specified
+        if destination_to_avoid:
+            self.assertNotRegexpMatches(result, destination_to_avoid)
         print result
 
     def test_location(self):
@@ -658,7 +659,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         Generic test for standard-issue messages
         """
         #pylint: disable=W0612
-        for (line, origin_name, lat, lon, destination_name, expected_origin) in self.test_standard_data:
+        for (line, origin_name, lat, lon, destination_name, expected_origin, destination_to_avoid) in self.test_standard_data:
 
             # C-string format helper
             test_variables = dict([(name, eval(name)) for name in ('line', 'origin_name', 'destination_name', 'line')])
@@ -684,7 +685,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
                         results = self.bot.process_tweet(tweet)
                         for result in results:
-                            self._test_correct_successes(result, line, expected_origin, not to_fragment)
+                            self._test_correct_successes(result, line, expected_origin, to_fragment and destination_to_avoid)
 
 
 class WhensMyDLRTestCase(WhensMyTransportTestCase):
@@ -699,28 +700,30 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
+        # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted train (if destination specified)
         self.test_standard_data = (
-                                   ('DLR', 'Bank', 51.513, -0.088, 'Canary Wharf', 'Bank'),
-                                   ('DLR', 'Tower Gateway', 51.5104, -0.0746, 'Beckton', 'Tower Gateway'),
-                                   ('DLR', 'Limehouse', 51.5124, -0.0397, 'Canary Wharf', 'Limehouse'),
-                                   ('DLR', 'Heron Quay', 51.5028, -0.0213, 'Canary Wharf', 'Heron Quays'),
-                                   ('DLR', 'Lewisham', 51.4653, -0.0133, 'Canary Wharf', 'Lewisham'),
-                                   ('DLR', 'W India Quay', 51.506667, -0.022222, 'Canary Wharf', 'W India Quay'),
-                                   ('DLR', 'Canning Town', 51.514, 0.0083, 'Westferry', 'Canning Town'),
-                                   ('DLR', 'Poplar', 51.5077, -0.0174, 'Westferry', 'Poplar'),
-                                   ('DLR', 'Stratford', 51.5422, -0.0033, 'Canary Wharf', 'Stratford'),
-                                   ('DLR', 'Beckton', 51.5142, 0.0616, 'Limehouse', 'Beckton'),
-                                  )
+           ('DLR', 'Bank',          51.5130, -0.0880, 'Canary Wharf', 'Bank',          'Woolwich A'),
+           ('DLR', 'Tower Gateway', 51.5104, -0.0746, 'Beckton',      'Tower Gateway', 'Lewisham'),
+           ('DLR', 'Lewisam',       51.4653, -0.0133, 'Poplar',       'Lewisham',      'Bank'),
+           ('DLR', 'W India Quay',  51.5067, -0.0222, 'Canary Wharf', 'W India Quay',  'Stratford'),
+           ('DLR', 'Canning Town',  51.5140,  0.0083, 'Westferry',    'Canning Town',  'Beckton'),
+           ('DLR', 'Popular',       51.5077, -0.0174, 'All Saints',   'Poplar',        'Bank'),
+           ('DLR', 'Stratford',     51.5422, -0.0033, 'Canary Wharf', 'Stratford',     'Beckton'),
+           ('DLR', 'Becton',        51.5142,  0.0616, 'Limehouse',    'Beckton',       'Stratford Int'),
+        )
         self.test_nonstandard_data = ()
 
-    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_not_specified=True):
+    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_to_avoid=''):
         """
         Generic test to confirm message is being produced correctly
         """
         self.assertNotEqual(result, result.upper())
         self.assertRegexpMatches(result, r"(%s to .* ([0-9]{1,4})|There are no %s trains)" % (expected_origin, routes_specified))
-        if destination_not_specified:
-            pass  # TODO Tests for when a destination is specified
+        # If we have specified a train destination to avoid, then make sure it doesn't appear
+        # (e.g. we have asked to go to Bank, we don't want Tower Gateway to appear in the results
+        if destination_to_avoid:
+            self.assertNotRegexpMatches(result, destination_to_avoid)
+
         print result
 
     def test_location(self):
@@ -755,7 +758,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         Generic test for standard-issue messages
         """
         #pylint: disable=W0612
-        for (line, origin_name, lat, lon, destination_name, expected_origin) in self.test_standard_data:
+        for (line, origin_name, lat, lon, destination_name, expected_origin, unwanted_destination) in self.test_standard_data:
 
             # C-string format helper
             test_variables = dict([(name, eval(name)) for name in ('origin_name', 'destination_name', 'line')])
@@ -763,7 +766,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
             to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
-            line_fragments = [value % test_variables for value in ("%(line)s",)] #FIXME blank?
+            line_fragments = [value % test_variables for value in ("%(line)s",)]  # FIXME blank?
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
@@ -777,7 +780,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
 
                         results = self.bot.process_tweet(tweet)
                         for result in results:
-                            self._test_correct_successes(result, 'DLR', expected_origin, not to_fragment)
+                            self._test_correct_successes(result, line, expected_origin, to_fragment and unwanted_destination)
 
 
 def run_tests():
