@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Data parsers for Whens My Transport?
 """
