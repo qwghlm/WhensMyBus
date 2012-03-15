@@ -32,10 +32,10 @@ class BusStop():
         return cmp(self.distance_away, other.distance_away)
 
     def __repr__(self):
-        """
-        Representation function for debugging
-        """
         return self.get_normalised_name()
+
+    def __len__(self):
+        return len(self.get_normalised_name())
 
     def get_clean_name(self):
         """
@@ -104,10 +104,10 @@ class RailStation():
         self.outer = Outer
 
     def __repr__(self):
-        """
-        Representation function for debugging
-        """
         return self.name
+
+    def __len__(self):
+        return len(self.name)
 
     def get_abbreviated_name(self):
         """
@@ -161,15 +161,14 @@ class RailStation():
         """
         Custom similarity for train stations - takes into account fact many people use abbreviated names
         """
-        score = get_name_similarity(self.name, test_string)
         # For low-scoring matches, we try matching between a string the same size as the user query, if its shorter than the name
         # being tested against, so this works for e.g. Kings Cross matching King's Cross St Pancras
-        if score < 70 and len(test_string) < len(self.name):
-            abbreviated_score = get_name_similarity(test_string, self.name[:len(test_string)])
-            if abbreviated_score >= 90:
-                score = min(abbreviated_score, 99)  # Never 100, in case it overrides an exact match
-        return score
-
+        score = get_name_similarity(self.name, test_string)
+        abbreviated_score = get_name_similarity(test_string, self.name[:len(test_string)])
+        if abbreviated_score >= 85 and abbreviated_score > score:
+            return min(abbreviated_score, 99)  # Never 100, in case it overrides an exact match
+        else:
+            return score
 
 #
 # Representations of departures
