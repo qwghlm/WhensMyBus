@@ -3,16 +3,18 @@
 """
 Location-finding service for WhensMyTransport
 """
-import logging
-import cPickle as pickle
-import os.path
 from math import sqrt
+import logging
+import os.path
+import cPickle as pickle
+from pprint import pprint
+
+from pygraph.algorithms.minmax import shortest_path
 
 from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
-from pprint import pprint
-from pygraph.algorithms.minmax import shortest_path
+
 
 DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/')
 
@@ -22,10 +24,10 @@ class WMTLocations():
     Service object used to find stops or stations (locations) - given a position, exact match or fuzzy match,
     will return the best matching stop
     """
-    def __init__(self, instance_name):
+    def __init__(self, instance_name, load_network=True):
         self.database = WMTDatabase('%s.geodata.db' % instance_name)
         network_file = DB_PATH + '/%s.network.gr' % instance_name
-        if os.path.exists(network_file):
+        if load_network and os.path.exists(network_file):
             logging.debug("Opening network node data %s", os.path.basename(network_file))
             self.network = pickle.load(open(network_file))
         else:
