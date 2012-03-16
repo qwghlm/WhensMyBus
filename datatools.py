@@ -294,7 +294,7 @@ def import_network_data_to_graph(instance_name='whensmytube'):
             neighbours_for_this_line = [neighbour for neighbour in neighbours if neighbour[2] == line]
             if neighbours_for_this_line:
                 subset_of_stations[station_name] = neighbours_for_this_line
-        graphs[line] = create_graph_from_dict(subset_of_stations, database, interchanges_by_foot)
+        graphs[get_line_code(line)] = create_graph_from_dict(subset_of_stations, database, interchanges_by_foot)
     graphs['All'] = create_graph_from_dict(stations_neighbours, database, interchanges_by_foot)
 
     pickle.dump(graphs, open("./db/%s.network.gr" % instance_name, "w"))

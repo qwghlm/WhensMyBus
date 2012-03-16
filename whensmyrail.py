@@ -109,7 +109,7 @@ class WhensMyRailTransport(WhensMyTransport):
             destination_name = self.get_canonical_station_name(line_code, destination) or None
         else:
             destination_name = None
-        if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line=line):
+        if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line_code):
             raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
         # All being well, we can now get the departure data for this station and return it
@@ -177,7 +177,7 @@ class WhensMyRailTransport(WhensMyTransport):
             # If we've specified a station to go via, filter out any that do not stop at that station, or mark for deletion. Note that unlike
             # the above, this will turn all existing empty lists into Nones (and thus deletable) as well
             if via:
-                departure_data[slot] = [d for d in departures if self.geodata.direct_route_exists(station.name, terminus(d), via=via)] or None
+                departure_data[slot] = [d for d in departures if self.geodata.direct_route_exists(station.name, terminus(d), line_code, via)] or None
         departure_data = self.cleanup_departure_data(departure_data, null_constructor)
         return departure_data
 
