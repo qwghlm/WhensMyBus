@@ -36,6 +36,7 @@ class WMTURLProvider():
     """
     Wrapper class that provides URLs for the TfL APIs
     """
+    #pylint: disable=R0903
     def __init__(self, use_test_data=False):
         if use_test_data:
             self.urls = URL_SETS['test']
@@ -197,7 +198,7 @@ def parse_tube_data(tube_data, station, line_code):
                 if train_obj.destination == "Unknown":
                     continue
                 if locations is None:
-                    locations = WMTLocations('whensmytube')
+                    locations = WMTLocations('whensmytube', load_network=False)
                 destination_station = locations.find_fuzzy_match({'Line': line_code}, train_obj.destination, RailStation)
                 if not destination_station:
                     continue
