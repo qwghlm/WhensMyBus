@@ -25,7 +25,11 @@ class WMTLocations():
     def __init__(self, instance_name):
         self.database = WMTDatabase('%s.geodata.db' % instance_name)
         network_file = DB_PATH + '/%s.network.gr' % instance_name
-        self.network = os.path.exists(network_file) and pickle.load(open(network_file))
+        if os.path.exists(network_file):
+            logging.debug("Opening network node data %s", os.path.basename(network_file))
+            self.network = pickle.load(open(network_file))
+        else:
+            self.network = None
 
     def find_closest(self, position, params, returned_object):
         """
@@ -68,7 +72,6 @@ class WMTLocations():
         exact_params.update({'Name': fuzzy_match_query})
         exact_match = self.find_exact_match(exact_params, returned_object)
         if exact_match:
-            logging.debug("Exact match found: %s", exact_match.name)
             return exact_match
 
         # Users may not give exact details, so we try to match fuzzily
@@ -77,10 +80,8 @@ class WMTLocations():
         possible_matches = [returned_object(**row) for row in rows]
         best_match = get_best_fuzzy_match(fuzzy_match_query, possible_matches)
         if best_match:
-            logging.debug("Fuzzy match found: %s", best_match.name)
             return best_match
         else:
-            logging.debug("No match found for %s, sorry", fuzzy_match_query)
             return None
 
     def find_exact_match(self, params, returned_object):
