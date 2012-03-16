@@ -63,11 +63,17 @@ class WMTLocations():
         Find the best fuzzy match to the query_string, querying the database with dictionary params, of the format
         { Column Name : value, }. Returns an object of class returned_object, or None if no fuzzy match found
         """
-        # Try to get a match against station names in database
+        # Try to get an exact match first against station names in database
+        exact_params = params.copy()
+        exact_params.update({'Name': fuzzy_match_query})
+        exact_match = self.find_exact_match(exact_params, returned_object)
+        if exact_match:
+            logging.debug("Exact match found: %s", exact_match.name)
+            return exact_match
+
         # Users may not give exact details, so we try to match fuzzily
         (where_statement, where_values) = self.make_where_statement(params)
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
-
         possible_matches = [returned_object(**row) for row in rows]
         best_match = get_best_fuzzy_match(fuzzy_match_query, possible_matches)
         if best_match:
@@ -89,15 +95,15 @@ class WMTLocations():
         else:
             return None
 
-    def describe_route(self, origin, destination, via=None, line=None):
+    def describe_route(self, origin, destination, line_code='All', via=None):
         """
         Return the shortest route between origin and destination
         """
         if not self.network:
             raise ValueError("No network information available for these locations")
         if via:
-            first_half = self.describe_route(origin, via, line=line)
-            second_half = self.describe_route(via, destination, line=line)
+            first_half = self.describe_route(origin, via, line_code)
+            second_half = self.describe_route(via, destination, line_code)
             if first_half and second_half and second_half[0] == first_half[-1]:
                 del second_half[0]
             return first_half + second_half
@@ -105,10 +111,7 @@ class WMTLocations():
         origin += ":entrance"
         destination += ":exit"
 
-        if line:
-            network = self.network[line]
-        else:
-            network = self.network['All']
+        network = self.network[line_code]
         shortest_path_dictionary = shortest_path(network, origin)[0]
         if origin not in shortest_path_dictionary:
             raise KeyError("Not found - no such node %s exists" % origin)
@@ -126,13 +129,13 @@ class WMTLocations():
         path_taken = path_taken[1:-1][::-1]
         return path_taken
 
-    def direct_route_exists(self, origin, destination, via=None, line=None):
+    def direct_route_exists(self, origin, destination, line_code, via=None):
         """
         Return whether there is a direct route (i.e. one that does work without changing) on a list of stops
         """
         if not origin or not destination:
             return False
-        path_taken = self.describe_route(origin, destination, via=via, line=line)
+        path_taken = self.describe_route(origin, destination, line_code, via)
         for i in range(1, len(path_taken)):
             # If same station twice in a row, then we must have a change
             if path_taken[i][0] == path_taken[i - 1][0]:
@@ -163,7 +166,6 @@ class WMTLocations():
         """
         if not params:
             return (" 1 ", ())
-
         column_names = [row[1] for row in self.database.get_rows("PRAGMA table_info(locations)")]
         for column in params.keys():
             if column not in column_names:
