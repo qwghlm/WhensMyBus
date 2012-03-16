@@ -229,7 +229,7 @@ def import_tube_xml_to_db():
                               station['Inner'], station['Outer'])
                 rows.append(field_data)
 
-    export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('Name',))
+    export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('Name', 'Line'))
 
 
 def import_network_data_to_graph(instance_name='whensmytube'):
@@ -450,7 +450,7 @@ def get_tfl_prediction_summaries():
 
 if __name__ == "__main__":
     #import_bus_csv_to_db()
-    #import_tube_xml_to_db()
+    import_tube_xml_to_db()
     import_dlr_xml_to_db()
     #scrape_odd_platform_designations()
     import_network_data_to_graph('whensmydlr')
