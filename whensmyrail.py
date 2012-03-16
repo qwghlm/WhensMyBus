@@ -15,6 +15,7 @@ This module just does work specific to trains: Parsing & interpreting a train-sp
 stations and lines, checking the TfL Tube and DLR APIs and formatting an appropriate reply to be sent back
 """
 from abc import ABCMeta
+import argparse
 import logging
 import re
 from pprint import pprint
@@ -205,7 +206,12 @@ def get_line_code(line_name):
     else:
         return line_name[0]
 
-# FIXME Use command line options to specify instance name
 if __name__ == "__main__":
-    WMD = WhensMyRailTransport("whensmydlr")
-    WMD.check_tweets()
+    parser = argparse.ArgumentParser(description="Run When's My Tube? or When's My DLR?")
+    parser.add_argument("instance_name", action="store", help="Name of the instance to run (e.g. whensmytube, whensmydlr)")
+    instance_name = test_case_name = parser.parse_args().instance_name
+    if instance_name in ("whensmytube", "whensmydlr"):
+        WMD = WhensMyRailTransport(instance_name)
+        WMD.check_tweets()
+    else:
+        print "Error - %s is not a valid instance name" % instance_name
