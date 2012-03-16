@@ -284,10 +284,10 @@ class TubeTrain(Train):
     """
     #pylint: disable=W0231
     def __init__(self, destination, direction, departure_time, set_number, line_code, destination_code):
-
+        manual_translations = {"Heathrow T123 + 5": "Heathrow Terminal 5"}
+        destination = manual_translations.get(destination, destination)
         # Get rid of TfL's odd designations in the Destination field to make it compatible with our list of stations in the database
-        # Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this is currently pending
-        # an FoI request. Once I get that, this code will be a lot neater :)
+        # Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this does not exist
         destination = re.sub(r"\band\b", "&", destination, flags=re.I)
 
         # Destinations that are line names or Unknown get boiled down to Unknown
@@ -297,7 +297,7 @@ class TubeTrain(Train):
         else:
             # Regular expressions of instructions, depot names (presumably instructions for shunting after arrival), or platform numbers
             undesirables = ('\(rev to .*\)',
-                            'sidings?',
+                            r'sidings?\b.*$',
                             '(then )?depot',
                             'ex (barnet|edgware) branch',
                             '\(ex .*\)',

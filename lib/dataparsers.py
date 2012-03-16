@@ -180,7 +180,8 @@ def parse_tube_data(tube_data, station, line_code, station_object_lookup_functio
             trains_by_direction[direction] = []
 
         # Use the filter function to filter out trains that are out of service, specials or National Rail first
-        platform_trains = [t for t in platform.findall("T[@LN='%s']" % line_code) if filter_tube_trains(t)]
+        platform_trains = platform.findall("T[@LN='%s']" % line_code)
+        platform_trains = [t for t in platform_trains if filter_tube_train(t.attrib['Destination'], t.attrib['DestCode'], t.attrib.get('Location', ''))]
         for train in platform_trains:
 
             # Create a TubeTrain object
@@ -209,15 +210,13 @@ def parse_tube_data(tube_data, station, line_code, station_object_lookup_functio
     return trains_by_direction
 
 
-def filter_tube_trains(tube_xml_element):
+def filter_tube_train(destination, destination_code, location=""):
     """
-    Filter function for TrackerNet's XML elements, to get rid of misleading, out of service or downright bogus trains
+    Filter function for whether to include trains, to get rid of misleading, out of service or downright bogus trains
     """
-    destination = tube_xml_element.attrib['Destination']
-    destination_code = tube_xml_element.attrib['DestCode']
-    location = tube_xml_element.attrib.get('Location', '')
     # 546 and 749 appear to be codes for Out of Service http://wiki.opentfl.co.uk/TrackerNet_predictions_detailed
-    if destination_code in ('546', '749'):
+    # 433 is code for Triangle sidings depot (only used at night?)
+    if destination_code in ('546', '749', '433'):
         return False
     # Trains in sidings are not much use to us
     if destination_code == '0' and location.find('Sidings') > -1:

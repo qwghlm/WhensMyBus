@@ -8,6 +8,7 @@ from pprint import pprint
 
 from datatools import get_tfl_prediction_summaries
 from lib.database import WMTDatabase
+from lib.dataparsers import filter_tube_train
 from lib.locations import WMTLocations
 from lib.models import TubeTrain, RailStation
 
@@ -40,16 +41,14 @@ def check_tfl_destination_codes():
     geodata = WMTLocations('whensmytube')
     database = WMTDatabase("whensmytube.destinationcodes.db")
 
-    rows = database.get_rows("SELECT destination_name, line_code FROM destination_codes")
-    for row in rows:
-        destination = TubeTrain(row[0], "", "1200", "", "", "").get_clean_destination_name()
-        if destination in ("Unknown", "Special", "Out Of Service"):
+    rows = database.get_rows("SELECT destination_name, destination_code, line_code FROM destination_codes")
+    for (destination_name, destination_code, line_code) in rows:
+        if not filter_tube_train(destination_name, str(destination_code)):
             continue
-        if destination.startswith('Br To') or destination in ('Network Rail', 'Chiltern Toc'):
-            continue
-        if not geodata.find_fuzzy_match({}, destination, RailStation):
-            print "Destination %s on %s not found in locations database" % (row[0], row[1])
+        destination = TubeTrain(destination_name, "", "1200", "", "", "").get_clean_destination_name()
+        if destination != "Unknown" and not geodata.find_fuzzy_match({}, destination, RailStation):
+            print "Destination %s (%s) on %s not found in locations database" % (destination_name, destination_code, line_code)
 
 if __name__ == "__main__":
-    scrape_tfl_destination_codes()
+    #scrape_tfl_destination_codes()
     check_tfl_destination_codes()
