@@ -164,7 +164,7 @@ class WhensMyRailTransport(WhensMyTransport):
             null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
             tube_data = self.browser.fetch_xml_tree(self.urls.TUBE_URL % (line_code, station.code))
-            departure_data = parse_tube_data(tube_data, station, line_code)
+            departure_data = parse_tube_data(tube_data, station, line_code, self.get_station_by_station_name)
             null_constructor = lambda direction: NullDeparture(direction)
 
         # Filter out trains terminating here, and any that do not serve our destination
@@ -185,8 +185,7 @@ class WhensMyRailTransport(WhensMyTransport):
         """
         Check to see if a station is open, return True if so, throw an exception if not
         """
-        status_url = "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly"
-        status_data = self.browser.fetch_xml_tree(status_url)
+        status_data = self.browser.fetch_xml_tree(self.urls.STATUS_URL)
         for station_status in status_data.findall('StationStatus'):
             station_node = station_status.find('Station')
             status_node = station_status.find('Status')

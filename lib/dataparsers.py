@@ -10,8 +10,7 @@ from time import localtime
 
 from lib.exceptions import WhensMyTransportException
 from lib.listutils import unique_values
-from lib.locations import WMTLocations
-from lib.models import RailStation, TubeTrain, Bus, Train as DLRTrain
+from lib.models import TubeTrain, Bus, Train as DLRTrain
 from lib.stringutils import capwords
 
 #
@@ -23,11 +22,13 @@ URL_SETS = {
         'BUS_URL':  "http://countdown.tfl.gov.uk/stopBoard/%s",
         'DLR_URL':  "http://www.dlrlondon.co.uk/xml/mobile/%s.xml",
         'TUBE_URL': "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s",
+        'STATUS_URL': "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly",
     },
     'test': {
         'BUS_URL':  "file://" + HOME_DIR + "/testdata/bus/%s.json",
         'DLR_URL':  "file://" + HOME_DIR + "/testdata/dlr/%s.xml",
         'TUBE_URL': "file://" + HOME_DIR + "/testdata/tube/%s-%s.xml",
+        'STATUS_URL': "file://" + HOME_DIR + "/testdata/status.xml",
     }
 }
 
@@ -141,13 +142,13 @@ def parse_dlr_data(dlr_data, station):
     return trains_by_platform
 
 
-def parse_tube_data(tube_data, station, line_code):
+def parse_tube_data(tube_data, station, line_code, station_object_lookup_function):
     """
-    Take a parsed elementTree tube_data, RailStation object and string representing a line code
+    Take a parsed elementTree tube_data, RailStation object, string representing a line code, and a reference
+    to a get_station_by_station_name() function
     Returns a dictionary; keys are platform names, values lists of TubeTrain objects
     """
     # Go through each platform and get data about every train arriving, including which direction it's headed
-    locations = None
     trains_by_direction = {}
     publication_time = tube_data.find('WhenCreated').text
     publication_time = datetime.strptime(publication_time, "%d %b %Y %H:%M:%S")
@@ -195,11 +196,7 @@ def parse_tube_data(tube_data, station, line_code):
             # platforms are on an East-West line, so we just inspect the position of the destination's easting
             # and compare it to this station's
             if train_obj.direction == "Unknown":
-                if train_obj.destination == "Unknown":
-                    continue
-                if locations is None:
-                    locations = WMTLocations('whensmytube', load_network=False)
-                destination_station = locations.find_fuzzy_match({'Line': line_code}, train_obj.destination, RailStation)
+                destination_station = station_object_lookup_function(line_code, train_obj.destination)
                 if not destination_station:
                     continue
                 if destination_station.location_easting < station.location_easting:

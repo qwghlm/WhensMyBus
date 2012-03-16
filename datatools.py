@@ -38,8 +38,8 @@ def parse_stations_from_kml(filter_function=lambda a, b: True):
             (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
             (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
             (easting, northing) = LatLongToOSGrid(lat, lon)
-            stations[name.lower()] = {'Name' : name, 'Location_Easting' : str(easting), 'Location_Northing' : str(northing),
-                                      'Code' : '', 'Lines' : '', 'Inner' : '', 'Outer' : '' }
+            stations[name.lower()] = {'Name': name, 'Location_Easting': str(easting), 'Location_Northing': str(northing),
+                                      'Code': '', 'Lines': '', 'Inner': '', 'Outer': ''}
     return stations
 
 

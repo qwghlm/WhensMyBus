@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfStationStatus xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://webservices.lul.co.uk/">
+  <StationStatus ID="20" StatusDetails="Due to planned maintenance work.">
+    <Station ID="20" Name="Bermondsey" />
+    <Status ID="NS" CssClass="Closed" Description="No Step Free Access" IsActive="true">
+      <StatusType ID="2" Description="Station" />
+    </Status>
+  </StationStatus>
+  <StationStatus ID="30" StatusDetails="Due to planned maintenance work.">
+    <Station ID="30" Name="Brixton" />
+    <Status ID="NS" CssClass="Closed" Description="No Step Free Access" IsActive="true">
+      <StatusType ID="2" Description="Station" />
+    </Status>
+  </StationStatus>
+  <StationStatus ID="36" StatusDetails="Between street level and the Jubilee and London Overground platforms due to planned maintenance work. (Step free interchange still available between the lines at platform level).">
+    <Station ID="36" Name="Canada Water" />
+    <Status ID="NS" CssClass="Closed" Description="No Step Free Access" IsActive="true">
+      <StatusType ID="2" Description="Station" />
+    </Status>
+  </StationStatus>
+  <StationStatus ID="270" StatusDetails="To the District line due to planned maintenance work.">
+    <Station ID="270" Name="Wimbledon" />
+    <Status ID="NS" CssClass="Closed" Description="No Step Free Access" IsActive="true">
+      <StatusType ID="2" Description="Station" />
+    </Status>
+  </StationStatus>
+</ArrayOfStationStatus>
