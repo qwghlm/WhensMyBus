@@ -12,7 +12,7 @@ if sys.version_info < (2, 7):
     print "Please upgrade!"
     sys.exit(1)
 
-from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
+from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA  # FIXME Incorporate live data
 from whensmybus import WhensMyBus
 from whensmyrail import WhensMyRailTransport
 
@@ -176,6 +176,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         dissimilarity_candidates = [random_string(48, 57) for _i in range(0, 10)]
         self.assertIsNone(get_best_fuzzy_match(similarity_string, dissimilarity_candidates))
 
+    @unittest.skipIf(time.localtime()[3] < 2, "Arbitrary nature of test data fails at midnight")
     def test_models(self):
         """
         Unit tests for train, bus, station and bus stop objects
@@ -206,12 +207,12 @@ class WhensMyTransportTestCase(unittest.TestCase):
         bus2 = Bus("Trafalgar Square", "Blackwall", "2359")
         bus3 = Bus("Trafalgar Square", "Blackwall", "0001")
         self.assertEqual(hash(bus), hash(bus2))
-        #self.assertLess(bus, bus3)
+        self.assertLess(bus, bus3)  # Fails if test run at 0000-0059
         self.assertEqual(bus.get_destination(), "Trafalgar Square to Blackwall")
 
         train = Train("Charing Cross via Bank", "2359")
         train2 = Train("Charing Cross via Bank", "0001")
-        #self.assertLess(train, train2)
+        self.assertLess(train, train2)  # Fails if test run at 0000-0059
         self.assertEqual(train.get_destination(), "Charing X via Bank")
         self.assertEqual(train.get_clean_destination_name(), "Charing Cross")
 
@@ -687,7 +688,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                         for result in results:
                             print result
                             self._test_correct_successes(result, line, expected_origin, to_fragment and destination_to_avoid)
-                        print 'Took %0.3f ms' % ((t2-t1)*1000.0,)
+                        print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
 
 class WhensMyDLRTestCase(WhensMyTransportTestCase):
@@ -765,7 +766,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
             test_variables = dict([(name, eval(name)) for name in ('origin_name', 'destination_name', 'line')])
 
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
-            from_fragments = [value % test_variables for value in ("", " from %(origin_name)s",)] # " %(origin_name)s")]
+            from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
             to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
             line_fragments = [value % test_variables for value in ("%(line)s",)]  # FIXME Add in test for blank Tweet
 
@@ -785,7 +786,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
                             print result
                             self._test_correct_successes(result, line, expected_origin, to_fragment and unwanted_destination)
                             t2 = time.time()
-                            print 'Took %0.3f ms' % ((t2-t1)*1000.0,)
+                            print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
 
 def run_tests():
