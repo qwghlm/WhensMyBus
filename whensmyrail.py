@@ -96,8 +96,10 @@ class WhensMyRailTransport(WhensMyTransport):
 
         # Dig out relevant departure station for this line from the geotag, if provided, or else the station name
         if position:
+            logging.debug("Attempting to get closest to position: %s", position)
             station = self.get_station_by_geolocation(line_code, position)
         else:
+            logging.debug("Attempting to get a fuzzy match on placename %s", origin)
             station = self.get_station_by_station_name(line_code, origin)
         if not station:
             raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
@@ -126,14 +128,12 @@ class WhensMyRailTransport(WhensMyTransport):
         """
         Take a line and a tuple specifying latitude & longitude, and works out closest station
         """
-        logging.debug("Attempting to get closest to position: %s", position)
         return self.geodata.find_closest(position, {'Line': line_code}, RailStation)
 
     def get_station_by_station_name(self, line_code, origin):
         """
         Take a line and a string specifying origin, and work out matching for that name
         """
-        logging.debug("Attempting to get a fuzzy match on placename %s", origin)
         if origin == "Unknown":
             return None
         else:
