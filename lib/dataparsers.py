@@ -146,7 +146,7 @@ def parse_tube_data(tube_data, station, line_code):
     Returns a dictionary; keys are platform names, values lists of TubeTrain objects
     """
     # Go through each platform and get data about every train arriving, including which direction it's headed
-    locations = WMTLocations('whensmytube')
+    locations = None
     trains_by_direction = {}
     publication_time = tube_data.find('WhenCreated').text
     publication_time = datetime.strptime(publication_time, "%d %b %Y %H:%M:%S")
@@ -196,6 +196,8 @@ def parse_tube_data(tube_data, station, line_code):
             if train_obj.direction == "Unknown":
                 if train_obj.destination == "Unknown":
                     continue
+                if locations is None:
+                    locations = WMTLocations('whensmytube')
                 destination_station = locations.find_fuzzy_match({'Line': line_code}, train_obj.destination, RailStation)
                 if not destination_station:
                     continue
