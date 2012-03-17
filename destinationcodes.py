@@ -50,5 +50,5 @@ def check_tfl_destination_codes():
             print "Destination %s (%s) on %s not found in locations database" % (destination_name, destination_code, line_code)
 
 if __name__ == "__main__":
-    #scrape_tfl_destination_codes()
+    scrape_tfl_destination_codes()
     check_tfl_destination_codes()
