@@ -48,7 +48,7 @@ class WMTLocations():
         # and find the first row
         (where_statement, where_values) = self.make_where_statement(params)
         query = """
-                SELECT (Location_Easting - %d)*(Location_Easting - %d) + (Location_Northing - %d)*(Location_Northing - %d) AS dist_squared,
+                SELECT (location_easting - %d)*(location_easting - %d) + (location_northing - %d)*(location_northing - %d) AS dist_squared,
                       *
                 FROM locations
                 WHERE %s
@@ -71,7 +71,7 @@ class WMTLocations():
         """
         # Try to get an exact match first against station names in database
         exact_params = params.copy()
-        exact_params.update({'Name': fuzzy_match_query})
+        exact_params.update({'name': fuzzy_match_query})
         exact_match = self.find_exact_match(exact_params, returned_object)
         if exact_match:
             return exact_match

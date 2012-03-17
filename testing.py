@@ -188,8 +188,8 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertGreaterEqual(station.get_similarity("Kings Cross St Pancreas"), 90)
         self.assertGreaterEqual(station.get_similarity("Kings Cross"), 90)
 
-        bus_stop = BusStop("WALFORD EAST BUS STATION # [DLR] / TOWN CENTRE", Bus_Stop_Code='10000', Distance=2.0)
-        bus_stop2 = BusStop("TOWN CENTRE / WALFORD EAST BUS STATION # [DLR]", Bus_Stop_Code='10001', Distance=1.0)
+        bus_stop = BusStop("WALFORD EAST BUS STATION # [DLR] / TOWN CENTRE", bus_stop_code='10000', distance=2.0)
+        bus_stop2 = BusStop("TOWN CENTRE / WALFORD EAST BUS STATION # [DLR]", bus_stop_code='10001', distance=1.0)
         self.assertEqual(sorted([bus_stop, bus_stop2])[0].number, '10001')
         for undesirable in ('<>', '#', r'\[DLR\]', '>T<'):
             self.assertNotRegexpMatches(bus_stop.get_clean_name(), undesirable)
@@ -311,8 +311,8 @@ class WhensMyTransportTestCase(unittest.TestCase):
         Unit tests for WMTLocation objects
         """
         self.assertEqual(self.bot.geodata.make_where_statement({}), (" 1 ", ()))
-        self.assertEqual(self.bot.geodata.make_where_statement({'Location_Easting': 0}),
-                                                               ('"Location_Easting" = ?', (0,)))
+        self.assertEqual(self.bot.geodata.make_where_statement({'location_easting': 0}),
+                                                               ('"location_easting" = ?', (0,)))
         self.assertRaises(KeyError, self.bot.geodata.make_where_statement, {'XXX': 1})
 
     def test_logger(self):
@@ -472,12 +472,12 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         Unit tests for WMTLocation object and the bus database
         """
         super(WhensMyBusTestCase, self).test_location()
-        self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'Run': '1', 'Route': '15'}, BusStop).number, "53410")
-        self.assertEqual(self.bot.geodata.find_fuzzy_match({'Run': '1', 'Route': '15'}, "Limehouse Sta", BusStop).number, "53410")
-        self.assertEqual(self.bot.geodata.find_exact_match({'Run': '1', 'Route': '15', 'Stop_Name': 'LIMEHOUSE TOWN HALL'}, BusStop).number, "48264")
-        self.assertTrue(self.bot.geodata.check_existence_of('Bus_Stop_Code', '47001'))
-        self.assertFalse(self.bot.geodata.check_existence_of('Bus_Stop_Code', '47000'))
-        self.assertEqual(self.bot.geodata.get_max_value('Run', {}), 4)
+        self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'run': '1', 'route': '15'}, BusStop).number, "53410")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match({'run': '1', 'route': '15'}, "Limehouse Sta", BusStop).number, "53410")
+        self.assertEqual(self.bot.geodata.find_exact_match({'run': '1', 'route': '15', 'name': 'LIMEHOUSE TOWN HALL'}, BusStop).number, "48264")
+        self.assertTrue(self.bot.geodata.check_existence_of('bus_stop_code', '47001'))
+        self.assertFalse(self.bot.geodata.check_existence_of('bus_stop_code', '47000'))
+        self.assertEqual(self.bot.geodata.get_max_value('run', {}), 4)
 
     def test_no_bus_number(self):
         """
@@ -578,9 +578,11 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             for route in routes:
                 message = text % route
                 tweet = FakeTweet(self.at_reply + message)
+                print message
                 results = self.bot.process_tweet(tweet)
                 for result in results:
                     self._test_correct_successes(result, route, stop_name, (message.find(' to ') == -1))
+                    print result
 
 
 class WhensMyTubeTestCase(WhensMyTransportTestCase):
@@ -621,8 +623,8 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         Unit tests for WMTLocation object and the Tube database
         """
         super(WhensMyTubeTestCase, self).test_location()
-        self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'Line': 'M'}, RailStation).code, "KXX")
-        self.assertEqual(self.bot.geodata.find_fuzzy_match({'Line': 'M'}, "Kings Cross", RailStation).code, "KXX")
+        self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'line': 'M'}, RailStation).code, "KXX")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match({'line': 'M'}, "Kings Cross", RailStation).code, "KXX")
         # find_exact_match() is not tested as it is not needed
         self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
         self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N"))

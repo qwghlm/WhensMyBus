@@ -129,7 +129,7 @@ class WhensMyRailTransport(WhensMyTransport):
         """
         Take a line and a tuple specifying latitude & longitude, and works out closest station
         """
-        return self.geodata.find_closest(position, {'Line': line_code}, RailStation)
+        return self.geodata.find_closest(position, {'line': line_code}, RailStation)
 
     def get_station_by_station_name(self, line_code, origin):
         """
@@ -138,7 +138,7 @@ class WhensMyRailTransport(WhensMyTransport):
         if origin == "Unknown":
             return None
         else:
-            return self.geodata.find_fuzzy_match({'Line': line_code}, origin, RailStation)
+            return self.geodata.find_fuzzy_match({'line': line_code}, origin, RailStation)
 
     def get_canonical_station_name(self, line_code, origin):
         """

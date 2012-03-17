@@ -17,13 +17,13 @@ class BusStop():
     """
     Class representing a bus stop
     """
-    def __init__(self, Stop_Name='', Bus_Stop_Code='', Heading=0, Sequence=1, Distance=0.0, Run=0, **kwargs):
-        self.name = Stop_Name
-        self.number = Bus_Stop_Code
-        self.heading = Heading
-        self.sequence = Sequence
-        self.distance_away = Distance
-        self.run = Run
+    def __init__(self, name='', bus_stop_code='', heading=0, sequence=1, distance=0.0, run=0, **kwargs):
+        self.name = name
+        self.number = bus_stop_code
+        self.heading = heading
+        self.sequence = sequence
+        self.distance_away = distance
+        self.run = run
 
     def __cmp__(self, other):
         """
@@ -95,13 +95,13 @@ class RailStation():
     """
     Class representing a railway station
     """
-    def __init__(self, Name='', Code='', Location_Easting=0, Location_Northing=0, Inner='', Outer='', **kwargs):
-        self.name = Name
-        self.code = Code
-        self.location_easting = Location_Easting
-        self.location_northing = Location_Northing
-        self.inner = Inner
-        self.outer = Outer
+    def __init__(self, name='', code='', location_easting=0, location_northing=0, inner='', outer='', **kwargs):
+        self.name = name
+        self.code = code
+        self.location_easting = location_easting
+        self.location_northing = location_northing
+        self.inner = inner
+        self.outer = outer
 
     def __repr__(self):
         return self.name
