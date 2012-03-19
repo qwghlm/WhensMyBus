@@ -207,11 +207,12 @@ def get_line_code(line_name):
         return line_name[0]
 
 if __name__ == "__main__":
+    #pylint: disable=C0103
     parser = argparse.ArgumentParser(description="Run When's My Tube? or When's My DLR?")
     parser.add_argument("instance_name", action="store", help="Name of the instance to run (e.g. whensmytube, whensmydlr)")
-    instance_name = test_case_name = parser.parse_args().instance_name
-    if instance_name in ("whensmytube", "whensmydlr"):
-        WMD = WhensMyRailTransport(instance_name)
+    instance = parser.parse_args().instance_name
+    if instance in ("whensmytube", "whensmydlr"):
+        WMD = WhensMyRailTransport(instance)
         WMD.check_tweets()
     else:
-        print "Error - %s is not a valid instance name" % instance_name
+        print "Error - %s is not a valid instance name" % instance
