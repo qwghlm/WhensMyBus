@@ -12,13 +12,27 @@ from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
 # Representations of stations, stops etc
 #
 
-class BusStop():
-    #pylint: disable=C0103,R0903,W0613
+class Location():
+    """
+    Class representing any kind of location (bus stop or station)
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+
+class BusStop(Location):
+    #pylint: disable=W0613
     """
     Class representing a bus stop
     """
     def __init__(self, name='', bus_stop_code='', heading=0, sequence=1, distance=0.0, run=0, **kwargs):
-        self.name = name
+        Location.__init__(self, name)
         self.number = bus_stop_code
         self.heading = heading
         self.sequence = sequence
@@ -26,13 +40,7 @@ class BusStop():
         self.run = run
 
     def __cmp__(self, other):
-        """
-        Comparator function - measure by distance away from the point the user is
-        """
         return cmp(self.distance_away, other.distance_away)
-
-    def __repr__(self):
-        return self.get_normalised_name()
 
     def __len__(self):
         return len(self.get_normalised_name())
@@ -90,24 +98,18 @@ class BusStop():
         return get_name_similarity(my_name, their_name)
 
 
-class RailStation():
-    #pylint: disable=C0103,R0903,W0613
+class RailStation(Location):
+    #pylint: disable=W0613
     """
     Class representing a railway station
     """
     def __init__(self, name='', code='', location_easting=0, location_northing=0, inner='', outer='', **kwargs):
-        self.name = name
+        Location.__init__(self, name)
         self.code = code
         self.location_easting = location_easting
         self.location_northing = location_northing
         self.inner = inner
         self.outer = outer
-
-    def __repr__(self):
-        return self.name
-
-    def __len__(self):
-        return len(self.name)
 
     def get_abbreviated_name(self):
         """
@@ -188,19 +190,16 @@ class Departure():
             self.departure_time += timedelta(days=1)
 
     def __cmp__(self, other):
-        """
-        Return comparison value to enable sort by departure time
-        """
         return cmp(self.departure_time, other.departure_time)
 
     def __hash__(self):
-        """
-        Return hash value to enable ability to use as dictionary key
-        """
-        return hash('-'.join([self.destination, self.get_departure_time()]))
+        return hash('-'.join([self.get_destination(), self.get_departure_time()]))
 
     def __repr__(self):
-        return "%s %s" % (self.destination, self.departure_time)
+        return "%s %s" % (self.get_destination(), self.get_departure_time())
+
+    def __str__(self):
+        return "%s %s" % (self.get_destination(), self.get_departure_time())
 
     def get_destination(self):
         """
