@@ -12,16 +12,6 @@ if sys.version_info < (2, 7):
     print "Please upgrade!"
     sys.exit(1)
 
-from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
-from whensmybus import WhensMyBus
-from whensmyrail import WhensMyRailTransport
-
-from lib.exceptions import WhensMyTransportException
-from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
-from lib.listutils import unique_values
-from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables
-from lib.models import RailStation, BusStop, NullDeparture, Train, TubeTrain, Bus
-
 import argparse
 import logging
 import os.path
@@ -30,6 +20,32 @@ import re
 import time
 import unittest
 from pprint import pprint
+
+# Abort if a dependency is not installed
+try:
+    from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
+    from whensmybus import WhensMyBus
+    from whensmyrail import WhensMyRailTransport
+
+    from lib.exceptions import WhensMyTransportException
+    from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
+    from lib.listutils import unique_values
+    from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables
+    from lib.models import RailStation, BusStop, NullDeparture, Train, TubeTrain, Bus
+except ImportError as exc:
+    print """
+Sorry, testing failed because a package that WhensMyTransport depends on is not installed. Reported error:
+
+    %s
+
+Missing packages can be downloaded as follows:
+
+ * nltk: http://nltk.github.com/install.html
+ * pygraph: http://code.google.com/p/python-graph/
+ * tweepy: http://code.google.com/p/tweepy/
+""" % exc
+    sys.exit(1)
+
 
 HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_LEVEL = None
