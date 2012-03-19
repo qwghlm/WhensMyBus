@@ -24,52 +24,6 @@ from lib.listutils import unique_values
 from whensmyrail import get_line_code
 
 
-def parse_stations_from_kml(filter_function=lambda a, b: True):
-    """
-    Parses KML file of stations & associated data, and returns them as a dictionary
-    """
-    stations = {}
-    kml = WMTBrowser().fetch_xml_tree('file:///%s/sourcedata/tube-locations.kml' % os.getcwd())
-    for station in kml.findall('.//Placemark'):
-        name = station.find('name').text.strip().replace(' Station', '')
-        style = station.find('styleUrl').text
-        if filter_function(name, style):
-            coordinates = station.find('Point/coordinates').text
-            (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
-            (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
-            (easting, northing) = LatLongToOSGrid(lat, lon)
-            stations[name.lower()] = {'name': name, 'location_easting': str(easting), 'location_northing': str(northing),
-                                      'code': '', 'lines': '', 'inner': '', 'outer': ''}
-    return stations
-
-
-def export_rows_to_db(db_filename, tablename, fieldnames, rows, indices=()):
-    """
-    Generic database SQL composing & export function
-    """
-    sql = ""
-    sql += "drop table if exists %s;\r\n" % tablename
-    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
-
-    for field_data in rows:
-        sql += "insert into locations values "
-        sql += "(\"%s\");\r\n" % '", "'.join(field_data)
-
-    for index in indices:
-        sql += "CREATE INDEX %s_index ON %s (%s);\r\n" % (index, tablename, index)
-    export_sql_to_db(db_filename, sql)
-
-
-def export_sql_to_db(db_filename, sql):
-    """
-    Generic database SQL export function
-    """
-    tempf = tempfile.NamedTemporaryFile('w')
-    tempf.write(sql)
-    tempf.flush()
-    print subprocess.check_output(["sqlite3", db_filename], stdin=open(tempf.name))
-
-
 def import_bus_csv_to_db():
     """
     Utility script that produces the script for converting TfL's bus data CSV into sqlite
@@ -299,6 +253,52 @@ def import_network_data_to_graph(instance_name='whensmytube'):
     graphs['All'] = create_graph_from_dict(stations_neighbours, database, interchanges_by_foot)
 
     pickle.dump(graphs, open("./db/%s.network.gr" % instance_name, "w"))
+
+
+def parse_stations_from_kml(filter_function=lambda a, b: True):
+    """
+    Parses KML file of stations & associated data, and returns them as a dictionary
+    """
+    stations = {}
+    kml = WMTBrowser().fetch_xml_tree('file:///%s/sourcedata/tube-locations.kml' % os.getcwd())
+    for station in kml.findall('.//Placemark'):
+        name = station.find('name').text.strip().replace(' Station', '')
+        style = station.find('styleUrl').text
+        if filter_function(name, style):
+            coordinates = station.find('Point/coordinates').text
+            (lon, lat) = tuple([float(c) for c in coordinates.split(',')[0:2]])
+            (lat, lon) = convertWGS84toOSGB36(lat, lon)[:2]
+            (easting, northing) = LatLongToOSGrid(lat, lon)
+            stations[name.lower()] = {'name': name, 'location_easting': str(easting), 'location_northing': str(northing),
+                                      'code': '', 'lines': '', 'inner': '', 'outer': ''}
+    return stations
+
+
+def export_rows_to_db(db_filename, tablename, fieldnames, rows, indices=()):
+    """
+    Generic database SQL composing & export function
+    """
+    sql = ""
+    sql += "drop table if exists %s;\r\n" % tablename
+    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
+
+    for field_data in rows:
+        sql += "insert into locations values "
+        sql += "(\"%s\");\r\n" % '", "'.join(field_data)
+
+    for index in indices:
+        sql += "CREATE INDEX %s_index ON %s (%s);\r\n" % (index, tablename, index)
+    export_sql_to_db(db_filename, sql)
+
+
+def export_sql_to_db(db_filename, sql):
+    """
+    Generic database SQL export function
+    """
+    tempf = tempfile.NamedTemporaryFile('w')
+    tempf.write(sql)
+    tempf.flush()
+    print subprocess.check_output(["sqlite3", db_filename], stdin=open(tempf.name))
 
 
 def create_graph_from_dict(stations, database, interchanges_by_foot):
