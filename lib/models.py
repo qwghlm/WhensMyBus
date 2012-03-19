@@ -25,6 +25,9 @@ class Location():
     def __str__(self):
         return self.name
 
+    def __len__(self):
+        return len(self.name)
+
 
 class BusStop(Location):
     #pylint: disable=W0613
