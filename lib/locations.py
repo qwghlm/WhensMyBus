@@ -7,7 +7,6 @@ from math import sqrt
 import logging
 import os.path
 import cPickle as pickle
-from pprint import pprint
 
 from pygraph.algorithms.minmax import shortest_path
 
