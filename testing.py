@@ -12,7 +12,7 @@ if sys.version_info < (2, 7):
     print "Please upgrade!"
     sys.exit(1)
 
-from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA  # FIXME Incorporate live data
+from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
 from whensmybus import WhensMyBus
 from whensmyrail import WhensMyRailTransport
 
@@ -32,6 +32,7 @@ import unittest
 from pprint import pprint
 
 HOME_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_LEVEL = None
 
 
 class FakeTweet:
@@ -428,7 +429,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyBus(testing=TESTING_TEST_LOCAL_DATA)
+        self.bot = WhensMyBus(testing=TEST_LEVEL)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -593,7 +594,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyRailTransport("whensmytube", testing=TESTING_TEST_LOCAL_DATA)
+        self.bot = WhensMyRailTransport("whensmytube", testing=TEST_LEVEL)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -701,7 +702,7 @@ class WhensMyDLRTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyRailTransport("whensmydlr", testing=TESTING_TEST_LOCAL_DATA)
+        self.bot = WhensMyRailTransport("whensmydlr", testing=TEST_LEVEL)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -795,10 +796,12 @@ def run_tests():
     """
     Run a suite of tests for When's My Transport
     """
+    #pylint: disable=W0603
     parser = argparse.ArgumentParser(description="Unit testing for When's My Transport?")
-    parser.add_argument("test_case_name", action="store", default="", help="Name of the class to test (e.g. WhensMyBus, WhensMyTube)")
+    parser.add_argument("test_case_name", action="store", default="", help="Classname of the class to test (e.g. WhensMyBus, WhensMyTube, WhensMyDLR)")
     parser.add_argument("--remote-apis", dest="remote_apis", action="store_true", default=False, help="Test Twitter & Yahoo APIs as well")
-    parser.add_argument("--live-data", dest="live_data", action="store_true", default=False, help="Test with live TfL data (may fail unpredictably)")
+    parser.add_argument("--live-data", dest="test_level", action="store_const", const=TESTING_TEST_LIVE_DATA, default=TESTING_TEST_LOCAL_DATA,
+                        help="Test with live TfL data (may fail unpredictably!)")
     test_case_name = parser.parse_args().test_case_name
 
     # Init tests (same for all)
@@ -833,6 +836,14 @@ def run_tests():
         test_names = unit_tests + local_tests + remote_tests + failures + successes
     else:
         test_names = unit_tests + local_tests + failures + successes
+
+    # Sort out appropriate test level. Global variables are evil, but a necessary evil here
+    global TEST_LEVEL
+    TEST_LEVEL = parser.parse_args().test_level
+    if TEST_LEVEL == TESTING_TEST_LIVE_DATA:
+        print "Testing with live TfL data"
+    else:
+        print "Testing with local test data"
 
     suite = unittest.TestSuite(map(eval(test_case_name + 'TestCase'), ['test_%s' % t for t in test_names]))
     runner = unittest.TextTestRunner(verbosity=2, failfast=1, buffer=True)
