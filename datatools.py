@@ -40,34 +40,37 @@ def import_bus_csv_to_db():
     # Fix CSV - replace commas with semi-colons, allow sqlite to import without cocking it all up
     inputpath = './sourcedata/bus-routes.csv'
     inputfile = open(inputpath)
-    reader = csv.reader(inputfile)
-    fieldnames = reader.next()  # Skip first line (fieldnames)
+    reader = csv.DictReader(inputfile)
+    fieldnames = reader.fieldnames
+    fields_to_delete = ('Stop_Code_LBSL', 'Naptan_Atco')
 
     outputpath = inputpath.replace('.csv', '.ssv')
     outputfile = open(outputpath, 'w')
-    writer = csv.writer(outputfile, delimiter=";")
+    output_fieldnames = [field for field in fieldnames if field not in fields_to_delete]
+    writer = csv.DictWriter(outputfile, output_fieldnames, delimiter=";")
 
     for line in reader:
+        for field in fields_to_delete:
+            del line[field]
         writer.writerow(line)
     outputfile.flush()
     outputfile.close()
 
     tablename = 'locations'
 
-    integer_values = ('location_easting',
-                      'location_northing',
-                      'heading',
-                      'virtual_bus_stop',
-                      'run',
-                      'sequence',)
-
-    fieldnames[fieldnames.index('Stop_Name')] = 'Name'
-    fieldnames = ['%s%s' % (f.lower(), f.lower() in integer_values and ' INT' or '') for f in fieldnames]
+    integer_values = ('Location_Easting',
+                      'Location_Northing',
+                      'Heading',
+                      'Virtual_Bus_Stop',
+                      'Run',
+                      'Sequence',)
+    output_fieldnames[output_fieldnames.index('Stop_Name')] = 'Name'
+    output_fieldnames = ['%s%s' % (f.lower(), f in integer_values and ' INT' or '') for f in output_fieldnames]
 
     # Produce SQL for this table
     sql = "drop table if exists %s;\r\n" % tablename
     sql += "drop table if exists routes;\r\n"
-    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
+    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(output_fieldnames))
     sql += '.separator ";"\r\n'
     sql += ".import %s %s\r\n" % (outputpath, tablename)
     sql += "delete from %s WHERE virtual_bus_stop;\r\n" % tablename
