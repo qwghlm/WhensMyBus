@@ -106,6 +106,7 @@ class WhensMyBus(WhensMyTransport):
             Values are BusStop objects
         """
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
+        logging.debug("Attempting to get a match on location %s", position)
         max_runs = self.geodata.get_max_value('run', {'route': route_number})
         relevant_stops = {}
         for run in range(1, max_runs + 1):
@@ -128,8 +129,10 @@ class WhensMyBus(WhensMyTransport):
         logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
         stop = self.geodata.find_exact_match({'bus_stop_code': stop_number, 'route': route_number}, BusStop)
         if stop:
+            logging.debug("Have found stop number: %s", stop.number)
             return {stop.run: stop}
         else:
+            logging.debug("No such bus stop found")
             return {}
 
     def get_stops_by_stop_name(self, route_number, origin):

@@ -21,7 +21,6 @@ Things to do:
 
 WhensMyTube/DLR:
 
- - Destination handling
  - Direction handling
 
 General:
@@ -89,8 +88,10 @@ class WhensMyTransport:
         # Setup debugging
         debug_level = config.get(self.instance_name, 'debug_level')
         setup_logging(self.instance_name, testing, debug_level)
-        if testing != TESTING_NONE:
+        if testing == TESTING_TEST_LOCAL_DATA:
             logging.info("In TEST MODE - No Tweets will be made and local test data will be used!")
+        elif testing == TESTING_TEST_LIVE_DATA:
+            logging.info("In TEST MODE - No Tweets will be made! Will be using LIVE TfL data")
 
         # Name of the admin so we know who to alert if there is an issue
         self.admin_name = config.get(self.instance_name, 'admin_name')
@@ -122,6 +123,7 @@ class WhensMyTransport:
         Check incoming Tweets, and reply to them
         """
         tweets = self.twitter_client.fetch_tweets()
+        logging.debug("%s Tweets to process", len(tweets))
         for tweet in tweets:
             # If the Tweet is not valid (e.g. not directly addressed, from ourselves) then skip it
             if not self.validate_tweet(tweet):
@@ -190,12 +192,15 @@ class WhensMyTransport:
         """
         # Don't do anything if this is a thank-you
         if self.check_politeness(tweet):
+            logging.debug("This Tweet is a thank-you Tweet, skipping")
             return []
 
         # Get route number, from and to from the message
         message = tweet.text
+        logging.debug("Message from user: %s", message)
         (requested_routes, origin, destination) = self.parse_message(message)
         if requested_routes is None:
+            logging.debug("No routes or lines detected on this Tweet, skipping")
             return []
 
         # If no origin specified, let's see if we have co-ordinates on the Tweet
@@ -303,7 +308,7 @@ class WhensMyTransport:
         Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a (latitude, longitude) tuple
         """
         if hasattr(tweet, 'geo') and tweet.geo and 'coordinates' in tweet.geo:
-            logging.debug("Detect geolocation on Tweet")
+            logging.debug("Detecting geolocation on Tweet")
             position = tweet.geo['coordinates']
             easting, northing = convertWGS84toOSEastingNorthing(*position)
             # Grid reference provides us an easy way with checking to see if in the UK - it returns blank string if not in UK bounds
