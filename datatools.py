@@ -16,12 +16,14 @@ from pprint import pprint
 # Library available from http://code.google.com/p/python-graph/
 from pygraph.classes.digraph import digraph
 
+import nltk
+
 # Local files
 from lib.browser import WMTBrowser
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
 from lib.listutils import unique_values
-from whensmytrain import get_line_code
+from whensmytrain import get_line_code, LINE_NAMES
 
 
 def import_bus_csv_to_db():
@@ -453,9 +455,45 @@ def get_tfl_prediction_summaries():
             continue
     return all_train_data
 
+
+def import_tube_xml_to_text_corpus():
+    """
+    Creates a corpus of text data for our parser to understand requests with
+    """
+    line_phrases = [nltk.word_tokenize(line_name) for line_name in LINE_NAMES]
+    station_phrases = []
+    for filename in ('tube-references.csv', 'dlr-references.csv'):
+        station_phrases += [nltk.word_tokenize(line[1]) for line in csv.reader(open('./sourcedata/%s' % filename))][1:]
+
+    # Organise bigram phrases - multiple wordings for stations and lines
+    bigram_tokens = [[(token, 'TUBE_LINE') for token in phrase] for phrase in line_phrases]
+    bigram_tokens += [[(token, 'TUBE_LINE') for token in phrase] + [('line', 'LINE')] for phrase in line_phrases]
+    bigram_tokens += [[(token, 'STATION_WORD') for token in phrase] for phrase in station_phrases]
+    bigram_tokens += [[('from', 'FROM')] + [(token, 'STATION_WORD') for token in phrase] for phrase in station_phrases]
+    bigram_tokens += [[('to', 'TO')] + [(token, 'STATION_WORD') for token in phrase] for phrase in station_phrases]
+
+    # Unigram phrases, as a fall-back - line words and any words that appear in stations but not line names
+    line_tokens = set(reduce(lambda a, b: a + b, [phrase for phrase in LINE_NAMES]))
+    station_tokens = set(reduce(lambda a, b: a + b, [phrase for phrase in station_phrases]))
+    unigram_tokens = [[(token, 'TUBE_LINE') for token in line_tokens] + [(token, 'STATION_WORD') for token in station_tokens if token not in line_tokens]]
+
+    tagging_regexes = [
+        (r'^(from|From)$', 'FROM'),
+        (r'^to(wards)?$', 'TO'),
+        (r'^(line|Line)?$', 'LINE'),
+        (r'^(please|thanks|thank|you)$', None),
+        (r'^Docklands (Light Rail(way)?)?$', 'DLR_LINE_NAME'),
+        (r'.*', 'UNKNOWN'),
+    ]
+    regex_tagger = nltk.RegexpTagger(tagging_regexes)
+    unigram_tagger = nltk.UnigramTagger(unigram_tokens, backoff=regex_tagger)
+    bigram_tagger = nltk.BigramTagger(bigram_tokens, backoff=unigram_tagger)
+    pickle.dump(bigram_tagger, open("./db/whensmytrain.tagger.obj", "w"))
+
 if __name__ == "__main__":
     #import_bus_csv_to_db()
-    import_tube_xml_to_db()
-    import_dlr_xml_to_db()
-    import_network_data_to_graph()
+    #import_tube_xml_to_db()
+    #import_dlr_xml_to_db()
+    #import_network_data_to_graph()
     #scrape_odd_platform_designations()
+    import_tube_xml_to_text_corpus()

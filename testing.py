@@ -723,7 +723,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Tests for the natural language parser
         """
-        (route, origin, destination) = ('victoria', 'Sloane Square', 'Upminster')
+        (route, origin, destination) = ('Victoria', 'Sloane Square', 'Upminster')
         routes = [route]
         self.assertEqual(self.bot.parser.parse_message(""),                                                      (None, None, None))
         self.assertEqual(self.bot.parser.parse_message("from %s to %s %s" % (origin, destination, route)),       (None, None, None))

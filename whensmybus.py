@@ -25,6 +25,7 @@ from lib.dataparsers import parse_bus_data
 from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
 from lib.models import BusStop, NullDeparture
+from lib.textparser import WMTBusParser
 
 
 class WhensMyBus(WhensMyTransport):
@@ -37,6 +38,7 @@ class WhensMyBus(WhensMyTransport):
         Constructor for the WhensMyBus class
         """
         WhensMyTransport.__init__(self, 'whensmybus', testing)
+        self.parser = WMTBusParser()
 
     def process_individual_request(self, route_number, origin, destination, position=None):
         """

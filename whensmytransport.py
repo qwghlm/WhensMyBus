@@ -42,7 +42,6 @@ from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeoco
 from lib.listutils import unique_values
 from lib.locations import WMTLocations
 from lib.logger import setup_logging
-from lib.textparser import WMTTextParser
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
 # Some constants we use
@@ -93,10 +92,6 @@ class WhensMyTransport:
 
         # Setup database of stops/stations and their locations
         self.geodata = WMTLocations(self.instance_name)
-
-        # Setup natural language parser
-        self.parser = WMTTextParser()
-        self.parser.load_corpus(self.instance_name)
 
         # Setup browser for JSON & XML
         self.browser = WMTBrowser()

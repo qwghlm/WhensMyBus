@@ -24,7 +24,23 @@ from lib.dataparsers import parse_dlr_data, parse_tube_data
 from lib.exceptions import WhensMyTransportException
 from lib.models import RailStation, NullDeparture
 from lib.stringutils import get_best_fuzzy_match
+from lib.textparser import WMTTrainParser
 
+
+LINE_NAMES = (
+    'Bakerloo',
+    'Central',
+    'Circle',
+    'District',
+    'Hammersmith & City',
+    'Jubilee',
+    'Metropolitan',
+    'Northern',
+    'Piccadilly',
+    'Victoria',
+    'Waterloo & City',
+    'DLR',
+)
 
 class WhensMyTrain(WhensMyTransport):
     """
@@ -39,32 +55,15 @@ class WhensMyTrain(WhensMyTransport):
         """
         WhensMyTransport.__init__(self, instance_name, testing)
         self.allow_blank_tweets = instance_name == 'whensmydlr'
+        self.parser = WMTTrainParser()
+        
         # Build internal lookup table of possible line name -> "official" line name
-        line_names = (
-            'Bakerloo',
-            'Central',
-            'Circle',
-            'District',
-            'Hammersmith & City',
-            'Jubilee',
-            'Metropolitan',
-            'Northern',
-            'Piccadilly',
-            'Victoria',
-            'Waterloo & City',
-            'DLR',
-        )
-        line_tuples = [(name, name) for name in line_names]
         # Handle abbreviated three-letter versions and sort out ampersands
-        line_tuples += [(name[:3], name) for name in line_names]
-        line_tuples += [(name.replace("&", "and"), name) for name in line_names]
+        line_tuples = [(name, name) for name in LINE_NAMES]
+        line_tuples += [(name[:3], name) for name in LINE_NAMES]
+        line_tuples += [(name.replace("&", "and"), name) for name in LINE_NAMES]
         line_tuples += [('W&C', 'Waterloo & City'), ('H&C', 'Hammersmith & City',), ('Docklands Light Railway', 'DLR')]
         self.line_lookup = dict(line_tuples)
-
-        # Loads the natural language parser with extra data so it can parse line names
-        tagged_line_names = [[(w, 'TUBE_LINE') for w in t.split(' ')] for t in self.line_lookup.keys()]
-        tagged_line_names += [[(w.lower(), 'TUBE_LINE') for w in t.split(' ')] for t in self.line_lookup.keys()]
-        self.parser.load_corpus(instance_name, tagged_line_names)
 
     def process_individual_request(self, line_name, origin, destination, position):
         """
