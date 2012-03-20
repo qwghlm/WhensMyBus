@@ -95,7 +95,8 @@ class WhensMyTransport:
         self.geodata = WMTLocations(self.instance_name)
 
         # Setup natural language parser
-        self.parser = WMTTextParser(self.instance_name)
+        self.parser = WMTTextParser()
+        self.parser.load_corpus(self.instance_name)
 
         # Setup browser for JSON & XML
         self.browser = WMTBrowser()

@@ -38,7 +38,7 @@ WHENSMYTUBE_GRAMMAR = {
     ],
 
     'grammar': r"""
-        TUBE_LINE_NAME: {<TUBE_WORD>+<LINE>}
+        TUBE_LINE_NAME: {<TUBE_LINE>+<LINE>?}
         LINE_NAME: {<DLR_LINE_NAME|TUBE_LINE_NAME>}
         TUBE_STATION: {<TUBE_WORD>+}
         DESTINATION: {<TO><TUBE_STATION>}
@@ -47,9 +47,9 @@ WHENSMYTUBE_GRAMMAR = {
                  {^<LINE_NAME><DESTINATION><ORIGIN>$}
     """
 }
+# TUBE_LINE is loaded into this by the load_corpus method when loaded by WhensMyTrain
 
 # DLR grammar is for the moment, very similar to the Tube, except that <LINE_NAME> is entirely optional
-
 WHENSMYDLR_GRAMMAR = {
     'patterns': [
         (r'^(from|From)$', 'FROM'),
@@ -62,7 +62,7 @@ WHENSMYDLR_GRAMMAR = {
     ],
 
     'grammar': r"""
-        TUBE_LINE_NAME: {<TUBE_WORD>+<LINE>}
+        TUBE_LINE_NAME: {<TUBE_LINE>+<LINE>?}
         LINE_NAME: {<DLR_LINE_NAME|TUBE_LINE_NAME>}
         TUBE_STATION: {<TUBE_WORD>+}
         DESTINATION: {<TO><TUBE_STATION>}
@@ -77,9 +77,19 @@ class WMTTextParser:
     """
     Parser for When's My Transport
     """
-    def __init__(self, instance_name):
+    def __init__(self):
+        return
+
+    def load_corpus(self, instance_name, tagged_tokens=None):
+        """
+        Loads up the tagger and initialises, with optional pre-tagged tokens
+        """
         grammar_name = eval(instance_name.upper() + "_GRAMMAR")
-        self.tagger = nltk.RegexpTagger(grammar_name['patterns'])
+        regex_tagger = nltk.RegexpTagger(grammar_name['patterns'])
+        if tagged_tokens:
+            self.tagger = nltk.UnigramTagger(tagged_tokens, backoff=regex_tagger)
+        else:
+            self.tagger = regex_tagger
         self.parser = nltk.RegexpParser(grammar_name['grammar'])
 
     def parse_message(self, text):
@@ -101,10 +111,13 @@ class WMTTextParser:
         for i in range(1, len(tagged_tokens)):
             if tagged_tokens[i][1] == 'ROUTE_NUMBER' and tagged_tokens[i - 1][1] != 'ROUTE_NUMBER':
                 tagged_tokens[i] = (tagged_tokens[i][0], 'BUS_STOP_WORD')
+            if tagged_tokens[i][1] == 'TUBE_LINE' and tagged_tokens[i - 1][1] != 'TUBE_LINE':
+                tagged_tokens[i] = (tagged_tokens[i][0], 'TUBE_WORD')
 
         # Parse the tree. If we cannot parse a legitimate request then return nothing
         parsed_tokens = self.parser.parse(tagged_tokens)
         if not subtree_exists(parsed_tokens, 'REQUEST'):
+            # print parsed_tokens
             logging.debug("Message did not conform to message format, returning nothing")
             return (None, None, None)
 
@@ -114,7 +127,7 @@ class WMTTextParser:
             if subtree.node == 'ROUTES':
                 routes = extract_words(subtree, ('ROUTE_NUMBER',)) or None
             if subtree.node == 'LINE_NAME':
-                routes = [' '.join(extract_words(subtree, ('TUBE_WORD', 'DLR_LINE_NAME')))] or None
+                routes = [' '.join(extract_words(subtree, ('TUBE_LINE', 'DLR_LINE_NAME')))] or None
             elif subtree.node == 'ORIGIN':
                 origin = ' '.join(extract_words(subtree, ('TUBE_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))) or None
             elif subtree.node == 'DESTINATION':

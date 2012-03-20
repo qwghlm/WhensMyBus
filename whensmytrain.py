@@ -39,7 +39,6 @@ class WhensMyTrain(WhensMyTransport):
         """
         WhensMyTransport.__init__(self, instance_name, testing)
         self.allow_blank_tweets = instance_name == 'whensmydlr'
-
         # Build internal lookup table of possible line name -> "official" line name
         line_names = (
             'Bakerloo',
@@ -61,6 +60,11 @@ class WhensMyTrain(WhensMyTransport):
         line_tuples += [(name.replace("&", "and"), name) for name in line_names]
         line_tuples += [('W&C', 'Waterloo & City'), ('H&C', 'Hammersmith & City',), ('Docklands Light Railway', 'DLR')]
         self.line_lookup = dict(line_tuples)
+
+        # Loads the natural language parser with extra data so it can parse line names
+        tagged_line_names = [[(w, 'TUBE_LINE') for w in t.split(' ')] for t in self.line_lookup.keys()]
+        tagged_line_names += [[(w.lower(), 'TUBE_LINE') for w in t.split(' ')] for t in self.line_lookup.keys()]
+        self.parser.load_corpus(instance_name, tagged_line_names)
 
     def process_individual_request(self, line_name, origin, destination, position):
         """
