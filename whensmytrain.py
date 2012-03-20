@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-When's My Rail?
+When's My Train?
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
 
@@ -26,11 +26,10 @@ from lib.models import RailStation, NullDeparture
 from lib.stringutils import get_best_fuzzy_match
 
 
-class WhensMyRailTransport(WhensMyTransport):
+class WhensMyTrain(WhensMyTransport):
     """
-    Parent class for the WhensMyDLR and WhensMyTube bots. This deals with common functionality between the two -
-    namely looking up stations from a database given a position or name. This works best when there is a limited number of
-    stations and they have well-known, universally agreed names, which is normally railways and not buses.
+    Class for the @WhensMyDLR and @WhensMyTube bots. This inherits from the WhensMyTransport and provides specialist functionality for when
+    there is a limited number of stations and they have well-known, universally agreed names, which is normally railways and not buses.
     """
     __metaclass__ = ABCMeta
 
@@ -192,7 +191,7 @@ if __name__ == "__main__":
     parser.add_argument("instance_name", action="store", help="Name of the instance to run (e.g. whensmytube, whensmydlr)")
     instance = parser.parse_args().instance_name
     if instance in ("whensmytube", "whensmydlr"):
-        WMD = WhensMyRailTransport(instance)
-        WMD.check_tweets()
+        WMT = WhensMyTrain(instance)
+        WMT.check_tweets()
     else:
         print "Error - %s is not a valid instance name" % instance

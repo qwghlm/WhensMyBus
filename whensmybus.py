@@ -29,7 +29,8 @@ from lib.models import BusStop, NullDeparture
 
 class WhensMyBus(WhensMyTransport):
     """
-    Main class devoted to checking for bus-related Tweets and replying to them.
+    Class for the @WhensMyBus bot. This inherits from the WhensMyTransport and provides specialist functionality for when
+    there is are a lot of stops, their names may now be known by users, and their location corresponds with streets
     """
     def __init__(self, testing=False):
         """

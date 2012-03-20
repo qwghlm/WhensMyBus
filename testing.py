@@ -25,7 +25,7 @@ from pprint import pprint
 try:
     from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
     from whensmybus import WhensMyBus
-    from whensmyrail import WhensMyRailTransport
+    from whensmytrain import WhensMyTrain
 
     from lib.exceptions import WhensMyTransportException
     from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
@@ -627,7 +627,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyRailTransport("whensmytube", testing=TEST_LEVEL)
+        self.bot = WhensMyTrain("whensmytube", testing=TEST_LEVEL)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -770,7 +770,7 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
         Setup test
         """
         WhensMyTubeTestCase.setUp(self)
-        self.bot = WhensMyRailTransport("whensmydlr", testing=TEST_LEVEL)
+        self.bot = WhensMyTrain("whensmydlr", testing=TEST_LEVEL)
 
     def test_textparser(self):
         """

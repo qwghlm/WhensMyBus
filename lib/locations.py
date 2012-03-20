@@ -31,7 +31,7 @@ class WMTLocations():
         elif instance_name == 'whensmytube' or instance_name == 'whensmydlr':
             filename = 'whensmyrail'
         else:
-            logging.error("No data files exist for instance name %s, aborting" % instance_name)
+            logging.error("No data files exist for instance name %s, aborting", instance_name)
             sys.exit(1)
 
         self.database = WMTDatabase('%s.geodata.db' % filename)

@@ -11,7 +11,7 @@ This is a parent classes used by all three bots, handling common functionality b
 loading the databases, config, connecting to Twitter, reading @ replies, replying to them, checking new followers, following them back
 as well as models and classes for useful constructs such as Trains and Stations
 
-The WhensMyBus and WhensMyRail classes handle looking up route, line, station and stop locations and names, and processing
+The WhensMyBus and WhensMyTrain classes handle looking up route, line, station and stop locations and names, and processing
 data via the respective services' APIs
 
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
@@ -366,4 +366,4 @@ class WhensMyTransport:
 
 
 if __name__ == "__main__":
-    print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmyrail.py"
+    print "Sorry, this file is not meant to be run directly. Please run either whensmybus.py or whensmytrain.py"
