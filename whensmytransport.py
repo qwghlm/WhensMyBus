@@ -19,16 +19,11 @@ Released under the MIT License
 
 Things to do:
 
-WhensMyTube/DLR:
+ - Fully merge WhensMyTube and WhensMyDLR
+ - Add corpus of Tube line & station names so we can better "guess" ambiguous messages
+ - Deduces line needed for Tube/DLR if need be
+ - Handle inputs based on direction
 
- - Direction handling
-
-General:
-
- - Equivalent for National Rail (alas, tram & boat have no public APIs)
- - Better Natural Language parsing
- - Knowledge of network layouts for Tube & bus
- - Checking of TfL APIs for weekend & long-term closures
 
 """
 # Standard libraries of Python 2.6
@@ -48,6 +43,7 @@ from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeoco
 from lib.listutils import unique_values
 from lib.locations import WMTLocations
 from lib.logger import setup_logging
+from lib.textparser import WMTTextParser
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
 # Some constants we use
@@ -98,6 +94,9 @@ class WhensMyTransport:
 
         # Setup database of stops/stations and their locations
         self.geodata = WMTLocations(self.instance_name)
+
+        # Setup natural language parser
+        self.parser = WMTTextParser(self.instance_name)
 
         # Setup browser for JSON & XML
         self.browser = WMTBrowser()
@@ -198,7 +197,7 @@ class WhensMyTransport:
         # Get route number, from and to from the message
         message = tweet.text
         logging.debug("Message from user: %s", message)
-        (requested_routes, origin, destination) = self.parse_message(message)
+        (requested_routes, origin, destination) = self.parser.parse_message(self.sanitize_message(message))
         if requested_routes is None:
             logging.debug("No routes or lines detected on this Tweet, skipping")
             return []
@@ -249,59 +248,6 @@ class WhensMyTransport:
             raise WhensMyTransportException('blank_%s_tweet' % self.instance_name.replace('whensmy', ''))
 
         return message
-
-    @abstractmethod
-    def parse_message(self, message):
-        """
-        Abstract method. This must be overridden by a child class to do anything useful
-        Takes a message rom the user. Returns a tuple of (line_or_routes_specified, origin, destination)
-        """
-        #pylint: disable=W0613,R0201
-        return (None, None, None)
-
-    def tokenize_message(self, message, request_token_regex=None, request_token_optional=False):
-        """
-        Split a message into tokens
-        Message is of format: "@username requested_lines_or_routes [from origin] [to destination]"
-        Tuple returns is of format: (requested_lines_or_routes, origin, destination)
-        If we cannot find any of these three elements, None is used as default
-        """
-        message = self.sanitize_message(message)
-        tokens = re.split('\s+', message)
-
-        # Sometime people forget to put a 'from' in their message. So we try and put one in for them
-        # Go through and find the index of the first token that does not match what a request token should be
-        if "from" not in tokens and request_token_regex:
-            non_request_token_indexes = [i for i in range(0, len(tokens)) if not re.match("^%s,?$" % request_token_regex, tokens[i], re.I)]
-            if non_request_token_indexes:
-                first_non_request_token_index = non_request_token_indexes[0]
-                if tokens[first_non_request_token_index] != "to":
-                    if first_non_request_token_index > 0 or request_token_optional:
-                        tokens.insert(first_non_request_token_index, "from")
-
-        # Work out what boundaries "from" and "to" exist at
-        if "from" in tokens:
-            from_index = tokens.index("from")
-        else:
-            from_index = len(tokens)
-
-        if "to" in tokens:
-            to_index = tokens.index("to")
-        elif "towards" in tokens:
-            to_index = tokens.index("towards")
-        else:
-            to_index = len(tokens)
-
-        if from_index < to_index:
-            request = ' '.join(tokens[:from_index]) or None
-            origin = ' '.join(tokens[from_index + 1:to_index]) or None
-            destination = ' '.join(tokens[to_index + 1:]) or None
-        else:
-            request = ' '.join(tokens[:to_index]) or None
-            origin = ' '.join(tokens[from_index + 1:]) or None
-            destination = ' '.join(tokens[to_index + 1:from_index]) or None
-
-        return (request, origin, destination)
 
     def get_tweet_geolocation(self, tweet, user_request):
         """

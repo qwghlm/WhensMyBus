@@ -17,13 +17,11 @@ stations and lines, checking the TfL Tube and DLR APIs and formatting an appropr
 from abc import ABCMeta
 import argparse
 import logging
-import re
 from pprint import pprint
 
 from whensmytransport import WhensMyTransport
 from lib.dataparsers import parse_dlr_data, parse_tube_data
 from lib.exceptions import WhensMyTransportException
-from lib.listutils import unique_values
 from lib.models import RailStation, NullDeparture
 from lib.stringutils import get_best_fuzzy_match
 
@@ -64,24 +62,6 @@ class WhensMyRailTransport(WhensMyTransport):
         line_tuples += [(name.replace("&", "and"), name) for name in line_names]
         line_tuples += [('W&C', 'Waterloo & City'), ('H&C', 'Hammersmith & City',), ('Docklands Light Railway', 'DLR')]
         self.line_lookup = dict(line_tuples)
-        # Regex used by tokenize_message to work out what is the bit of a Tweet specifying a line - all the words used in the above
-        # FIXME Hammersmith, Piccadilly, Victoria and Waterloo are all first words of tube station names and may cause confusion
-        tube_line_words = unique_values([word for line_name in line_names for word in line_name.split(' ')]) + ["Line", "and"]
-        self.tube_line_regex = "(%s)" % "|".join(tube_line_words)
-
-    def parse_message(self, message):
-        """
-        Parse a Tweet - tokenize it, and get the line, origin and destination specified by the user
-        """
-        (line_name, origin, destination) = self.tokenize_message(message, self.tube_line_regex)
-        line_name = line_name and re.sub(" Line", "", line_name, flags=re.I)
-        origin = origin and re.sub(" Station", "", origin, flags=re.I)
-        destination = destination and re.sub(" Station", "", destination, flags=re.I)
-
-        if not line_name and self.instance_name == "whensmydlr":
-            line_name = 'DLR'
-
-        return ((line_name,), origin, destination)
 
     def process_individual_request(self, line_name, origin, destination, position):
         """
