@@ -21,7 +21,7 @@ from lib.browser import WMTBrowser
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSGB36, LatLongToOSGrid
 from lib.listutils import unique_values
-from whensmyrail import get_line_code
+from whensmytrain import get_line_code
 
 
 def import_bus_csv_to_db():
@@ -87,7 +87,7 @@ def import_bus_csv_to_db():
 
 def import_dlr_xml_to_db():
     """
-    Utility script that produces the script for converting TfL's Tube data KML into a sqlite database
+    Utility script that produces the script for converting TfL's DLR data KML into a sqlite database
 
     Pulls together data from two files:
 
@@ -96,7 +96,7 @@ def import_dlr_xml_to_db():
 
     2. Data for station codes and station names, scraped from the DLR website (sorry guys), saved as dlr-references.csv
     """
-    fieldnames = ('name', 'code', 'line', 'location_easting INT', 'location_northing INT')
+    fieldnames = ('name', 'code', 'line', 'location_easting INT', 'location_northing INT', 'inner', 'outer')
 
     dlr_station_filter = lambda name, style: style.find("#dlrStyle") > -1
     stations = parse_stations_from_kml(dlr_station_filter)
@@ -109,7 +109,9 @@ def import_dlr_xml_to_db():
         name = line[1]
         if name.lower() in stations:
             stations[name.lower()]['code'] = code
-            stations[name.lower()]['line'] = 'DLR'  # Sort for Docklands
+            stations[name.lower()]['line'] = 'DLR'
+            stations[name.lower()]['inner'] = ''
+            stations[name.lower()]['outer'] = ''
         else:
             print "Cannot find %s from dlr-references in geodata!" % name
 
@@ -118,7 +120,7 @@ def import_dlr_xml_to_db():
             print "Cannot find %s from geodata in dlr-references!" % name
 
     rows = [[station[fieldname.split(' ')[0]] for fieldname in fieldnames] for station in stations.values()]
-    export_rows_to_db("./db/whensmydlr.geodata.db", "locations", fieldnames, rows, ('name',))
+    export_rows_to_db("./db/whensmytrain.geodata.db", "locations", fieldnames, rows)
 
 
 def import_tube_xml_to_db():
@@ -187,14 +189,14 @@ def import_tube_xml_to_db():
                               station['inner'], station['outer'])
                 rows.append(field_data)
 
-    export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('name', 'line'))
+    export_rows_to_db("./db/whensmytrain.geodata.db", "locations", fieldnames, rows, ('name', 'line'), delete_existing=True)
 
 
-def import_network_data_to_graph(instance_name='whensmytube'):
+def import_network_data_to_graph():
     """
     Import data from a file describing the edges of the Tube network and turn it into a graph object which we pickle and save
     """
-    database = WMTDatabase("%s.geodata.db" % instance_name)
+    database = WMTDatabase("whensmytrain.geodata.db")
 
     # Adapted from https://github.com/smly/hubigraph/blob/fa23adc07c87dd2a310a20d04f428f819d43cbdb/test/LondonUnderground.txt
     # which is a CSV of all edges in the network
@@ -206,8 +208,6 @@ def import_network_data_to_graph(instance_name='whensmytube'):
     interchanges_by_foot = []
     for (station1, station2, line) in reader:
         if line in ("National Rail", "East London"):
-            continue
-        if (instance_name == 'whensmydlr') ^ (line == "DLR"):
             continue
         if line == "Walk":
             interchanges_by_foot.append((station1, station2))
@@ -255,7 +255,7 @@ def import_network_data_to_graph(instance_name='whensmytube'):
         graphs[get_line_code(line)] = create_graph_from_dict(subset_of_stations, database, interchanges_by_foot)
     graphs['All'] = create_graph_from_dict(stations_neighbours, database, interchanges_by_foot)
 
-    pickle.dump(graphs, open("./db/%s.network.gr" % instance_name, "w"))
+    pickle.dump(graphs, open("./db/whensmytrain.network.gr", "w"))
 
 
 def parse_stations_from_kml(filter_function=lambda a, b: True):
@@ -277,20 +277,21 @@ def parse_stations_from_kml(filter_function=lambda a, b: True):
     return stations
 
 
-def export_rows_to_db(db_filename, tablename, fieldnames, rows, indices=()):
+def export_rows_to_db(db_filename, tablename, fieldnames, rows, indices=(), delete_existing=False):
     """
     Generic database SQL composing & export function
     """
     sql = ""
-    sql += "drop table if exists %s;\r\n" % tablename
-    sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
+    if delete_existing:
+        sql += "drop table if exists %s;\r\n" % tablename
+        sql += "create table %s(%s);\r\n" % (tablename, ", ".join(fieldnames))
+        for index in indices:
+            sql += "CREATE INDEX %s_index ON %s (%s);\r\n" % (index, tablename, index)
 
     for field_data in rows:
         sql += "insert into locations values "
         sql += "(\"%s\");\r\n" % '", "'.join(field_data)
 
-    for index in indices:
-        sql += "CREATE INDEX %s_index ON %s (%s);\r\n" % (index, tablename, index)
     export_sql_to_db(db_filename, sql)
 
 
@@ -306,7 +307,7 @@ def export_sql_to_db(db_filename, sql):
 
 def create_graph_from_dict(stations, database, interchanges_by_foot):
     """
-    Take a dictionary of stations and their neoghbours and return a digraph object
+    Take a dictionary of stations and their neighbours and return a digraph object
     """
     # Start creating our directed graph - first by adding all the nodes. Each station is represented by multiple nodes: one to represent
     # the entrance, and one the exit, and then at least one for every line the station serves (i.e. the platforms). This seems complicated, but is
@@ -388,7 +389,7 @@ def scrape_odd_platform_directions(write_file=False):
     Check Tfl Tube API for Underground platforms that are not designated with a *-bound direction, and (optionally)
     generates a blank CSV template for those stations with Inner/Outer Rail designations
     """
-    database = WMTDatabase("whensmytube.geodata.db")
+    database = WMTDatabase("whensmytrain.geodata.db")
     print "Platforms without a Inner/Outer Rail specification:"
     station_platforms = {}
     all_train_data = get_tfl_prediction_summaries()
@@ -453,9 +454,8 @@ def get_tfl_prediction_summaries():
     return all_train_data
 
 if __name__ == "__main__":
-    import_bus_csv_to_db()
+    #import_bus_csv_to_db()
     import_tube_xml_to_db()
     import_dlr_xml_to_db()
-    #scrape_odd_platform_directions()
-    import_network_data_to_graph('whensmydlr')
-    import_network_data_to_graph('whensmytube')
+    import_network_data_to_graph()
+    #scrape_odd_platform_designations()

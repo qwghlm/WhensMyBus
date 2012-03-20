@@ -25,7 +25,7 @@ from pprint import pprint
 try:
     from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
     from whensmybus import WhensMyBus
-    from whensmyrail import WhensMyRailTransport
+    from whensmytrain import WhensMyTrain
 
     from lib.exceptions import WhensMyTransportException
     from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
@@ -402,7 +402,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         Test to confirm lack of geotag handled OK
         """
         for test_data in self.test_standard_data:
-            request = test_data[0]
+            request = "%s" % test_data[0]
             tweet = FakeTweet(self.at_reply + request)
             self._test_correct_exception_produced(tweet, 'no_geotag', request)
             direct_message = FakeDirectMessage(request)
@@ -413,7 +413,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         Test to confirm ambiguous place information handled OK
         """
         for test_data in self.test_standard_data:
-            request = test_data[0]
+            request = "%s" % test_data[0]
             tweet = FakeTweet(self.at_reply + request, place='foo')
             self._test_correct_exception_produced(tweet, 'placeinfo_only', request)
 
@@ -422,7 +422,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         Test to confirm geolocations outside UK handled OK
         """
         for test_data in self.test_standard_data:
-            request = test_data[0]
+            request = "%s" % test_data[0]
             tweet = FakeTweet(self.at_reply + request, (40.748433, -73.985656))  # Empire State Building, New York
             self._test_correct_exception_produced(tweet, 'not_in_uk')
 
@@ -431,7 +431,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         Test to confirm geolocations outside London handled OK
         """
         for test_data in self.test_standard_data:
-            request = test_data[0]
+            request = "%s" % test_data[0]
             tweet = FakeTweet(self.at_reply + request, (55.948611, -3.200833))  # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
 
@@ -449,36 +449,43 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
-        # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin
+        # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin, Unwanted Destination
         self.test_standard_data = (
-                                   ('15', 'Limehouse Station', '53452', 51.5124, -0.0397, 'Poplar', '73923', 'Limehouse Station'),
-                                   ('425 25 205', 'Bow Road Station', '55489',  51.52722, -0.02472, 'Mile End station', '76239', 'Bow Road Station'),
-                                   )
+            ('15',         'Limehouse Station', '53452', 51.5124, -0.0397, 'Poplar',           '73923', 'Limehouse Station', 'Regent Street'),
+            ('425 25 205', 'Bow Road Station',  '55489', 51.5272, -0.0247, 'Mile End station', '76239', 'Bow Road Station',  '(Bow Church|Ilford|Stratford)'),
+        )
         # Troublesome destinations & data
-        self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'Stratford Bus Station'),
-                                      ('%s from Hoxton',                   ('243',),      'Hoxton Station / Geffrye Museum'),
-                                      ('%s from Bow Common Lane',          ('323',),      'Bow Common Lane'),
-                                      ('%s from EC1M 4PN',                 ('55',),       'St John Street'),
-                                      ('%s from Mile End',                 ('d6', 'd7'),  'Mile End \w+'),
-                                     )
+        self.test_nonstandard_data = (
+            ('%s from Stratford to Walthamstow', ('257',),      'Stratford Bus Station'),
+            ('%s from Hoxton',                   ('243',),      'Hoxton Station / Geffrye Museum'),
+            ('%s from 12 Bow Common Lane',       ('323',),      'Bow Common Lane'),
+            ('%s from EC1M 4PN',                 ('55',),       'St John Street'),
+            ('%s from Mile End',                 ('d6', 'd7'),  'Mile End \w+'),
+        )
 
-    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_not_specified=True):
+    def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
         """
-        Generic test to confirm message is being produced correctly
+        Generic test to confirm Tweet is being processed correctly
         """
-        # No TfL garbage please, and no all-caps either
-        for unwanted in ('<>', '#', '\[DLR\]', '>T<'):
-            self.assertNotRegexpMatches(result, unwanted)
-        self.assertNotEqual(result, result.upper())
-
-        # Should say one of our route numbers, expected origin and a time
-        route_regex = "^(%s)" % '|'.join(routes_specified.upper().replace(',', '').split(' '))
-        self.assertRegexpMatches(result, route_regex)
-        self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
-
-        # We should get two results and hence a semi-colon separating them, if this is not from a specific stop
-        if destination_not_specified:
-            self.assertRegexpMatches(result, ';')
+        print tweet.text
+        t1 = time.time()
+        results = self.bot.process_tweet(tweet)
+        self.assertTrue(results)
+        t2 = time.time()
+        for result in results:
+            print result
+            # No TfL garbage please, and no all-caps either
+            for unwanted in ('<>', '#', '\[DLR\]', '>T<'):
+                self.assertNotRegexpMatches(result, unwanted)
+            self.assertNotEqual(result, result.upper())
+            # Should say one of our route numbers, expected origin and a time
+            route_regex = "^(%s)" % '|'.join(routes_specified.upper().replace(',', '').split(' '))
+            self.assertRegexpMatches(result, route_regex)
+            self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
+            # If we have specified a direction or destination, we should not be seeing buses going the other way
+            if destination_to_avoid:
+                self.assertNotRegexpMatches(result, destination_to_avoid)
+        print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
     #
     # Bus-specific tests
@@ -516,6 +523,22 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             direct_message = FakeDirectMessage(message)
             self._test_correct_exception_produced(direct_message, 'nonexistent_bus', '218')
 
+    def test_textparser(self):
+        """
+        Tests for the natural language parser
+        """
+        (route, origin, destination) = ('A1', 'Heathrow Airport', '47000')
+        routes = [route]
+        self.assertEqual(self.bot.parser.parse_message(""),                                                 (None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("from %s to %s %s" % (origin, destination, route)),  (None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("%s" % route),                                       (routes, None, None))
+        self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None))
+        self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination))
+        self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None))
+        self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination))
+        self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination))
+        self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination))
+
     #
     # Stop-related errors
     #
@@ -544,16 +567,16 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         Test to confirm when route and stop do not match up is handled OK
         """
-        message = '15 from eucg;$78'
+        message = '15 from eucgekewf78'
         tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucg;$78')
+        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucgekewf78')
 
     def test_standard_messages(self):
         """
         Generic test for standard-issue messages
         """
         #pylint: disable=W0612
-        for (route, origin_name, origin_id, lat, lon, destination_name, destination_id, expected_origin) in self.test_standard_data:
+        for (route, origin_name, origin_id, lat, lon, destination_name, destination_id, expected_origin, destination_to_avoid) in self.test_standard_data:
 
             # C-string format helper
             test_variables = dict([(name, eval(name)) for name in ('route', 'origin_name', 'origin_id', 'destination_name', 'destination_id')])
@@ -569,10 +592,10 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                         tweet = FakeTweet(message, (lat, lon))
                     else:
                         tweet = FakeTweet(message)
-
-                    results = self.bot.process_tweet(tweet)
-                    for result in results:
-                        self._test_correct_successes(result, route, expected_origin, (from_fragment.find(origin_id) == -1) and not to_fragment)
+                    if (from_fragment.find(origin_id) > -1) or to_fragment:
+                        self._test_correct_successes(tweet, route, expected_origin, destination_to_avoid)
+                    else:
+                        self._test_correct_successes(tweet, route, expected_origin)
 
     def test_multiple_routes(self):
         """
@@ -581,25 +604,19 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         test_data = (("277 15", (51.511694, -0.030286), "(East India Dock Road|Limehouse Town Hall)"),)
 
-        for (route, position, expected_result_regex) in test_data:
+        for (route, position, expected_origin) in test_data:
             tweet = FakeTweet(self.at_reply + route, position)
-            results = self.bot.process_tweet(tweet)
-            for result in results:
-                self._test_correct_successes(result, route, expected_result_regex, True)
+            self._test_correct_successes(tweet, route, expected_origin)
 
     def test_nonstandard_messages(self):
         """
         Test to confirm a message that can be troublesome comes out OK
         """
-        for (text, routes, stop_name) in self.test_nonstandard_data:
+        for (text, routes, expected_origin) in self.test_nonstandard_data:
             for route in routes:
                 message = text % route
                 tweet = FakeTweet(self.at_reply + message)
-                print message
-                results = self.bot.process_tweet(tweet)
-                for result in results:
-                    self._test_correct_successes(result, route, stop_name, (message.find(' to ') == -1))
-                    print result
+                self._test_correct_successes(tweet, route, expected_origin)
 
 
 class WhensMyTubeTestCase(WhensMyTransportTestCase):
@@ -610,30 +627,45 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyRailTransport("whensmytube", testing=TEST_LEVEL)
+        self.bot = WhensMyTrain("whensmytube", testing=TEST_LEVEL)
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
-        # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted train (if destination specified)
+        # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted destination (if destination specified)
         self.test_standard_data = (
-           ('Central',         "White City",    51.5121, -0.2246, "Ruislip Gardens", "White City",  'Ealing'),
-           ('District',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",    'Upminster'),
-           ('Piccadilly',      "Acton Town",    51.5028, -0.2800, "Arsenal",         "Acton Town",  'Heathrow'),
-           ('Northern',        "Camden Town",   51.5394, -0.1427, "Morden",          "Camden Town", 'High Barnet'),
-           ('Circle',          "Edgware Road",  51.5200, -0.1678, "Moorgate",        "Edgware Rd",  'Barking'),
-           ('Waterloo & City', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",    ''),
-           ('Victoria',        "Victoria",      51.4966, -0.1448, "Walthamstow",     "Victoria",    'Brixton'),
+           ('Central Line',         "White City",    51.5121, -0.2246, "Ruislip Gardens", "White City",    'Ealing'),
+           ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",      'Upminster'),
+           ('Piccadilly Line',      "Acton Town",    51.5028, -0.2800, "Arsenal",         "Acton Town",    'Heathrow'),
+           ('Northern Line',        "Camden Town",   51.5394, -0.1427, "Morden",          "Camden Town",   'High Barnet'),
+           ('Circle Line',          "Edgware Road",  51.5200, -0.1678, "Moorgate",        "Edgware Rd",    'Barking'),
+           ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      ''),
+           ('Victoria Line',        "Victoria",      51.4966, -0.1448, "Walthamstow",     "Victoria",      'Brixton'),
+           ('DLR',                  'Bank',          51.5130, -0.0880, 'Canary Wharf',    'Bank',          'Woolwich A'),
+           ('DLR',                  'Tower Gateway', 51.5104, -0.0746, 'Beckton',         'Tower Gateway', 'Lewisham'),
+           ('DLR',                  'Lewisam',       51.4653, -0.0133, 'Poplar',          'Lewisham',      'Bank'),
+           ('DLR',                  'W India Quay',  51.5067, -0.0222, 'Canary Wharf',    'W India Quay',  'Stratford'),
+           ('DLR',                  'Canning Town',  51.5140,  0.0083, 'Westferry',       'Canning Town',  'Beckton'),
+           ('DLR',                  'Popular',       51.5077, -0.0174, 'All Saints',      'Poplar',        'Bank'),
+           ('DLR',                  'Stratford',     51.5422, -0.0033, 'Canary Wharf',    'Stratford',     'Beckton'),
         )
         self.test_nonstandard_data = ()
 
-    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_to_avoid=''):
+    def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
         """
-        Generic test to confirm message is being produced correctly
+        Generic test to confirm Tweet is being processed correctly
         """
-        self.assertNotEqual(result, result.upper())
-        self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There are no %s Line trains)" % (expected_origin, routes_specified))
-        if destination_to_avoid:
-            self.assertNotRegexpMatches(result, destination_to_avoid)
+        print tweet.text
+        t1 = time.time()
+        results = self.bot.process_tweet(tweet)
+        self.assertTrue(results)
+        t2 = time.time()
+        for result in results:
+            print result
+            self.assertNotEqual(result, result.upper())
+            self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There are no %s (Line )?trains)" % (expected_origin, routes_specified))
+            if destination_to_avoid:
+                self.assertNotRegexpMatches(result, destination_to_avoid)
+        print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
     def test_location(self):
         """
@@ -642,10 +674,15 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         super(WhensMyTubeTestCase, self).test_location()
         self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'line': 'M'}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_fuzzy_match({'line': 'M'}, "Kings Cross", RailStation).code, "KXX")
-        # find_exact_match() is not tested as it is not needed
         self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
         self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N"))
         self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N", "Bank"))
+        self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'line': 'DLR'}, RailStation).code, "lim")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Limehouse", RailStation).code, "lim")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Stratford Int", RailStation).code, "sti")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "W'wich Arsenal", RailStation).code, "woa")
+        self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton"))
+        self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton", "DLR", "Poplar"))
 
     def test_bad_line_name(self):
         """
@@ -654,6 +691,14 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         message = 'Xrongwoihrwg line from Oxford Circus'
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'nonexistent_line', 'Xrongwoihrwg')
+
+    def test_bad_routing(self):
+        """
+        Test to confirm routes that are not possible on the DLR are correctly handled
+        """
+        message = 'DLR from Lewisham to Woolwich Arsenal'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_direct_route', 'Lewisham', 'Woolwich Arsenal', 'DLR')
 
     def test_missing_station_data(self):
         """
@@ -670,6 +715,26 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         message = 'District Line from Stratford'
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Stratford', 'District Line')
+        message = 'DLR from Ealing Broadway'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Ealing Broadway', 'DLR')
+
+    def test_textparser(self):
+        """
+        Tests for the natural language parser
+        """
+        (route, origin, destination) = ('victoria', 'Sloane Square', 'Upminster')
+        routes = [route]
+        self.assertEqual(self.bot.parser.parse_message(""),                                                      (None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("from %s to %s %s" % (origin, destination, route)),       (None, None, None))
+        for line in (' Line', ''):
+            self.assertEqual(self.bot.parser.parse_message("%s%s" % (route, line)),                                     (routes, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s%s %s" % (route, line, origin)),                          (routes, origin, None))
+            self.assertEqual(self.bot.parser.parse_message("%s%s %s to %s" % (route, line, origin, destination)),       (routes, origin, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s%s from %s" % (route, line, origin)),                     (routes, origin, None))
+            self.assertEqual(self.bot.parser.parse_message("%s%s from %s to %s" % (route, line, origin, destination)),  (routes, origin, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s%s to %s" % (route, line, destination)),                  (routes, None, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s%s to %s from %s" % (route, line, destination, origin)),  (routes, origin, destination))
 
     def test_standard_messages(self):
         """
@@ -684,128 +749,45 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
             to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
-            line_fragments = [value % test_variables for value in ("%(line)s", "%(line)s Line")]
+            line_fragments = [value % test_variables for value in ("%(line)s",)]
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
                     for line_fragment in line_fragments:
                         message = (self.at_reply + line_fragment + from_fragment + to_fragment)
-
-                        # FIXME We have to skip any request like "Victoria Victoria" or "Waterloo & City Waterloo" as parser can't tell the difference
-                        if from_fragment and line_fragment.find(from_fragment.strip()) > -1:
-                            continue
-
                         if not from_fragment:
                             tweet = FakeTweet(message, (lat, lon))
                         else:
                             tweet = FakeTweet(message)
-
-                        print message
-                        t1 = time.time()
-                        results = self.bot.process_tweet(tweet)
-                        t2 = time.time()
-                        for result in results:
-                            print result
-                            self._test_correct_successes(result, line, expected_origin, to_fragment and destination_to_avoid)
-                        print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
+                        self._test_correct_successes(tweet, line, expected_origin, to_fragment and destination_to_avoid)
 
 
-class WhensMyDLRTestCase(WhensMyTransportTestCase):
+class WhensMyDLRTestCase(WhensMyTubeTestCase):
     """
-    Main Test Case for When's My DLR
+    A sub-test Case for When's My DLR
     """
     def setUp(self):
         """
         Setup test
         """
-        self.bot = WhensMyRailTransport("whensmydlr", testing=TEST_LEVEL)
-        self.at_reply = '@%s ' % self.bot.username
-        self.geodata_table_names = ('locations', )
+        WhensMyTubeTestCase.setUp(self)
+        self.bot = WhensMyTrain("whensmydlr", testing=TEST_LEVEL)
 
-        # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted train (if destination specified)
-        self.test_standard_data = (
-           ('DLR', 'Bank',          51.5130, -0.0880, 'Canary Wharf', 'Bank',          'Woolwich A'),
-           ('DLR', 'Tower Gateway', 51.5104, -0.0746, 'Beckton',      'Tower Gateway', 'Lewisham'),
-           ('DLR', 'Lewisam',       51.4653, -0.0133, 'Poplar',       'Lewisham',      'Bank'),
-           ('DLR', 'W India Quay',  51.5067, -0.0222, 'Canary Wharf', 'W India Quay',  'Stratford'),
-           ('DLR', 'Canning Town',  51.5140,  0.0083, 'Westferry',    'Canning Town',  'Beckton'),
-           ('DLR', 'Popular',       51.5077, -0.0174, 'All Saints',   'Poplar',        'Bank'),
-           ('DLR', 'Stratford',     51.5422, -0.0033, 'Canary Wharf', 'Stratford',     'Beckton'),
-        )
-        self.test_nonstandard_data = ()
-
-    def _test_correct_successes(self, result, routes_specified, expected_origin, destination_to_avoid=''):
+    def test_textparser(self):
         """
-        Generic test to confirm message is being produced correctly
+        Tests for the natural language parser
         """
-        self.assertNotEqual(result, result.upper())
-        self.assertRegexpMatches(result, r"(%s to .* ([0-9]{1,4})|There are no %s trains)" % (expected_origin, routes_specified))
-        # If we have specified a train destination to avoid, then make sure it doesn't appear
-        # (e.g. we have asked to go to Bank, we don't want Tower Gateway to appear in the results
-        if destination_to_avoid:
-            self.assertNotRegexpMatches(result, destination_to_avoid)
-
-    def test_location(self):
-        """
-        Unit tests for WMTLocation object and the DLR database
-        """
-        super(WhensMyDLRTestCase, self).test_location()
-        self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {}, RailStation).code, "lim")
-        self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Limehouse", RailStation).code, "lim")
-        self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Stratford Int", RailStation).code, "sti")
-        self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "W'wich Arsenal", RailStation).code, "woa")
-        # find_exact_match() is not tested as it is not needed
-        self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton"))
-        self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton", "DLR", "Poplar"))
-
-    def test_bad_station_name(self):
-        """
-        Test to confirm stations that don't exist on the DLR are correctly handled
-        """
-        message = 'DLR from Ealing Broadway'
-        tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Ealing Broadway', 'DLR')
-
-    def test_bad_routing(self):
-        """
-        Test to confirm routes that are not possible on the DLR are correctly handled
-        """
-        message = 'DLR from Lewisham to Woolwich Arsenal'
-        tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'no_direct_route', 'Lewisham', 'Woolwich Arsenal', 'DLR')
-
-    def test_standard_messages(self):
-        """
-        Generic test for standard-issue messages
-        """
-        #pylint: disable=W0612
-        for (line, origin_name, lat, lon, destination_name, expected_origin, unwanted_destination) in self.test_standard_data:
-
-            # C-string format helper
-            test_variables = dict([(name, eval(name)) for name in ('origin_name', 'destination_name', 'line')])
-
-            # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
-            from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
-            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
-            line_fragments = [value % test_variables for value in ("%(line)s",)]  # FIXME Add in test for blank Tweet
-
-            for from_fragment in from_fragments:
-                for to_fragment in to_fragments:
-                    for line_fragment in line_fragments:
-                        message = (self.at_reply + line_fragment + from_fragment + to_fragment)
-                        if not from_fragment:
-                            tweet = FakeTweet(message, (lat, lon))
-                        else:
-                            tweet = FakeTweet(message)
-
-                        print message
-                        t1 = time.time()
-                        results = self.bot.process_tweet(tweet)
-                        for result in results:
-                            print result
-                            self._test_correct_successes(result, line, expected_origin, to_fragment and unwanted_destination)
-                            t2 = time.time()
-                            print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
+        for route in ('', 'DLR'):
+            (origin, destination) = ('Shoreditch', 'North Woolwich')
+            routes = route and [route] or None
+            self.assertEqual(self.bot.parser.parse_message(""),                                                 (None, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s" % route),                                       (routes, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination))
 
 
 def run_tests():
@@ -822,7 +804,7 @@ def run_tests():
 
     # Init tests (same for all)
     unit_tests = ('geo', 'listutils', 'stringutils', 'models',)
-    local_tests = ('init', 'database', 'location', 'logger', 'settings', 'browser',)
+    local_tests = ('init', 'database', 'location', 'logger', 'settings', 'browser', 'textparser')
     remote_tests = ('geocoder', 'twitter_client',)
 
     # Common errors for all
@@ -834,15 +816,10 @@ def run_tests():
         stop_errors = ('bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',)
         failures = format_errors + geotag_errors + bus_errors + stop_errors
         successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
-    elif test_case_name == "WhensMyTube":
+    elif test_case_name == "WhensMyTube" or test_case_name == "WhensMyDLR":
         tube_errors = ('bad_line_name',)
-        station_errors = ('missing_station_data', 'station_line_mismatch')
+        station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch')
         failures = format_errors + geotag_errors + tube_errors + station_errors
-        successes = ('standard_messages',)
-    elif test_case_name == "WhensMyDLR":
-        dlr_errors = ()
-        station_errors = ('bad_station_name', 'bad_routing')
-        failures = format_errors[:-1] + geotag_errors + dlr_errors + station_errors  # Exclude blank tweet test for DLR
         successes = ('standard_messages',)
     else:
         print "Error - %s is not a valid Test Case Name" % test_case_name

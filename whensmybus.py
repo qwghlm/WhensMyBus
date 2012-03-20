@@ -29,7 +29,8 @@ from lib.models import BusStop, NullDeparture
 
 class WhensMyBus(WhensMyTransport):
     """
-    Main class devoted to checking for bus-related Tweets and replying to them.
+    Class for the @WhensMyBus bot. This inherits from the WhensMyTransport and provides specialist functionality for when
+    there is are a lot of stops, their names may now be known by users, and their location corresponds with streets
     """
     def __init__(self, testing=False):
         """
@@ -37,27 +38,13 @@ class WhensMyBus(WhensMyTransport):
         """
         WhensMyTransport.__init__(self, 'whensmybus', testing)
 
-    def parse_message(self, message):
-        """
-        Parse a Tweet - tokenize it, and then pull out any bus numbers in it
-        """
-        route_regex = "[A-Z]{0,2}[0-9]{1,3}"
-        (route_string, origin, destination) = self.tokenize_message(message, route_regex)
-        # Count along from the start and match as many tokens that look like a route number
-        route_token_matches = [re.match(route_regex, r, re.I) for r in route_string.split(' ')]
-        route_numbers = [r.group(0).upper() for r in route_token_matches if r]
-        if not route_numbers:
-            logging.debug("@ reply didn't contain a valid-looking bus number, skipping")
-            return (None, None, None)
-
-        return (route_numbers, origin, destination)
-
     def process_individual_request(self, route_number, origin, destination, position=None):
         """
         Take an individual route number, with either origin or position, and optional destination, and work out
         the stops and thus the appropriate times for the user, and return an appropriate reply to that user
         """
         # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
+        route_number = route_number.upper()
         if not self.geodata.check_existence_of('route', route_number):
             raise WhensMyTransportException('nonexistent_bus', route_number)
 
