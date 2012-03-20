@@ -5,7 +5,7 @@ Text parsing class for When's My Transport?
 import logging
 import nltk
 
-BUS_GRAMMAR = {
+WHENSMYBUS_GRAMMAR = {
     'patterns': [
         (r"^[0-9]{5}$", 'BUS_STOP_NUMBER'),
         (r"^[A-Za-z]{0,2}[0-9]{1,3}$", 'ROUTE_NUMBER'),
@@ -27,7 +27,7 @@ BUS_GRAMMAR = {
     """
 }
 
-TUBE_AND_DLR_GRAMMAR = {
+WHENSMYTUBE_GRAMMAR = {
     'patterns': [
         (r'^(from|From)$', 'FROM'),
         (r'^(to|To)(wards)?$', 'TO'),
@@ -46,14 +46,33 @@ TUBE_AND_DLR_GRAMMAR = {
         ORIGIN: {<FROM>?<TUBE_STATION>}
         ORIGIN2: {<FROM><TUBE_STATION>}
         REQUEST: {^<LINE_NAME><ORIGIN>?<DESTINATION>?$}
-                 {^<LINE_NAME>?<DESTINATION><ORIGIN2>$}
+                 {^<LINE_NAME><DESTINATION><ORIGIN2>$}
     """
 }
 
-GRAMMARS = {
-    'whensmybus': BUS_GRAMMAR,
-    'whensmytube': TUBE_AND_DLR_GRAMMAR,
-    'whensmydlr': TUBE_AND_DLR_GRAMMAR,
+# DLR grammar is for the moment, very similar to the Tube, except that <LINE_NAME> is entirely optional
+
+WHENSMYDLR_GRAMMAR = {
+    'patterns': [
+        (r'^(from|From)$', 'FROM'),
+        (r'^(to|To)(wards)?$', 'TO'),
+        (r'^(line|Line)?$', 'LINE'),
+        (r'^(please|thanks|thank|you)$', None),
+        (r'^DLR$', 'DLR_LINE_NAME'),
+        (r'^Docklands (Light Rail(way)?)?$', 'DLR_LINE_NAME'),
+        (r'.*', 'TUBE_WORD'),
+    ],
+
+    'grammar': r"""
+        TUBE_LINE_NAME: {<TUBE_WORD>+<LINE>}
+        LINE_NAME: {<DLR_LINE_NAME|TUBE_LINE_NAME>}
+        TUBE_STATION: {<TUBE_WORD>+}
+        DESTINATION: {<TO><TUBE_STATION>}
+        ORIGIN: {<FROM>?<TUBE_STATION>}
+        ORIGIN2: {<FROM><TUBE_STATION>}
+        REQUEST: {^<LINE_NAME>?<ORIGIN>?<DESTINATION>?$}
+                 {^<LINE_NAME>?<DESTINATION><ORIGIN2>$}
+    """
 }
 
 
@@ -62,8 +81,9 @@ class WMTTextParser:
     Parser for When's My Transport
     """
     def __init__(self, instance_name):
-        self.tagger = nltk.RegexpTagger(GRAMMARS[instance_name]['patterns'])
-        self.parser = nltk.RegexpParser(GRAMMARS[instance_name]['grammar'])
+        grammar_name = eval(instance_name.upper() + "_GRAMMAR")
+        self.tagger = nltk.RegexpTagger(grammar_name['patterns'])
+        self.parser = nltk.RegexpParser(grammar_name['grammar'])
 
     def parse_message(self, text):
         """
@@ -71,6 +91,11 @@ class WMTTextParser:
         """
         # Get tokens, tag them and remove any tagged with None
         logging.debug("Parsing message: '%s'", text)
+
+        if not text:
+            logging.debug("Message is empty, returning nothing")
+            return (None, None, None)
+
         tokens = nltk.word_tokenize(text)
         tagged_tokens = self.tagger.tag(tokens)
         tagged_tokens = [(word, tag) for (word, tag) in tagged_tokens if tag]
@@ -98,7 +123,7 @@ class WMTTextParser:
             elif subtree.node == 'DESTINATION':
                 destination = ' '.join(extract_words(subtree, ('TUBE_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))) or None
 
-        logging.debug("Found routes %s from origin '%s' to destination '%s'", ', '.join(routes), origin, destination)
+        logging.debug("Found routes %s from origin '%s' to destination '%s'", routes, origin, destination)
         return (routes, origin, destination)
 
 
