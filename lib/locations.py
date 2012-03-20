@@ -7,6 +7,7 @@ from math import sqrt
 import logging
 import os.path
 import cPickle as pickle
+import sys
 
 from pygraph.algorithms.minmax import shortest_path
 
@@ -24,8 +25,17 @@ class WMTLocations():
     will return the best matching stop
     """
     def __init__(self, instance_name, load_network=True):
-        self.database = WMTDatabase('%s.geodata.db' % instance_name)
-        network_file = DB_PATH + '/%s.network.gr' % instance_name
+
+        if instance_name == 'whensmybus':
+            filename = 'whensmybus'
+        elif instance_name == 'whensmytube' or instance_name == 'whensmydlr':
+            filename = 'whensmyrail'
+        else:
+            logging.error("No data files exist for instance name %s, aborting" % instance_name)
+            sys.exit(1)
+
+        self.database = WMTDatabase('%s.geodata.db' % filename)
+        network_file = DB_PATH + '/%s.network.gr' % filename
         if load_network and os.path.exists(network_file):
             logging.debug("Opening network node data %s", os.path.basename(network_file))
             self.network = pickle.load(open(network_file))

@@ -120,8 +120,7 @@ def import_dlr_xml_to_db():
             print "Cannot find %s from geodata in dlr-references!" % name
 
     rows = [[station[fieldname.split(' ')[0]] for fieldname in fieldnames] for station in stations.values()]
-    export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('name',))
-    export_rows_to_db("./db/whensmydlr.geodata.db", "locations", fieldnames, rows, ('name',))
+    export_rows_to_db("./db/whensmyrail.geodata.db", "locations", fieldnames, rows)
 
 
 def import_tube_xml_to_db():
@@ -190,15 +189,14 @@ def import_tube_xml_to_db():
                               station['inner'], station['outer'])
                 rows.append(field_data)
 
-    export_rows_to_db("./db/whensmytube.geodata.db", "locations", fieldnames, rows, ('name', 'line'), delete_existing=True)
-    export_rows_to_db("./db/whensmydlr.geodata.db", "locations", fieldnames, rows, ('name', 'line'), delete_existing=True)
+    export_rows_to_db("./db/whensmyrail.geodata.db", "locations", fieldnames, rows, ('name', 'line'), delete_existing=True)
 
 
 def import_network_data_to_graph():
     """
     Import data from a file describing the edges of the Tube network and turn it into a graph object which we pickle and save
     """
-    database = WMTDatabase("whensmytube.geodata.db")
+    database = WMTDatabase("whensmyrail.geodata.db")
 
     # Adapted from https://github.com/smly/hubigraph/blob/fa23adc07c87dd2a310a20d04f428f819d43cbdb/test/LondonUnderground.txt
     # which is a CSV of all edges in the network
@@ -257,8 +255,7 @@ def import_network_data_to_graph():
         graphs[get_line_code(line)] = create_graph_from_dict(subset_of_stations, database, interchanges_by_foot)
     graphs['All'] = create_graph_from_dict(stations_neighbours, database, interchanges_by_foot)
 
-    pickle.dump(graphs, open("./db/whensmytube.network.gr", "w"))
-    pickle.dump(graphs, open("./db/whensmydlr.network.gr", "w"))
+    pickle.dump(graphs, open("./db/whensmyrail.network.gr", "w"))
 
 
 def parse_stations_from_kml(filter_function=lambda a, b: True):
@@ -392,7 +389,7 @@ def scrape_odd_platform_designations(write_file=False):
     Check Tfl Tube API for Underground platforms that are not designated with a *-bound direction, and (optionally)
     generates a blank CSV template for those stations with Inner/Outer Rail designations
     """
-    database = WMTDatabase("whensmytube.geodata.db")
+    database = WMTDatabase("whensmyrail.geodata.db")
     print "Platforms without a Inner/Outer Rail specification:"
     station_platforms = {}
     all_train_data = get_tfl_prediction_summaries()
