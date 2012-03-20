@@ -449,22 +449,23 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
-        # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin
+        # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin, Unwanted Destination
         self.test_standard_data = (
-                                   ('15', 'Limehouse Station', '53452', 51.5124, -0.0397, 'Poplar', '73923', 'Limehouse Station'),
-                                   ('425 25 205', 'Bow Road Station', '55489',  51.52722, -0.02472, 'Mile End station', '76239', 'Bow Road Station'),
-                                   )
+            ('15',         'Limehouse Station', '53452', 51.5124, -0.0397, 'Poplar',           '73923', 'Limehouse Station', 'Regent Street'),
+            ('425 25 205', 'Bow Road Station',  '55489', 51.5272, -0.0247, 'Mile End station', '76239', 'Bow Road Station',  '(Bow Church|Ilford|Stratford)'),
+        )
         # Troublesome destinations & data
-        self.test_nonstandard_data = (('%s from Stratford to Walthamstow', ('257',),      'Stratford Bus Station'),
-                                      ('%s from Hoxton',                   ('243',),      'Hoxton Station / Geffrye Museum'),
-                                      ('%s from 12 Bow Common Lane',       ('323',),      'Bow Common Lane'),
-                                      ('%s from EC1M 4PN',                 ('55',),       'St John Street'),
-                                      ('%s from Mile End',                 ('d6', 'd7'),  'Mile End \w+'),
-                                     )
+        self.test_nonstandard_data = (
+            ('%s from Stratford to Walthamstow', ('257',),      'Stratford Bus Station'),
+            ('%s from Hoxton',                   ('243',),      'Hoxton Station / Geffrye Museum'),
+            ('%s from 12 Bow Common Lane',       ('323',),      'Bow Common Lane'),
+            ('%s from EC1M 4PN',                 ('55',),       'St John Street'),
+            ('%s from Mile End',                 ('d6', 'd7'),  'Mile End \w+'),
+        )
 
-    def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_not_specified=True):
+    def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
         """
-        Generic test to confirm message is being produced correctly
+        Generic test to confirm Tweet is being processed correctly
         """
         print tweet.text
         t1 = time.time()
@@ -481,9 +482,9 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             route_regex = "^(%s)" % '|'.join(routes_specified.upper().replace(',', '').split(' '))
             self.assertRegexpMatches(result, route_regex)
             self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
-            # We should get two results and hence a semi-colon separating them, if this is not from a specific stop
-            if destination_not_specified:
-                self.assertRegexpMatches(result, ';')
+            # If we have specified a direction or destination, we should not be seeing buses going the other way
+            if destination_to_avoid:
+                self.assertNotRegexpMatches(result, destination_to_avoid)
         print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
     #
@@ -575,7 +576,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         Generic test for standard-issue messages
         """
         #pylint: disable=W0612
-        for (route, origin_name, origin_id, lat, lon, destination_name, destination_id, expected_origin) in self.test_standard_data:
+        for (route, origin_name, origin_id, lat, lon, destination_name, destination_id, expected_origin, destination_to_avoid) in self.test_standard_data:
 
             # C-string format helper
             test_variables = dict([(name, eval(name)) for name in ('route', 'origin_name', 'origin_id', 'destination_name', 'destination_id')])
@@ -591,7 +592,10 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                         tweet = FakeTweet(message, (lat, lon))
                     else:
                         tweet = FakeTweet(message)
-                    self._test_correct_successes(tweet, route, expected_origin, (from_fragment.find(origin_id) == -1) and not to_fragment)
+                    if (from_fragment.find(origin_id) > -1) or to_fragment:
+                        self._test_correct_successes(tweet, route, expected_origin, destination_to_avoid)
+                    else:
+                        self._test_correct_successes(tweet, route, expected_origin)
 
     def test_multiple_routes(self):
         """
@@ -602,7 +606,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
 
         for (route, position, expected_origin) in test_data:
             tweet = FakeTweet(self.at_reply + route, position)
-            self._test_correct_successes(tweet, route, expected_origin, True)
+            self._test_correct_successes(tweet, route, expected_origin)
 
     def test_nonstandard_messages(self):
         """
@@ -612,7 +616,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             for route in routes:
                 message = text % route
                 tweet = FakeTweet(self.at_reply + message)
-                self._test_correct_successes(tweet, route, expected_origin, (message.find(' to ') == -1))
+                self._test_correct_successes(tweet, route, expected_origin)
 
 
 class WhensMyTubeTestCase(WhensMyTransportTestCase):
@@ -627,7 +631,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
-        # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted train (if destination specified)
+        # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted destination (if destination specified)
         self.test_standard_data = (
            ('Central Line',         "White City",    51.5121, -0.2246, "Ruislip Gardens", "White City",    'Ealing'),
            ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",      'Upminster'),
@@ -717,9 +721,19 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
     def test_textparser(self):
         """
-        TODO
+        Tests for the natural language parser
         """
-        return
+        (route, origin, destination) = ('Piccadilly', 'West Ruislip', 'Upminster')
+        routes = [route]
+        self.assertEqual(self.bot.parser.parse_message(""),                                                      (None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("from %s to %s %s" % (origin, destination, route)),       (None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("%s Line" % route),                                       (routes, None, None))
+        self.assertEqual(self.bot.parser.parse_message("%s Line %s" % (route, origin)),                          (routes, origin, None))
+        self.assertEqual(self.bot.parser.parse_message("%s Line %s to %s" % (route, origin, destination)),       (routes, origin, destination))
+        self.assertEqual(self.bot.parser.parse_message("%s Line from %s" % (route, origin)),                     (routes, origin, None))
+        self.assertEqual(self.bot.parser.parse_message("%s Line from %s to %s" % (route, origin, destination)),  (routes, origin, destination))
+        self.assertEqual(self.bot.parser.parse_message("%s Line to %s" % (route, destination)),                  (routes, None, destination))
+        self.assertEqual(self.bot.parser.parse_message("%s Line to %s from %s" % (route, destination, origin)),  (routes, origin, destination))
 
     def test_standard_messages(self):
         """
@@ -757,6 +771,22 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
         """
         WhensMyTubeTestCase.setUp(self)
         self.bot = WhensMyRailTransport("whensmydlr", testing=TEST_LEVEL)
+
+    def test_textparser(self):
+        """
+        Tests for the natural language parser
+        """
+        for route in ('', 'DLR'):
+            (origin, destination) = ('Shoreditch', 'North Woolwich')
+            routes = route and [route] or None
+            self.assertEqual(self.bot.parser.parse_message(""),                                                 (None, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s" % route),                                       (routes, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination))
 
 
 def run_tests():

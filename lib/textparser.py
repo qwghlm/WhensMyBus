@@ -44,7 +44,7 @@ WHENSMYTUBE_GRAMMAR = {
         DESTINATION: {<TO><TUBE_STATION>}
         ORIGIN: {<FROM>?<TUBE_STATION>}
         REQUEST: {^<LINE_NAME><ORIGIN>?<DESTINATION>?$}
-                 {^<LINE_NAME><DESTINATION><ORIGIN2>$}
+                 {^<LINE_NAME><DESTINATION><ORIGIN>$}
     """
 }
 
@@ -68,7 +68,7 @@ WHENSMYDLR_GRAMMAR = {
         DESTINATION: {<TO><TUBE_STATION>}
         ORIGIN: {<FROM>?<TUBE_STATION>}
         REQUEST: {^<LINE_NAME>?<ORIGIN>?<DESTINATION>?$}
-                 {^<LINE_NAME>?<DESTINATION><ORIGIN2>$}
+                 {^<LINE_NAME>?<DESTINATION><ORIGIN>$}
     """
 }
 
@@ -99,8 +99,8 @@ class WMTTextParser:
         # Route numbers can only come at the beginning of a request in sequence, so anything else route number-like is
         # converted to the more generic PLACE_WORD type
         for i in range(1, len(tagged_tokens)):
-            if tagged_tokens[i][1] == 'ROUTE' and tagged_tokens[i - 1][1] != 'ROUTE':
-                tagged_tokens[i] = (tagged_tokens[i][0], 'PLACE_WORD')
+            if tagged_tokens[i][1] == 'ROUTE_NUMBER' and tagged_tokens[i - 1][1] != 'ROUTE_NUMBER':
+                tagged_tokens[i] = (tagged_tokens[i][0], 'BUS_STOP_WORD')
 
         # Parse the tree. If we cannot parse a legitimate request then return nothing
         parsed_tokens = self.parser.parse(tagged_tokens)
