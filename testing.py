@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#pylint: disable=C0103,W0142
+#pylint: disable=C0103,W0142,R0904,W0141
 """
 A set of unit tests for When's My Bus?
 
@@ -32,7 +32,7 @@ try:
     from lib.listutils import unique_values
     from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables
     from lib.models import RailStation, BusStop, NullDeparture, Train, TubeTrain, Bus
-except ImportError as exc:
+except ImportError as err:
     print """
 Sorry, testing failed because a package that WhensMyTransport depends on is not installed. Reported error:
 
@@ -43,7 +43,7 @@ Missing packages can be downloaded as follows:
  * nltk: http://nltk.github.com/install.html
  * pygraph: http://code.google.com/p/python-graph/
  * tweepy: http://code.google.com/p/tweepy/
-""" % exc
+""" % err
     sys.exit(1)
 
 

@@ -383,7 +383,7 @@ def create_graph_from_dict(stations, database, interchanges_by_foot):
     return graph
 
 
-def scrape_odd_platform_designations(write_file=False):
+def scrape_odd_platform_directions(write_file=False):
     """
     Check Tfl Tube API for Underground platforms that are not designated with a *-bound direction, and (optionally)
     generates a blank CSV template for those stations with Inner/Outer Rail designations
@@ -456,6 +456,6 @@ if __name__ == "__main__":
     import_bus_csv_to_db()
     import_tube_xml_to_db()
     import_dlr_xml_to_db()
-    #scrape_odd_platform_designations()
+    #scrape_odd_platform_directions()
     import_network_data_to_graph('whensmydlr')
     import_network_data_to_graph('whensmytube')
