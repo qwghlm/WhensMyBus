@@ -19,7 +19,7 @@ Released under the MIT License
 
 Things to do:
 
- - Fully merge WhensMyTube and WhensMyDLR
+ - Fully merge WhensMyTube and WhensMyDLR, test thoroughly
  - Add corpus of Tube line & station names so we can better "guess" ambiguous messages
  - Deduces line needed for Tube/DLR if need be
  - Handle inputs based on direction
@@ -195,16 +195,20 @@ class WhensMyTransport:
             return []
 
         # Get route number, from and to from the message
-        message = tweet.text
+        message = self.sanitize_message(tweet.text)
         logging.debug("Message from user: %s", message)
-        (requested_routes, origin, destination) = self.parser.parse_message(self.sanitize_message(message))
+        (requested_routes, origin, destination) = self.parser.parse_message(message)
         if requested_routes is None:
-            logging.debug("No routes or lines detected on this Tweet, skipping")
-            return []
+            if self.instance_name == 'whensmydlr':
+                logging.debug("No line name detected, falling back on default of DLR")
+                requested_routes = ('DLR',)
+            else:
+                logging.debug("No routes or lines detected on this Tweet, skipping")
+                return []
 
         # If no origin specified, let's see if we have co-ordinates on the Tweet
         if origin is None:
-            position = self.get_tweet_geolocation(tweet, ' '.join(requested_routes))
+            position = self.get_tweet_geolocation(tweet, message)
         else:
             position = None
 
