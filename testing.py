@@ -364,7 +364,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
 
     def test_politeness(self):
         """
-        Test to see if we are replying to polite messagess correctly
+        Test to see if we are replying to polite messages correctly
         """
         tweet = FakeTweet(self.at_reply + 'Thank you!')
         self.assertFalse(self.bot.process_tweet(tweet))
@@ -783,6 +783,7 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
         """
         WhensMyTubeTestCase.setUp(self)
         self.bot = WhensMyTrain("whensmydlr", testing=TEST_LEVEL)
+        self.at_reply = '@%s ' % self.bot.username
 
     def test_textparser(self):
         """
