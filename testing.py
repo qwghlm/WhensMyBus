@@ -665,7 +665,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There are no %s (Line )?trains)" % (expected_origin, routes_specified))
             if destination_to_avoid:
                 self.assertNotRegexpMatches(result, destination_to_avoid)
-        print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
+        print 'Processing of Tweet took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
     def test_location(self):
         """
@@ -726,7 +726,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         (route, origin, destination) = ('Victoria', 'Sloane Square', 'Upminster')
         routes = [route]
         self.assertEqual(self.bot.parser.parse_message(""),                                                      (None, None, None))
-        self.assertEqual(self.bot.parser.parse_message("from %s to %s %s" % (origin, destination, route)),       (None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("from %s to %s %s Line" % (origin, destination, route)),       (None, None, None))
         for line in (' Line', ''):
             self.assertEqual(self.bot.parser.parse_message("%s%s" % (route, line)),                                     (routes, None, None))
             self.assertEqual(self.bot.parser.parse_message("%s%s %s" % (route, line, origin)),                          (routes, origin, None))
@@ -778,7 +778,7 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
         Tests for the natural language parser
         """
         for route in ('', 'DLR'):
-            (origin, destination) = ('Shoreditch', 'North Woolwich')
+            (origin, destination) = ('Westferry', 'All Saints')
             routes = route and [route] or None
             self.assertEqual(self.bot.parser.parse_message(""),                                                 (None, None, None))
             self.assertEqual(self.bot.parser.parse_message("%s" % route),                                       (routes, None, None))
