@@ -13,8 +13,10 @@ if sys.version_info < (2, 7):
     sys.exit(1)
 
 import argparse
+import cProfile
 import logging
 import os.path
+import pstats
 import random
 import re
 import time
@@ -843,4 +845,13 @@ def run_tests():
     runner.run(suite)
 
 if __name__ == "__main__":
-    run_tests()
+    #run_tests()
+    cProfile.run('run_tests()', 'test.stats')
+    stats = pstats.Stats('test.stats')
+    stats.strip_dirs()
+    stats.sort_stats('time', 'cum')
+    print """
+
+    """
+    stats.print_stats(20)
+    os.unlink('test.stats')
