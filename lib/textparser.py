@@ -118,6 +118,9 @@ class WMTTrainParser(WMTTextParser):
         """
         Fix tagged tokens that are tagged "UKNOWN"
         """
+        for i in range(0, first_occurrence_of_tag(tagged_tokens, 'LINE')):
+            if tagged_tokens[i][1] in ('UNKNOWN',):
+                tagged_tokens[i] = (tagged_tokens[i][0], 'TUBE_LINE')
         for i in range(last_occurrence_of_tag(tagged_tokens, 'TUBE_LINE') + 1, len(tagged_tokens)):
             if tagged_tokens[i][1] in ('UNKNOWN', 'TUBE_LINE'):
                 tagged_tokens[i] = (tagged_tokens[i][0], 'STATION_WORD')
