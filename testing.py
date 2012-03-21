@@ -19,6 +19,7 @@ import os.path
 import pstats
 import random
 import re
+import tempfile
 import time
 import unittest
 from pprint import pprint
@@ -569,9 +570,9 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         Test to confirm when route and stop do not match up is handled OK
         """
-        message = '15 from eucgekewf78'
+        message = '15 from Eucgekewf78'
         tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'eucgekewf78')
+        self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'Eucgekewf78')
 
     def test_standard_messages(self):
         """
@@ -727,8 +728,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         (route, origin, destination) = ('Victoria', 'Sloane Square', 'Upminster')
         routes = [route]
-        self.assertEqual(self.bot.parser.parse_message(""),                                                      (None, None, None))
-        self.assertEqual(self.bot.parser.parse_message("from %s to %s %s Line" % (origin, destination, route)),       (None, None, None))
+        self.assertEqual(self.bot.parser.parse_message(""),                                                             (None, None, None))
         for line in (' Line', ''):
             self.assertEqual(self.bot.parser.parse_message("%s%s" % (route, line)),                                     (routes, None, None))
             self.assertEqual(self.bot.parser.parse_message("%s%s %s" % (route, line, origin)),                          (routes, origin, None))
@@ -737,6 +737,15 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             self.assertEqual(self.bot.parser.parse_message("%s%s from %s to %s" % (route, line, origin, destination)),  (routes, origin, destination))
             self.assertEqual(self.bot.parser.parse_message("%s%s to %s" % (route, line, destination)),                  (routes, None, destination))
             self.assertEqual(self.bot.parser.parse_message("%s%s to %s from %s" % (route, line, destination, origin)),  (routes, origin, destination))
+
+    def test_known_problems(self):
+        """
+        Test known problematic inputs
+        """
+        # District line from Victoria, or District & Victoria lines?
+        message = 'District Victoria'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'nonexistent_line', 'District Victoria')
 
     def test_standard_messages(self):
         """
@@ -820,7 +829,7 @@ def run_tests():
         successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
     elif test_case_name == "WhensMyTube" or test_case_name == "WhensMyDLR":
         tube_errors = ('bad_line_name',)
-        station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch')
+        station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch', 'known_problems')
         failures = format_errors + geotag_errors + tube_errors + station_errors
         successes = ('standard_messages',)
     else:
@@ -842,16 +851,18 @@ def run_tests():
 
     suite = unittest.TestSuite(map(eval(test_case_name + 'TestCase'), ['test_%s' % t for t in test_names]))
     runner = unittest.TextTestRunner(verbosity=2, failfast=1, buffer=True)
-    runner.run(suite)
+    result = runner.run(suite)
+    return result.wasSuccessful()
 
 if __name__ == "__main__":
-    #run_tests()
-    cProfile.run('run_tests()', 'test.stats')
-    stats = pstats.Stats('test.stats')
-    stats.strip_dirs()
-    stats.sort_stats('time', 'cum')
-    print """
-
-    """
-    stats.print_stats(20)
-    os.unlink('test.stats')
+    # run cProfile, return performance stats but only if the tests completed without failure
+    prof = cProfile.Profile()
+    test_succeeded = prof.runcall(run_tests)
+    if test_succeeded:
+        statsfile = tempfile.NamedTemporaryFile('w')
+        prof.dump_stats(statsfile.name)
+        stats = pstats.Stats(statsfile.name)
+        stats.strip_dirs()
+        stats.sort_stats('time', 'cum')
+        stats.print_stats(10)
+        statsfile.close()
