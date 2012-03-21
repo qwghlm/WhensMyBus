@@ -760,7 +760,12 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
             to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
-            line_fragments = [value % test_variables for value in ("%(line)s",)]
+            # DLR allows blank Tweets
+            if self.bot.username == 'whensmydlr' and line == 'DLR':
+                line_fragments = [value % test_variables for value in ("%(line)s", "")]
+            else:
+                line_fragments = [value % test_variables for value in ("%(line)s",)]
+
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:

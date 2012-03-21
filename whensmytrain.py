@@ -56,7 +56,7 @@ class WhensMyTrain(WhensMyTransport):
         WhensMyTransport.__init__(self, instance_name, testing)
         self.allow_blank_tweets = instance_name == 'whensmydlr'
         self.parser = WMTTrainParser()
-        
+
         # Build internal lookup table of possible line name -> "official" line name
         # Handle abbreviated three-letter versions and sort out ampersands
         line_tuples = [(name, name) for name in LINE_NAMES]

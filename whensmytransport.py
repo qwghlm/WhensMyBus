@@ -197,7 +197,7 @@ class WhensMyTransport:
         logging.debug("Message from user: %s", message)
         (requested_routes, origin, destination) = self.parser.parse_message(message)
         if requested_routes is None:
-            if self.instance_name == 'whensmydlr':
+            if self.instance_name == 'whensmydlr' and (origin or self.tweet_has_geolocation(tweet)):
                 logging.debug("No line name detected, falling back on default of DLR")
                 requested_routes = ('DLR',)
             else:
@@ -251,11 +251,17 @@ class WhensMyTransport:
 
         return message
 
+    def tweet_has_geolocation(self, tweet):
+        """
+        Returns True if the Tweet has geolocation data
+        """
+        return hasattr(tweet, 'geo') and tweet.geo and 'coordinates' in tweet.geo
+
     def get_tweet_geolocation(self, tweet, user_request):
         """
         Ensure any geolocation on a Tweet is valid, and return the co-ordinates as a (latitude, longitude) tuple
         """
-        if hasattr(tweet, 'geo') and tweet.geo and 'coordinates' in tweet.geo:
+        if self.tweet_has_geolocation(tweet):
             logging.debug("Detecting geolocation on Tweet")
             position = tweet.geo['coordinates']
             easting, northing = convertWGS84toOSEastingNorthing(*position)
