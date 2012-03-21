@@ -31,7 +31,8 @@ class WMTTextParser():
         if not text:
             logging.debug("Message is empty, returning nothing")
             return (None, None, None)
-        tokens = nltk.word_tokenize(text.lower())
+        tokenizer = nltk.tokenize.regexp.WhitespaceTokenizer()
+        tokens = tokenizer.tokenize(text.lower())
         tagged_tokens = [(word, tag) for (word, tag) in self.tagger.tag(tokens) if tag]
         tagged_tokens = self.fix_unknown_tokens(tagged_tokens)
 

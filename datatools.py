@@ -460,11 +460,12 @@ def import_tube_xml_to_text_corpus():
     """
     Creates a corpus of text data for our parser to understand requests with
     """
-    line_phrases = [nltk.word_tokenize(line_name.lower()) for line_name in LINE_NAMES]
+    tokenizer = nltk.tokenize.regexp.WhitespaceTokenizer()
+    line_phrases = [tokenizer.tokenize(line_name.lower()) for line_name in LINE_NAMES]
     line_phrases = [[token for token in phrase if token not in ('&', 'city')] for phrase in line_phrases]
     station_phrases = []
     for filename in ('tube-references.csv', 'dlr-references.csv'):
-        station_phrases += [nltk.word_tokenize(line[1].lower()) for line in csv.reader(open('./sourcedata/%s' % filename))][1:]
+        station_phrases += [tokenizer.tokenize(line[1].lower()) for line in csv.reader(open('./sourcedata/%s' % filename))][1:]
         station_phrases = [[token for token in phrase if token not in ('&', 'city')] for phrase in station_phrases]
 
     # Organise bigram phrases - multiple wordings for stations and lines
