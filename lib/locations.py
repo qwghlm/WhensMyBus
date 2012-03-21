@@ -29,7 +29,7 @@ class WMTLocations():
         if instance_name == 'whensmybus':
             filename = 'whensmybus'
         elif instance_name == 'whensmytube' or instance_name == 'whensmydlr':
-            filename = 'whensmyrail'
+            filename = 'whensmytrain'
         else:
             logging.error("No data files exist for instance name %s, aborting", instance_name)
             sys.exit(1)
