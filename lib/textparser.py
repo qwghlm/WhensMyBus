@@ -9,6 +9,8 @@ import nltk
 import os
 from pprint import pprint
 
+from lib.stringutils import capwords
+
 DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/')
 
 
@@ -20,7 +22,7 @@ class WMTTextParser():
         self.tagger = None
         self.parser = None
 
-    def parse_message(self, text):
+    def parse_message(self, text, debug=True):
         """
         Parses the text and returns a tuple of (routes, origin, destination)
         """
@@ -29,7 +31,7 @@ class WMTTextParser():
         if not text:
             logging.debug("Message is empty, returning nothing")
             return (None, None, None)
-        tokens = nltk.word_tokenize(text)
+        tokens = nltk.word_tokenize(text.lower())
         tagged_tokens = [(word, tag) for (word, tag) in self.tagger.tag(tokens) if tag]
         tagged_tokens = self.fix_unknown_tokens(tagged_tokens)
 
@@ -39,17 +41,26 @@ class WMTTextParser():
             logging.debug("Message did not conform to message format, returning nothing")
             return (None, None, None)
 
-        # Else extract the right tagged words from the parsed tree
+        # Else extract the right tagged words from the parsed tree, capitalising appropriately
         routes, origin, destination = (None, None, None)
         for subtree in parsed_tokens.subtrees():
             if subtree.node == 'LINE_NAME':
-                routes = [' '.join(extract_words(subtree, ('TUBE_LINE', 'DLR_LINE_NAME')))] or None
-            elif subtree.node == 'ROUTES':
-                routes = extract_words(subtree, ('ROUTE_NUMBER',)) or None
+                routes = extract_words(subtree, ('TUBE_LINE_WORD', 'DLR_LINE_NAME', 'AND', 'CITY'))
+                routes = ' '.join(routes) or None
+                if routes == 'dlr':
+                    routes = [routes.upper()]
+                else:
+                    routes = [capwords(routes)]
+            elif subtree.node == 'BUS_ROUTES':
+                routes = extract_words(subtree, ('ROUTE_NUMBER',))
+                routes = routes and [route.upper() for route in routes] or None
             elif subtree.node == 'ORIGIN':
-                origin = ' '.join(extract_words(subtree, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))) or None
+                origin = extract_words(subtree, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))
             elif subtree.node == 'DESTINATION':
-                destination = ' '.join(extract_words(subtree, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))) or None
+                destination = extract_words(subtree, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))
+
+        origin = origin and capwords(' '.join(origin)) or None
+        destination = destination and capwords(' '.join(destination)) or None
 
         logging.debug("Found routes %s from origin '%s' to destination '%s'", routes, origin, destination)
         return (routes, origin, destination)
@@ -75,13 +86,13 @@ class WMTBusParser(WMTTextParser):
             (r'.*', 'UNKNOWN'),
         ]
         grammar = r"""
-            ROUTES: {<ROUTE_NUMBER>+}
+            BUS_ROUTES: {<ROUTE_NUMBER>+}
             BUS_STOP_PHRASE: {<BUS_STOP_WORD>+}
             BUS_STOP: {<BUS_STOP_PHRASE|BUS_STOP_NUMBER>}
             DESTINATION: {<TO><BUS_STOP>}
             ORIGIN: {<FROM>?<BUS_STOP>}
-            REQUEST: {^<ROUTES><ORIGIN>?<DESTINATION>?$}
-                     {^<ROUTES><DESTINATION><ORIGIN>$}
+            REQUEST: {^<BUS_ROUTES><ORIGIN>?<DESTINATION>?$}
+                     {^<BUS_ROUTES><DESTINATION><ORIGIN>$}
         """
         self.tagger = nltk.RegexpTagger(tagging_regexes)
         self.parser = nltk.RegexpParser(grammar)
@@ -103,9 +114,10 @@ class WMTTrainParser(WMTTextParser):
     """
     def __init__(self):
         grammar = r"""
-            TUBE_LINE_NAME: {<TUBE_LINE>+<LINE>?}
+            TUBE_LINE_NAME: {<TUBE_LINE_WORD><AND><CITY><LINE>?}
+                            {<TUBE_LINE_WORD><LINE>?}
             LINE_NAME: {<DLR_LINE_NAME|TUBE_LINE_NAME>}
-            STATION: {<STATION_WORD>+}
+            STATION: {<STATION_WORD|CITY|AND>+}
             DESTINATION: {<TO><STATION>}
             ORIGIN: {<FROM>?<STATION>}
             REQUEST: {^<LINE_NAME>?<ORIGIN>?<DESTINATION>?$}
@@ -120,9 +132,9 @@ class WMTTrainParser(WMTTextParser):
         """
         for i in range(0, first_occurrence_of_tag(tagged_tokens, 'LINE')):
             if tagged_tokens[i][1] in ('UNKNOWN',):
-                tagged_tokens[i] = (tagged_tokens[i][0], 'TUBE_LINE')
-        for i in range(last_occurrence_of_tag(tagged_tokens, 'TUBE_LINE') + 1, len(tagged_tokens)):
-            if tagged_tokens[i][1] in ('UNKNOWN', 'TUBE_LINE'):
+                tagged_tokens[i] = (tagged_tokens[i][0], 'TUBE_LINE_WORD')
+        for i in range(last_occurrence_of_tag(tagged_tokens, 'TUBE_LINE_WORD') + 1, len(tagged_tokens)):
+            if tagged_tokens[i][1] in ('UNKNOWN', 'TUBE_LINE_WORD'):
                 tagged_tokens[i] = (tagged_tokens[i][0], 'STATION_WORD')
         return tagged_tokens
 

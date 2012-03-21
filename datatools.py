@@ -460,14 +460,16 @@ def import_tube_xml_to_text_corpus():
     """
     Creates a corpus of text data for our parser to understand requests with
     """
-    line_phrases = [nltk.word_tokenize(line_name) for line_name in LINE_NAMES]
+    line_phrases = [nltk.word_tokenize(line_name.lower()) for line_name in LINE_NAMES]
+    line_phrases = [[token for token in phrase if token not in ('&', 'city')] for phrase in line_phrases]
     station_phrases = []
     for filename in ('tube-references.csv', 'dlr-references.csv'):
-        station_phrases += [nltk.word_tokenize(line[1]) for line in csv.reader(open('./sourcedata/%s' % filename))][1:]
+        station_phrases += [nltk.word_tokenize(line[1].lower()) for line in csv.reader(open('./sourcedata/%s' % filename))][1:]
+        station_phrases = [[token for token in phrase if token not in ('&', 'city')] for phrase in station_phrases]
 
     # Organise bigram phrases - multiple wordings for stations and lines
-    bigram_tokens = [[(token, 'TUBE_LINE') for token in phrase] for phrase in line_phrases]
-    bigram_tokens += [[(token, 'TUBE_LINE') for token in phrase] + [('line', 'LINE')] for phrase in line_phrases]
+    bigram_tokens = [[(token, 'TUBE_LINE_WORD') for token in phrase] for phrase in line_phrases]
+    bigram_tokens += [[(token, 'TUBE_LINE_WORD') for token in phrase] + [('line', 'LINE')] for phrase in line_phrases]
     bigram_tokens += [[(token, 'STATION_WORD') for token in phrase] for phrase in station_phrases]
     bigram_tokens += [[('from', 'FROM')] + [(token, 'STATION_WORD') for token in phrase] for phrase in station_phrases]
     bigram_tokens += [[('to', 'TO')] + [(token, 'STATION_WORD') for token in phrase] for phrase in station_phrases]
@@ -475,15 +477,17 @@ def import_tube_xml_to_text_corpus():
     # Unigram phrases, as a fall-back - line words and any words that appear in stations but not line names
     line_tokens = set(reduce(lambda a, b: a + b, [phrase for phrase in line_phrases]))
     station_tokens = set(reduce(lambda a, b: a + b, [phrase for phrase in station_phrases]))
-    unigram_tokens = [[(token, 'TUBE_LINE') for token in line_tokens] + \
-                      [(token, 'STATION_WORD') for token in station_tokens if token not in line_tokens]]
+    unigram_tokens = [[(token, 'TUBE_LINE_WORD') for token in line_tokens]]
+    unigram_tokens += [[(token, 'STATION_WORD') for token in station_tokens if token not in line_tokens]]
 
     tagging_regexes = [
-        (r'^(from|From)$', 'FROM'),
+        (r'^(from)$', 'FROM'),
         (r'^to(wards)?$', 'TO'),
-        (r'^(line|Line)?$', 'LINE'),
+        (r'^(and|&)$', 'AND'),
+        (r'^city$', 'CITY'),
+        (r'^line$', 'LINE'),
         (r'^(please|thanks|thank|you)$', None),
-        (r'^Docklands (Light Rail(way)?)?$', 'DLR_LINE_NAME'),
+        (r'^docklands (light rail(way)?)?$', 'DLR_LINE_NAME'),
         (r'.*', 'UNKNOWN'),
     ]
     regex_tagger = nltk.RegexpTagger(tagging_regexes)
