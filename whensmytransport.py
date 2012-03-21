@@ -97,6 +97,9 @@ class WhensMyTransport:
         self.browser = WMTBrowser()
         self.urls = WMTURLProvider(use_test_data=(testing == TESTING_TEST_LOCAL_DATA))
 
+        # This gets overridden
+        self.parser = None
+
         # Setup geocoder for looking up place names
         yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')
         self.geocoder = yahoo_app_id and YahooGeocoder(yahoo_app_id)
