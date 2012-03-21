@@ -1,12 +1,18 @@
 When's My Bus/Tube/DLR installation instructions
 
-Requires: Python 2.6 or greater to run the bot. Python 2.7 required for unit testing. Not yet tested with Python 3
+Requirements:
 
-1. Install Tweepy from https://github.com/tweepy/tweepy (run as admin/root)
+Python 2.6 or greater to run the bot. Python 2.7 required for unit testing. Not yet tested with Python 3
 
-    > git clone git://github.com/tweepy/tweepy.git
-    > cd tweepy
-    > python setup.py install
+Also needs the following supporting libraries:
+
+ * nltk: http://nltk.github.com/install.html
+ * pygraph: http://code.google.com/p/python-graph/
+ * tweepy: http://code.google.com/p/tweepy/
+
+Installation:
+
+1. Make sure you have installed the above libraries first
 
 2. Download the code & data for WhensMyBus (this contains code for all three bots) from Github:
 
@@ -26,27 +32,27 @@ All the geodata is there, you do however need to set up Twitter account and acce
 7. WhensMyBus only: If you want to add the ability to geocode addresses, you will need an App ID from Yahoo. Get one from Yahoo!
 PlaceFinder: http://developer.yahoo.com/geo/placefinder/
 
-8. Edit the whensmytransport.cfg.sample, go the relevant section ([whensmybus], [whensmytube], [whensmydlr]). Fill in the Twitter username, consumer key & secret, user key & secret, plus the 
-Yahoo app id (optional, see above) and save as whensmytransport.cfg
+8. Edit the whensmytransport.cfg.sample, go the relevant section ([whensmybus], [whensmytube], [whensmydlr]). Fill in the Twitter username, consumer key & secret, user key & secret, plus the Yahoo app id (optional, see above) and save as whensmytransport.cfg
 
 9. You can also change the debug_level to DEBUG (more messages) and test_mode to True (it will read
 Tweets, but not Tweet back at the users who made them)
 
-10. You now have a working bot! To get started, on the command line run any or all of the following:
+10. You now have a working bot! To test it, try the following test:
+
+    $ python testing.py WhensMyBus --remote-apis
+    $ python testing.py WhensMyTube --remote-apis
+    $ python testing.py WhensMyDLR --remote-apis
+
+  All tests should clear if a geocoder is installed and Twitter OAuth is correctly set up; if you don't care about these, try running without the --remote-apis flags
+
+11. To get started, on the command line run any or all of the following:
 
     $ ./whensmybus.py
-    $ ./whensmytube.py
-    $ ./whensmydlr.py
+    $ ./whensmytrain.py whensmytube
+    $ ./whensmytrain.py whensmydlr
 
-NOTES
+Notes:
 
-* If you ever want to update the CSV file(s) in sourcedata/ and update the database, follow the instructions for import_bus_csv_to_db() in utils.py
-* If you ever want to add the app to more Twitter accounts, follow the instructions for make_oauth_key() in utils.py
-* If you ever want to run unit tests, run:
- 
-    $ python testing.py WhensMyBus
-    $ python testing.py WhensMyTube
-    $ python testing.py WhensMyDLR
-
-  All tests should clear if a geocoder is installed; else the ones with placenames will fail
-* Although only the Yahoo geocoder is used, there is code for Google and Bing's as well in geotools.py
+* If you ever want to update the CSV file(s) in sourcedata/ and update the database, follow the instructions for import_bus_csv_to_db() in datatools.py
+* If you ever want to add the app to more Twitter accounts, follow the instructions for make_oauth_key() in lib/twitter_client.py
+* Although only the Yahoo geocoder is used, there is code for Google and Bing's as well in lib/geo.py
