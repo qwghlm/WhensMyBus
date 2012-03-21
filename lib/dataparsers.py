@@ -28,7 +28,7 @@ URL_SETS = {
         'BUS_URL':  "file://" + HOME_DIR + "/testdata/bus/%s.json",
         'DLR_URL':  "file://" + HOME_DIR + "/testdata/dlr/%s.xml",
         'TUBE_URL': "file://" + HOME_DIR + "/testdata/tube/%s-%s.xml",
-        'STATUS_URL': "file://" + HOME_DIR + "/testdata/status.xml",
+        'STATUS_URL': "file://" + HOME_DIR + "/testdata/tube/status.xml",
     }
 }
 

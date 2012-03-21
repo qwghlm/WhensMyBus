@@ -257,7 +257,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         Unit tests for WMTBrowser object
         """
         for filename in ("test.xml", "test.json"):
-            url = "file://" + HOME_DIR + "/testdata/" + filename
+            url = "file://" + HOME_DIR + "/testdata/unit/" + filename
             if filename.endswith('json'):
                 data = self.bot.browser.fetch_json(url)
                 self.assertEqual(data['answer_to_life_universe_everything'], 42)
