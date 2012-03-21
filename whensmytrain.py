@@ -168,7 +168,11 @@ class WhensMyTrain(WhensMyTransport):
         """
         Check to see if a station is open, return True if so, throw an exception if not
         """
-        status_data = self.browser.fetch_xml_tree(self.urls.STATUS_URL)
+        try:
+            status_data = self.browser.fetch_xml_tree(self.urls.STATUS_URL)
+        # If we get an exception with fetching this data, don't worry about it
+        except WhensMyTransportException:
+            return True
         for station_status in status_data.findall('StationStatus'):
             station_node = station_status.find('Station')
             status_node = station_status.find('Status')
