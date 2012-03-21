@@ -34,10 +34,8 @@ class WMTTextParser():
         tagged_tokens = self.fix_unknown_tokens(tagged_tokens)
 
         # Parse the tree. If we cannot parse a legitimate request then return nothing
-        print tagged_tokens
         parsed_tokens = self.parser.parse(tagged_tokens)
         if not subtree_exists(parsed_tokens, 'REQUEST'):
-            print parsed_tokens
             logging.debug("Message did not conform to message format, returning nothing")
             return (None, None, None)
 
@@ -120,14 +118,9 @@ class WMTTrainParser(WMTTextParser):
         """
         Fix tagged tokens that are tagged "UKNOWN"
         """
-        first_dividing_word = first_occurrence_of_tag(tagged_tokens, ('LINE', 'FROM', 'TO'))
-        for i in range(0, first_dividing_word):
-            if tagged_tokens[i][1] in ('UNKNOWN',):
-                tagged_tokens[i] = (tagged_tokens[i][0], 'TUBE_LINE')
-        if first_dividing_word > -1:
-            for i in range(first_dividing_word + 1, len(tagged_tokens)):
-                if tagged_tokens[i][1] in ('UNKNOWN', 'TUBE_LINE'):
-                    tagged_tokens[i] = (tagged_tokens[i][0], 'STATION_WORD')
+        for i in range(last_occurrence_of_tag(tagged_tokens, 'TUBE_LINE') + 1, len(tagged_tokens)):
+            if tagged_tokens[i][1] in ('UNKNOWN', 'TUBE_LINE'):
+                tagged_tokens[i] = (tagged_tokens[i][0], 'STATION_WORD')
         return tagged_tokens
 
 
