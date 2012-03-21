@@ -473,9 +473,10 @@ def import_tube_xml_to_text_corpus():
     bigram_tokens += [[('to', 'TO')] + [(token, 'STATION_WORD') for token in phrase] for phrase in station_phrases]
 
     # Unigram phrases, as a fall-back - line words and any words that appear in stations but not line names
-    line_tokens = set(reduce(lambda a, b: a + b, [phrase for phrase in LINE_NAMES]))
+    line_tokens = set(reduce(lambda a, b: a + b, [phrase for phrase in line_phrases]))
     station_tokens = set(reduce(lambda a, b: a + b, [phrase for phrase in station_phrases]))
-    unigram_tokens = [[(token, 'TUBE_LINE') for token in line_tokens] + [(token, 'STATION_WORD') for token in station_tokens if token not in line_tokens]]
+    unigram_tokens = [[(token, 'TUBE_LINE') for token in line_tokens] + \
+                      [(token, 'STATION_WORD') for token in station_tokens if token not in line_tokens]]
 
     tagging_regexes = [
         (r'^(from|From)$', 'FROM'),
@@ -490,10 +491,11 @@ def import_tube_xml_to_text_corpus():
     bigram_tagger = nltk.BigramTagger(bigram_tokens, backoff=unigram_tagger)
     pickle.dump(bigram_tagger, open("./db/whensmytrain.tagger.obj", "w"))
 
+
 if __name__ == "__main__":
-    #import_bus_csv_to_db()
-    #import_tube_xml_to_db()
-    #import_dlr_xml_to_db()
-    #import_network_data_to_graph()
+    import_bus_csv_to_db()
+    import_tube_xml_to_db()
+    import_dlr_xml_to_db()
+    import_network_data_to_graph()
     #scrape_odd_platform_designations()
     import_tube_xml_to_text_corpus()
