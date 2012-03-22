@@ -68,11 +68,9 @@ class BusStop(Location):
         normalised_name = self.get_clean_name().upper()
         for (word, abbreviation) in (('SQUARE', 'SQ'), ('AVENUE', 'AVE'), ('STREET', 'ST'), ('ROAD', 'RD'), ('STATION', 'STN'), ('PUBLIC HOUSE', 'PUB')):
             normalised_name = re.sub(r'\b' + word + r'\b', abbreviation, normalised_name)
-
         # Get rid of common words like 'The'
         for common_word in ('THE',):
             normalised_name = re.sub(r'\b' + common_word + r'\b', '', normalised_name)
-
         # Remove spaces and punctuation and return
         normalised_name = re.sub('[\W]', '', normalised_name)
         return normalised_name
@@ -84,7 +82,6 @@ class BusStop(Location):
         # Use the above function to normalise our names and facilitate easier comparison
         my_name = self.get_normalised_name()
         their_name = BusStop(test_string).get_normalised_name()
-
         # Exact match is obviously best
         if my_name == their_name:
             return 100
@@ -253,9 +250,8 @@ class Bus(Departure):
     by recording the departure point as well
     """
     #pylint: disable=R0903
-    def __init__(self, departure_point, destination, departure_time):
+    def __init__(self, destination, departure_time, _departure_point=""):
         Departure.__init__(self, destination, departure_time)
-        self.departure_point = departure_point
 
 
 class Train(Departure):
@@ -358,6 +354,9 @@ class DepartureCollection:
     def __len__(self):
         return len(self.departure_data.keys())
 
+    def __contains__(self, slot):
+        return slot in self.departure_data
+
     def __str__(self):
         """
         Return a formatted string representing this data for use in a Tweet
@@ -376,7 +375,9 @@ class DepartureCollection:
                 destination = departure.get_destination()
                 departures_output[slot][destination] = departures_output[slot].get(destination, []) + [departure.get_departure_time()]
             # Then sort grouped departures, earliest first within the slot. Different destinations separated by commas
-            departures_output[slot] = ["%s %s" % (destination, ' '.join(times)) for (destination, times) in departures_output[slot].items()]
+            sort_earliest_departure_first = lambda pair1, pair2: cmp(pair1[1][0], pair2[1][0])
+            departures_output[slot] = ["%s %s" % (destination, ' '.join(times)) for (destination, times) in sorted(departures_output[slot].items(), sort_earliest_departure_first)]
+
             departures_output[slot] = ', '.join([departure.strip() for departure in departures_output[slot]])
             # Bus stops get their names included as well, if there is a departure
             if isinstance(slot, BusStop) and not departures_output[slot].startswith("None shown"):

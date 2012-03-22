@@ -69,7 +69,7 @@ def parse_bus_data(bus_data, stop, route_number):
             if localtime().tm_isdst:
                 hour = (int(scheduled_time[0:2]) + 1) % 24
                 scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
-            relevant_buses.append(Bus(stop.get_clean_name(), arrival['destination'], scheduled_time))
+            relevant_buses.append(Bus(arrival['destination'], scheduled_time))
         logging.debug("Stop %s produced buses: %s", stop.get_clean_name(), ', '.join([str(bus) for bus in relevant_buses]))
 
     else:
