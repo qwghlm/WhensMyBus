@@ -30,6 +30,7 @@ try:
     from whensmybus import WhensMyBus
     from whensmytrain import WhensMyTrain
 
+    from lib.dataparsers import parse_bus_data, parse_tube_data, parse_dlr_data
     from lib.exceptions import WhensMyTransportException
     from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
     from lib.listutils import unique_values
@@ -144,7 +145,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertEqual(gridrefNumToLet(*easting_northing), gridref)
 
         # Test heading_to_direction with a series of preset values
-        for (heading, direction) in ((0, "North"), (90, "East"), (180, "South"), (270, "West"),):
+        for (heading, direction) in ((0, "North"), (90, "East"), (135, "SE"), (225, "SW"),):
             self.assertEqual(heading_to_direction(heading), direction)
 
     def test_listutils(self):
@@ -368,13 +369,25 @@ class WhensMyTransportTestCase(unittest.TestCase):
             row = self.bot.geodata.database.get_row("SELECT name FROM sqlite_master WHERE type='table' AND name='%s'" % name)
             self.assertIsNotNone(row, '%s table does not exist' % name)
 
+    @unittest.skipIf('--live-data' in sys.argv, "Data parser unit test will fail on live data")
+    def test_dataparsers(self):
+        """
+        Unit tests for Data parsers objects
+        """
+        # Check against our test data and make sure we are correctly parsing & fetching the right objects from the data
+        bus_data = parse_bus_data(self.bot.browser.fetch_json(self.bot.urls.BUS_URL % "53410"), BusStop("LIMEHOUSE"), '15')
+        self.assertEqual(bus_data[0], Bus("Regent Street", "1831"))
+        tube_data = parse_tube_data(self.bot.browser.fetch_xml_tree(self.bot.urls.TUBE_URL % ("D", "ECT")), RailStation("Earl's Court"), "D", self.bot.get_station_by_station_name)
+        self.assertEqual(tube_data["Eastbound"][0], TubeTrain("Edgware Road", "Eastbound", "2139", "075", "D", "147"))
+        dlr_data = parse_dlr_data(self.bot.browser.fetch_xml_tree(self.bot.urls.DLR_URL % "pop"), RailStation("Poplar"))
+        self.assertEqual(dlr_data['P1'][0], Train("Beckton", "2107"))
+
     def test_geocoder(self):
         """
         Unit tests for Geocoder objects
         """
         if not self.bot.geocoder:
             return
-
         test_locations = {"Blackfriars station": (51.5116, -0.1036),
                           "Buckingham Palace": (51.5012, -0.1425),
                           "Wembley Stadium": (51.5558, -0.2797),
@@ -904,8 +917,8 @@ def run_tests():
     test_case_name = parser.parse_args().test_case_name
 
     # Init tests (same for all)
-    unit_tests = ('geo', 'listutils', 'stringutils', 'models',)
-    local_tests = ('init', 'database', 'location', 'logger', 'settings', 'browser', 'textparser')
+    unit_tests = ('geo', 'listutils', 'models', 'stringutils',)  # FIXME 'exceptions', 
+    local_tests = ('init', 'browser', 'database', 'dataparsers', 'location', 'logger', 'settings', 'textparser')
     remote_tests = ('geocoder', 'twitter_client',)
 
     # Common errors for all
