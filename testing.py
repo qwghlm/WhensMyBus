@@ -779,7 +779,6 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             else:
                 line_fragments = [value % test_variables for value in ("%(line)s",)]
 
-
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
                     for line_fragment in line_fragments:
@@ -789,6 +788,14 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                         else:
                             tweet = FakeTweet(message)
                         self._test_correct_successes(tweet, line, expected_origin, to_fragment and destination_to_avoid)
+
+    def test_nonstandard_messages(self):
+        """
+        Test for non-standard messages
+        """
+        # TODO Should not be called with live data. Should come back with specific tests of scenarios on the data
+        pass
+
 
 
 class WhensMyDLRTestCase(WhensMyTubeTestCase):
