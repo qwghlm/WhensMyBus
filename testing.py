@@ -484,10 +484,12 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             # Should say one of our route numbers, expected origin and a time
             route_regex = "^(%s)" % '|'.join(routes_specified.upper().replace(',', '').split(' '))
             self.assertRegexpMatches(result, route_regex)
+            # FIXME None Shown going should not have a time on it
             self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
             # If we have specified a direction or destination, we should not be seeing buses going the other way
             if destination_to_avoid:
                 self.assertNotRegexpMatches(result, destination_to_avoid)
+                # FIXME And a check on the semi-colon as well
         print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
     #
@@ -634,12 +636,14 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
+        # FIXME *bound trains should be displayed (Circle), via (Central), add in wanted destination
+        # Double-check Northern checking is adequate WRT via
         # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted destination (if destination specified)
         self.test_standard_data = (
-           ('Central Line',         "White City",    51.5121, -0.2246, "Ruislip Gardens", "White City",    'Ealing'),
+           ('Central Line',         "White City",    51.5121, -0.2246, "Redbridge",       "White City",    'Ealing'),
            ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",      'Upminster'),
            ('Piccadilly Line',      "Acton Town",    51.5028, -0.2800, "Arsenal",         "Acton Town",    'Heathrow'),
-           ('Northern Line',        "Camden Town",   51.5394, -0.1427, "Morden",          "Camden Town",   'High Barnet'),
+           ('Northern Line',        "Camden Town",   51.5394, -0.1427, "Kennington",      "Camden Town",   'High Barnet'),
            ('Circle Line',          "Edgware Road",  51.5200, -0.1678, "Moorgate",        "Edgware Rd",    'Barking'),
            ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      ''),
            ('Victoria Line',        "Victoria",      51.4966, -0.1448, "Walthamstow",     "Victoria",      'Brixton'),
