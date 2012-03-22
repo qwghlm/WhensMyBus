@@ -7,7 +7,6 @@ import cPickle as pickle
 import logging
 import nltk
 import os
-from pprint import pprint
 
 from lib.stringutils import capwords
 
@@ -22,7 +21,7 @@ class WMTTextParser():
         self.tagger = None
         self.parser = None
 
-    def parse_message(self, text, debug=True):
+    def parse_message(self, text):
         """
         Parses the text and returns a tuple of (routes, origin, destination)
         """
