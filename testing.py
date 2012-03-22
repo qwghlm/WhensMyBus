@@ -34,7 +34,7 @@ try:
     from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
     from lib.listutils import unique_values
     from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables
-    from lib.models import RailStation, BusStop, NullDeparture, Train, TubeTrain, Bus
+    from lib.models import Location, RailStation, BusStop, Departure, NullDeparture, Train, TubeTrain, Bus, DepartureCollection
 except ImportError as err:
     print """
 Sorry, testing failed because a package that WhensMyTransport depends on is not installed. Reported error:
@@ -201,51 +201,111 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Unit tests for train, bus, station and bus stop objects
         """
+        # Location fundamentals
+        location_name = "Trafalgar Square"
+        location = Location(location_name)
+        self.assertEqual(str(location), location_name)
+        self.assertEqual(repr(location), location_name)
+        self.assertEqual(len(location), len(location_name))
+
+        # BusStop fundamentals
+        bus_stop = BusStop("TRAFALGAR SQUARE / CHARING CROSS STATION <> # [DLR] >T<", bus_stop_code='10000', distance=2.0, run=1)
+        bus_stop2 = BusStop("CHARING CROSS STATION <> # [DLR} >T< / TRAFALGAR SQUARE", bus_stop_code='10001', distance=1.0, run=2)
+        self.assertLess(bus_stop2, bus_stop)
+        self.assertEqual(len(bus_stop), 26)
+        self.assertEqual(hash(bus_stop), hash(BusStop("TRAFALGAR SQUARE / CHARING CROSS STATION <> # [DLR] >T<", run=1)))
+
+        # BusStop complex functions
+        for undesirable in ('<>', '#', r'\[DLR\]', '>T<'):
+            self.assertNotRegexpMatches(bus_stop.get_clean_name(), undesirable)
+        self.assertEqual(bus_stop.get_clean_name(), "Trafalgar Square / Charing Cross Station")
+        self.assertEqual(bus_stop.get_normalised_name(), "TRAFALGARSQCHARINGCROSSSTN")
+        self.assertEqual(bus_stop.get_similarity(bus_stop.name), 100)
+        self.assertEqual(bus_stop.get_similarity("Charing Cross Station"), 94)
+        self.assertEqual(bus_stop2.get_similarity("Charing Cross Station"), 95)
+        self.assertEqual(bus_stop.get_similarity("Charing Cross"), 90)
+        self.assertEqual(bus_stop2.get_similarity("Charing Cross"), 91)
+
+        # RailStation complex functions
         station = RailStation("King's Cross St. Pancras", "KXX", 530237, 182944)
-        self.assertLess(len(station.get_abbreviated_name()), len(station.name))
+        station2 = RailStation("Earl's Court", "ECT")
+        self.assertEqual(station.get_abbreviated_name(), "Kings X St P")
+        self.assertEqual(station2.get_abbreviated_name(), "Earls Ct")
         self.assertEqual(station.get_similarity(station.name), 100)
         self.assertGreaterEqual(station.get_similarity("Kings Cross St Pancras"), 95)
         self.assertGreaterEqual(station.get_similarity("Kings Cross St Pancreas"), 90)
         self.assertGreaterEqual(station.get_similarity("Kings Cross"), 90)
 
-        bus_stop = BusStop("WALFORD EAST BUS STATION # [DLR] / TOWN CENTRE", bus_stop_code='10000', distance=2.0)
-        bus_stop2 = BusStop("TOWN CENTRE / WALFORD EAST BUS STATION # [DLR]", bus_stop_code='10001', distance=1.0)
-        self.assertEqual(sorted([bus_stop, bus_stop2])[0].number, '10001')
-        for undesirable in ('<>', '#', r'\[DLR\]', '>T<'):
-            self.assertNotRegexpMatches(bus_stop.get_clean_name(), undesirable)
-        self.assertEqual(bus_stop.get_normalised_name(), "WALFORDEASTBUSSTNTOWNCENTRE")
-        self.assertEqual(bus_stop.get_similarity(bus_stop.name), 100)
-        self.assertEqual(bus_stop.get_similarity("Walford East Bus Station"), 95)
-        self.assertEqual(bus_stop2.get_similarity("Walford East Bus Station"), 94)
-        self.assertEqual(bus_stop.get_similarity("Walford East"), 91)
-        self.assertEqual(bus_stop2.get_similarity("Walford East"), 90)
+        # Departure
+        departure = Departure("Trafalgar Square", "2359")
+        departure2 = Departure("Trafalgar Square", "0001")
+        self.assertLess(departure, departure2)  # Fails if test run at 0000-0059
+        self.assertEqual(hash(departure), hash(Departure("Trafalgar Square", "2359")))
+        self.assertEqual(str(departure), "Trafalgar Square 2359")
+        self.assertEqual(departure.get_destination(), "Trafalgar Square")
+        self.assertEqual(departure.get_departure_time(), "2359")
 
+        # NullDeparture
         null_departure = NullDeparture("East")
         self.assertEqual(null_departure.get_destination(), "None shown going East")
         self.assertEqual(null_departure.get_departure_time(), "")
 
-        bus = Bus("Trafalgar Square", "Blackwall", "2359")
-        bus2 = Bus("Trafalgar Square", "Blackwall", "2359")
-        bus3 = Bus("Trafalgar Square", "Blackwall", "0001")
-        self.assertEqual(hash(bus), hash(bus2))
-        self.assertLess(bus, bus3)  # Fails if test run at 0000-0059
+        # Bus
+        bus = Bus("Blackwall", "2359")
+        bus2 = Bus("Blackwall", "0001")
+        self.assertLess(bus, bus2)  # Fails if test run at 0000-0059
         self.assertEqual(bus.get_destination(), "Blackwall")
 
+        # Train
         train = Train("Charing Cross via Bank", "2359")
         train2 = Train("Charing Cross via Bank", "0001")
         self.assertLess(train, train2)  # Fails if test run at 0000-0059
         self.assertEqual(train.get_destination(), "Charing X via Bank")
         self.assertEqual(train.get_clean_destination_name(), "Charing Cross")
 
+        # TubeTrain
         tube_train = TubeTrain("Charing Cross via Bank", "Northbound", "2359", "001", "", "")
         tube_train2 = TubeTrain("Charing Cross via Bank then depot", "Northbound", "2359", "001", "", "")
-        tube_train3 = TubeTrain("Charing Cross via Bank", "Northbound", "2359", "006", "", "")
+        tube_train3 = TubeTrain("Northern Line", "Northbound", "2359", "001", "", "")
+        tube_train4 = TubeTrain("Heathrow T123 + 5", "Westbound", "2359", "001", "", "")
         self.assertEqual(hash(tube_train), hash(tube_train2))
-        self.assertNotEqual(hash(tube_train), hash(tube_train3))
         self.assertEqual(tube_train.get_destination(), "Charing X via Bank")
+        self.assertEqual(tube_train3.get_destination(), "Northbound Train")
+        self.assertEqual(tube_train4.get_destination(), "Heathrow T 5")
         self.assertEqual(tube_train.get_clean_destination_name(), "Charing Cross")
 
-        # TODO Unit tests for DepartureCollection
+        # DepartureCollection fundamentals
+        departures = DepartureCollection()
+        departures[bus_stop] = [bus]
+        self.assertEqual(departures[bus_stop], [bus])
+        self.assertEqual(len(departures), 1)
+        del departures[bus_stop]
+        self.assertFalse(bus_stop in departures)
+
+        # DepartureCollection for trains
+        departures.add_to_slot(bus_stop, bus)
+        departures.add_to_slot(bus_stop, bus2)
+        self.assertEqual(str(departures), "Trafalgar Square / Charing Cross Station to Blackwall 2359 0001")
+        departures[bus_stop2] = []
+        departures.cleanup(lambda stop: NullDeparture("West"))
+        self.assertEqual(str(departures), "None shown going West; Trafalgar Square / Charing Cross Station to Blackwall 2359 0001")
+        departures.add_to_slot(bus_stop, Bus("Leamouth", "2358"))
+        self.assertEqual(str(departures), "None shown going West; Trafalgar Square / Charing Cross Station to Leamouth 2358, Blackwall 2359 0001")
+
+        # DepartureCollection for trains
+        departures = DepartureCollection()
+        departures["P1"] = [Train("Bank", "1210"), Train("Tower Gateway", "1203"), Train("Bank", "1200")]
+        departures["P2"] = [Train("Tower Gateway", "1205"), Train("Tower Gateway", "1212"), Train("Bank", "1207")]
+        departures["P3"] = [Train("Lewisham", "1200"), Train("Lewisham", "1204"), Train("Lewisham", "1208")]
+        departures["P4"] = []
+        departures.merge_common_slots()
+        departures.cleanup(lambda platform: NullDeparture("from %s" % platform))
+        self.assertEqual(str(departures), "Bank 1200 1207 1210, Tower Gateway 1203 1205 1212; Lewisham 1200 1204 1208; None shown going from P4")
+        departures.filter(lambda train: train.destination != "Lewisham")
+        self.assertEqual(str(departures), "Bank 1200 1207 1210, Tower Gateway 1203 1205 1212; None shown going from P4")
+        departures["P4"] = []
+        departures.filter(lambda train: train.destination != "Tower Gateway", True)
+        self.assertEqual(str(departures), "Bank 1200 1207 1210")
 
     # Fundamental non-unit functionality tests. These need a WMT bot set up and are thus contingent on a
     # config.cfg files to test things such as a particular instance's databases, geocoder and browser
@@ -646,6 +706,9 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.geodata_table_names = ('locations', )
 
         # FIXME *bound trains should be displayed (Circle), via (Central), add in wanted destination
+        #
+        # FIXME Completely revamp this. We should have very few generic tests and lots of specific ones
+        #
         # Double-check Northern checking is adequate WRT via
         # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted destination (if destination specified)
         self.test_standard_data = (
@@ -837,6 +900,7 @@ def run_tests():
     parser.add_argument("--remote-apis", dest="remote_apis", action="store_true", default=False, help="Test Twitter & Yahoo APIs as well")
     parser.add_argument("--live-data", dest="test_level", action="store_const", const=TESTING_TEST_LIVE_DATA, default=TESTING_TEST_LOCAL_DATA,
                         help="Test with live TfL data (may fail unpredictably!)")
+    parser.add_argument("--units-only", dest="units_only", action="store_true", default=False, help="Unit tests only (overrides above)")
     test_case_name = parser.parse_args().test_case_name
 
     # Init tests (same for all)
@@ -862,7 +926,9 @@ def run_tests():
         print "Error - %s is not a valid Test Case Name" % test_case_name
         sys.exit(1)
 
-    if parser.parse_args().remote_apis:
+    if parser.parse_args().units_only:
+        test_names = unit_tests
+    elif parser.parse_args().remote_apis:
         test_names = unit_tests + local_tests + remote_tests + failures + successes
     else:
         test_names = unit_tests + local_tests + failures + successes
