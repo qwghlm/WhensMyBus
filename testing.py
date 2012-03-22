@@ -229,7 +229,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         bus3 = Bus("Trafalgar Square", "Blackwall", "0001")
         self.assertEqual(hash(bus), hash(bus2))
         self.assertLess(bus, bus3)  # Fails if test run at 0000-0059
-        self.assertEqual(bus.get_destination(), "Trafalgar Square to Blackwall")
+        self.assertEqual(bus.get_destination(), "Blackwall")
 
         train = Train("Charing Cross via Bank", "2359")
         train2 = Train("Charing Cross via Bank", "0001")
@@ -467,6 +467,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             ('%s from 12 Bow Common Lane',       ('323',),      'Bow Common Lane'),
             ('%s from EC1M 4PN',                 ('55',),       'St John Street'),
             ('%s from Mile End',                 ('d6', 'd7'),  'Mile End \w+'),
+            # ('%s from Canning Town',             ('108',),      'Canning Town'), TODO incorporate this
         )
 
     def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
@@ -495,6 +496,9 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             if destination_to_avoid:
                 self.assertNotRegexpMatches(result, destination_to_avoid)
                 #self.assertNotRegexpMatches(result, ";") FIXME
+            #else:
+                #self.assertRegexpMatches(result, ";")
+
         print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
     #

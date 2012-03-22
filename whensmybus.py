@@ -185,14 +185,16 @@ class WhensMyBus(WhensMyTransport):
         for (run, stop) in relevant_stops.items():
             tfl_url = self.urls.BUS_URL % stop.number
             bus_data = self.browser.fetch_json(tfl_url)
-            relevant_buses[run] = parse_bus_data(bus_data, stop, route_number)
+            relevant_buses[stop] = parse_bus_data(bus_data, stop, route_number)
 
-        # If the number of runs is 3 or 4, get rid of any without buses shown
+        # If the number of runs is 3 or more, get rid of any without buses shown
         if len(relevant_buses) > 2:
             logging.debug("Number of runs is %s, removing any non-existent entries", len(relevant_buses))
-            relevant_buses.trim(2)
+            for i in range(3, max(relevant_stops.keys()) + 1):
+                if i in relevant_stops.keys() and not relevant_buses[relevant_stops[i]]:
+                    del relevant_buses[relevant_stops[i]]  # TODO Check for this
 
-        null_constructor = lambda run: NullDeparture(stop_directions[run])
+        null_constructor = lambda stop: NullDeparture(stop_directions[stop.run])
         relevant_buses.cleanup(null_constructor)
         return relevant_buses
 

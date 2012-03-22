@@ -51,6 +51,9 @@ class BusStop(Location):
     def __len__(self):
         return len(self.get_normalised_name())
 
+    def __hash__(self):
+        return hash(str(self.run) + ',' + self.get_clean_name())
+
     def get_clean_name(self):
         """
         Get rid of TfL's ASCII symbols for Tube, National Rail, DLR & Tram from this stop's name
@@ -254,12 +257,6 @@ class Bus(Departure):
         Departure.__init__(self, destination, departure_time)
         self.departure_point = departure_point
 
-    def get_destination(self):
-        """
-        Return this bus's destination
-        """
-        return "%s to %s" % (self.departure_point, self.destination)
-
 
 class Train(Departure):
     """
@@ -339,7 +336,7 @@ class DepartureCollection:
     Represents multiple Departures to different destinations, all going from the same rail station or a set of closely-related bus stops
 
     Acts like a dictionary. Items are lists of Departure objects, keys are "slots" that we have grouped these Departures into
-            Buses are grouped by Run and the keys are thus the Run numbers; items are lists of Bus objects
+            Buses are grouped by stop, and the keys are BusStop objects; items are lists of Bus objects
             Tube trains are grouped by direction, keys are "Eastbound", "Westbound" etc.; items are lists of TubeTrain objects
             DLR trains are grouped by platform, keys are "p1", "p2"; items are lists of Train objects
 
@@ -364,25 +361,29 @@ class DepartureCollection:
     def __str__(self):
         """
         Return a formatted string representing this data for use in a Tweet
-        Departures are sorted by slot ID and then earliest first
-        """
-        # dict.keys() does not preserve order, hence a list of the correct order for destinations as well
-        destinations_correct_order = []
-        departures_by_destination = {}
-        # Go through each slot, and each slot's departures, sorted in time order
-        for slot in sorted(self.departure_data.keys()):
-            for departure in unique_values(sorted(self.departure_data[slot]))[:3]:
-                destination = departure.get_destination()
-                # Create a slot for this departure if none exists
-                if destination not in departures_by_destination:
-                    departures_by_destination[destination] = []
-                    destinations_correct_order.append(destination)
-                # Add in the time for this departure
-                if departure.get_departure_time() and len(departures_by_destination[destination]) < 3:
-                    departures_by_destination[destination].append(departure.get_departure_time())
+        Departures are sorted by slot ID and then by earliest within that slot. Multiple times for same departure grouped together
 
-        departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
-        return '; '.join([departure.strip() for departure in departures_list])
+        e.g. "Upminster 1200 1201 1204, Tower Hill 1203; Wimbledon 1200, Ealing Bdwy 1202 1204, Richmond 1208"
+        """
+        if not self.departure_data:
+            return ""
+        departures_output = {}
+        # Output is a dictionary, each key a slot, each item a { destination:[list of times] } dictionary itself
+        for slot in sorted(self.departure_data.keys()):
+            departures_output[slot] = {}
+            # Group by departure within each slot
+            for departure in unique_values(sorted(self.departure_data[slot]))[:6]:
+                destination = departure.get_destination()
+                departures_output[slot][destination] = departures_output[slot].get(destination, []) + [departure.get_departure_time()]
+            # Then sort grouped departures, earliest first within the slot. Different destinations separated by commas
+            departures_output[slot] = ["%s %s" % (destination, ' '.join(times)) for (destination, times) in departures_output[slot].items()]
+            departures_output[slot] = ', '.join([departure.strip() for departure in departures_output[slot]])
+            # Bus stops get their names included as well, if there is a departure
+            if isinstance(slot, BusStop) and not departures_output[slot].startswith("None shown"):
+                departures_output[slot] = "%s to %s" % (slot.get_clean_name(), departures_output[slot])
+
+        # Return slots separated by semi-colons
+        return '; '.join([departures_output[slot] for slot in sorted(departures_output.keys())])
 
     def __repr__(self):
         return self.departure_data.__repr__()
@@ -392,14 +393,6 @@ class DepartureCollection:
         Adds departure to slot, creating said slot if it doesn't already exist
         """
         self.departure_data[slot] = self.departure_data.get(slot, []) + [departure]
-
-    def trim(self, maximum_key):
-        """
-        If we have an excess number of slots, this deletes any empty slots with a key value greater than maximum_key
-        """
-        for (slot, departures) in self.departure_data.items():
-            if slot > maximum_key and not departures:
-                del self.departure_data[slot]
 
     def merge_common_slots(self):
         """
