@@ -9,8 +9,7 @@ from datetime import datetime, timedelta
 from time import localtime
 
 from lib.exceptions import WhensMyTransportException
-from lib.listutils import unique_values
-from lib.models import TubeTrain, Bus, Train as DLRTrain
+from lib.models import TubeTrain, Bus, Train as DLRTrain, DepartureCollection
 from lib.stringutils import capwords
 
 #
@@ -51,7 +50,7 @@ class WMTURLProvider():
 def parse_bus_data(bus_data, stop, route_number):
     """
     Take a parsed json object bus_data from a single stop, BusStop object and strings representing the route and run
-    Returns an array of Bus objects
+    Returns a list of Bus objects
     """
     arrivals = bus_data.get('arrivals', [])
 
@@ -82,17 +81,17 @@ def parse_bus_data(bus_data, stop, route_number):
 def parse_dlr_data(dlr_data, station):
     """
     Take a parsed elementTree dlr_data, RailStation object and string representing a line code
-    Returns a dictionary; keys are platform names, values lists of DLRTrain objects
+    Returns a DepartureCollection object
     """
     train_info_regex = re.compile(r"[1-4] (\D+)(([0-9]+) mins?)?", flags=re.I)
-
-    # Go through each platform and get data about every train arriving, including which direction it's headed
-    trains_by_platform = {}
     platforms_to_ignore = [('tog', 'P1'),
                            ('wiq', 'P1')]
     platforms_to_ignore_if_empty = [('ban', 'P10'),
                                     ('str', 'P4B'),
                                     ('lew', 'P5')]
+
+    # Go through each platform and get data about every train arriving, including which direction it's headed
+    trains_by_platform = DepartureCollection()
     for platform in dlr_data.findall("div[@id='ttbox']"):
         # Get the platform number from image attached and the time published
         img = platform.find("div[@id='platformleft']/img")
@@ -119,7 +118,7 @@ def parse_dlr_data(dlr_data, station):
                     continue
                 departure_delta = timedelta(minutes=(result.group(3) and int(result.group(3)) or 0))
                 departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
-                trains_by_platform[platform_name].append(DLRTrain(destination, departure_time))
+                trains_by_platform.add_to_slot(platform_name, DLRTrain(destination, departure_time))
                 logging.debug("Found a train going to %s at %s", destination, departure_time)
             else:
                 logging.debug("Error - could not parse this line: %s", train)
@@ -129,17 +128,8 @@ def parse_dlr_data(dlr_data, station):
         if not trains_by_platform[platform_name] and (station.code, platform_name) in platforms_to_ignore_if_empty:
             del trains_by_platform[platform_name]
 
-    # Some platforms run trains the same way (e.g. at termini). DLR doesn't tell us if this is the case, so we look at the destinations
-    # on each pair of platforms and see if there is any overlap, using the set object and its intersection function. Any such
-    # overlapping platforms, we merge their data together (only for the first pair though, to be safe)
-    platform_pairs = [(plat1, plat2) for plat1 in trains_by_platform.keys() for plat2 in trains_by_platform.keys() if plat1 < plat2]
-    common_platforms = [(plat1, plat2) for (plat1, plat2) in platform_pairs
-                         if set([t.destination for t in trains_by_platform[plat1]]).intersection([t.destination for t in trains_by_platform[plat2]])]
-    for (plat1, plat2) in common_platforms[:1]:
-        logging.debug("Merging platforms %s and %s", plat1, plat2)
-        trains_by_platform[plat1 + ' & ' + plat2] = unique_values(trains_by_platform[plat1] + trains_by_platform[plat2])
-        del trains_by_platform[plat1], trains_by_platform[plat2]
-
+    # If two platforms have exact same set of destinations, treat them as one by merging
+    trains_by_platform.merge_common_slots()
     return trains_by_platform
 
 
@@ -150,7 +140,7 @@ def parse_tube_data(tube_data, station, line_code, station_object_lookup_functio
     Returns a dictionary; keys are platform names, values lists of TubeTrain objects
     """
     # Go through each platform and get data about every train arriving, including which direction it's headed
-    trains_by_direction = {}
+    trains_by_direction = DepartureCollection()
     publication_time = tube_data.find('WhenCreated').text
     publication_time = datetime.strptime(publication_time, "%d %b %Y %H:%M:%S")
     for platform in tube_data.findall('.//P'):
@@ -176,9 +166,6 @@ def parse_tube_data(tube_data, station, line_code, station_object_lookup_functio
                 # These are dealt with the below
                 direction = "Unknown"
                 logging.debug("Have encountered a platform without direction specified (%s)", platform_name)
-
-        if direction != "Unknown":
-            trains_by_direction[direction] = []
 
         # Use the filter function to filter out trains that are out of service, specials or National Rail first
         platform_trains = platform.findall("T[@LN='%s']" % line_code)
@@ -206,7 +193,7 @@ def parse_tube_data(tube_data, station, line_code, station_object_lookup_functio
                 else:
                     train_obj.direction = "Eastbound"
 
-            trains_by_direction[direction] = trains_by_direction.get(direction, []) + [train_obj]
+            trains_by_direction.add_to_slot(direction, train_obj)
 
     return trains_by_direction
 

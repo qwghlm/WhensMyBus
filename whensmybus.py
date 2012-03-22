@@ -24,7 +24,7 @@ from whensmytransport import WhensMyTransport
 from lib.dataparsers import parse_bus_data
 from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
-from lib.models import BusStop, NullDeparture
+from lib.models import BusStop, NullDeparture, DepartureCollection
 from lib.textparser import WMTBusParser
 
 
@@ -79,7 +79,7 @@ class WhensMyBus(WhensMyTransport):
         # If the above has found stops on this route, get data for each
         departure_data = self.get_departure_data(relevant_stops, route_number)
         if departure_data:
-            return "%s %s" % (route_number, self.format_departure_data(departure_data))
+            return "%s %s" % (route_number, str(departure_data))
         else:
             if destination:
                 raise WhensMyTransportException('no_buses_shown_to', route_number, destination)
@@ -178,10 +178,10 @@ class WhensMyBus(WhensMyTransport):
     def get_departure_data(self, relevant_stops, route_number, via=None):
         """
         Fetch the JSON data from the TfL website, for a dictionary of relevant_stops (each a BusStop object)
-        and a particular route_number, and returns a dictionary of runs mapping to Bus objects
+        and a particular route_number, and returns a DepartureCollection containing Bus objects
         """
         stop_directions = dict([(run, heading_to_direction(stop.heading)) for (run, stop) in relevant_stops.items()])
-        relevant_buses = {}
+        relevant_buses = DepartureCollection()
         for (run, stop) in relevant_stops.items():
             tfl_url = self.urls.BUS_URL % stop.number
             bus_data = self.browser.fetch_json(tfl_url)
@@ -190,13 +190,11 @@ class WhensMyBus(WhensMyTransport):
         # If the number of runs is 3 or 4, get rid of any without buses shown
         if len(relevant_buses) > 2:
             logging.debug("Number of runs is %s, removing any non-existent entries", len(relevant_buses))
-            for (run, departures) in relevant_buses.items():
-                if run > 2 and not departures:
-                    del relevant_buses[run]
+            relevant_buses.trim(2)
 
         null_constructor = lambda run: NullDeparture(stop_directions[run])
-        departure_data = self.cleanup_departure_data(relevant_buses, null_constructor)
-        return departure_data
+        relevant_buses.cleanup(null_constructor)
+        return relevant_buses
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":

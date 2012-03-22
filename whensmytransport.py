@@ -39,7 +39,6 @@ from lib.browser import WMTBrowser
 from lib.dataparsers import WMTURLProvider
 from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
-from lib.listutils import unique_values
 from lib.locations import WMTLocations
 from lib.logger import setup_logging
 from lib.twitterclient import WMTTwitterClient, is_direct_message
@@ -255,6 +254,7 @@ class WhensMyTransport:
         """
         Returns True if the Tweet has geolocation data
         """
+        # pylint: disable=R0201
         return hasattr(tweet, 'geo') and tweet.geo and 'coordinates' in tweet.geo
 
     def get_tweet_geolocation(self, tweet, user_request):
@@ -302,59 +302,10 @@ class WhensMyTransport:
         Takes a string or list of strings representing a station or stop, and a string representing the line or route,
         and a string representing the stop the line or route has to stop at
 
-        Returns a dictionary; items are lists of Departure objects, keys are "slots" that we have grouped these Departures into
-            Buses are grouped by Run and the keys are thus the Run numbers
-            TubeTrains are grouped by direction, keys are "Eastbound", "Westbound" etc.
-            DLRTrains are grouped by platform, keys are "p1", "p2"
+        Returns a DepartureCollection object
         """
         #pylint: disable=W0613,R0201
         return {}
-
-    def cleanup_departure_data(self, departure_data, null_object_constructor):
-        """
-        Takes a dictionary produced by get_departure_data, cleans it up and returns it
-
-        If no departures listed at all, then return an empty dictionary
-        Any slot with an empty list as its value has it filled with a null object, which is constructed by null_object_constructor
-        Any slot with None as its value is deleted
-
-        null_object_constructor is either a classname constructor, or a function that returns a created object
-        e.g. lambda a: Constructor(a.lower())
-        """
-        # Make sure there is a departure in at least one slot
-        if not [departures for departures in departure_data.values() if departures]:
-            return {}
-        # Go through list of slots and departures for them.  If there is a None, then there is no slot at all and we delete it
-        # If there is an empty list (no departures) then we replace it with the null object specified ("None shown...").
-        for slot in departure_data.keys():
-            if departure_data[slot] is None:
-                del departure_data[slot]
-            elif departure_data[slot] == []:
-                departure_data[slot] = [null_object_constructor(slot)]
-        return departure_data
-
-    def format_departure_data(self, departure_data):
-        """
-        Takes a dictionary produced by get_departure_data, and turn into a formatted string for the user
-        Departures are sorted by slot ID and then earliest first
-        """
-        # dict.keys() does not preserve order, hence a list of the correct order for destinations as well
-        destinations_correct_order = []
-        departures_by_destination = {}
-        # Go through each slot, and each slot's departures, sorted in time order
-        for slot in sorted(departure_data.keys()):
-            for departure in unique_values(sorted(departure_data[slot]))[:3]:
-                destination = departure.get_destination()
-                # Create a slot for this departure if none exists
-                if destination not in departures_by_destination:
-                    departures_by_destination[destination] = []
-                    destinations_correct_order.append(destination)
-                # Add in the time for this departure
-                if departure.get_departure_time() and len(departures_by_destination[destination]) < 3:
-                    departures_by_destination[destination].append(departure.get_departure_time())
-
-        departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
-        return '; '.join([departure.strip() for departure in departures_list])
 
     def alert_admin_about_exception(self, tweet, exception_name):
         """

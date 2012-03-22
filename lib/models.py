@@ -4,7 +4,10 @@
 Models and abstractions of concepts such as stations, trains, bus stops etc.
 """
 from datetime import datetime, timedelta
+import logging
 import re
+
+from lib.listutils import unique_values
 from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
 
 
@@ -325,3 +328,125 @@ class TubeTrain(Train):
         Return hash value to enable ability to use as dictionary key
         """
         return hash(' '.join([self.set_number, self.destination_code, self.get_departure_time()]))
+
+#
+# Representation of a collection of Departures
+#
+
+
+class DepartureCollection:
+    """
+    Represents multiple Departures to different destinations, all going from the same rail station or a set of closely-related bus stops
+
+    Acts like a dictionary. Items are lists of Departure objects, keys are "slots" that we have grouped these Departures into
+            Buses are grouped by Run and the keys are thus the Run numbers; items are lists of Bus objects
+            Tube trains are grouped by direction, keys are "Eastbound", "Westbound" etc.; items are lists of TubeTrain objects
+            DLR trains are grouped by platform, keys are "p1", "p2"; items are lists of Train objects
+
+    Also handles filtering out unwanted departures (e.g. those terminating here, or not going where we want to), merging two slots are together
+    and dealing with empty slots or slots we don't need
+    """
+    def __init__(self):
+        self.departure_data = {}
+
+    def __setitem__(self, slot, departures):
+        self.departure_data[slot] = departures
+
+    def __getitem__(self, slot):
+        return self.departure_data[slot]
+
+    def __delitem__(self, slot):
+        del self.departure_data[slot]
+
+    def __len__(self):
+        return len(self.departure_data.keys())
+
+    def __str__(self):
+        """
+        Return a formatted string representing this data for use in a Tweet
+        Departures are sorted by slot ID and then earliest first
+        """
+        # dict.keys() does not preserve order, hence a list of the correct order for destinations as well
+        destinations_correct_order = []
+        departures_by_destination = {}
+        # Go through each slot, and each slot's departures, sorted in time order
+        for slot in sorted(self.departure_data.keys()):
+            for departure in unique_values(sorted(self.departure_data[slot]))[:3]:
+                destination = departure.get_destination()
+                # Create a slot for this departure if none exists
+                if destination not in departures_by_destination:
+                    departures_by_destination[destination] = []
+                    destinations_correct_order.append(destination)
+                # Add in the time for this departure
+                if departure.get_departure_time() and len(departures_by_destination[destination]) < 3:
+                    departures_by_destination[destination].append(departure.get_departure_time())
+
+        departures_list = ["%s %s" % (destination, ', '.join(departures_by_destination[destination])) for destination in destinations_correct_order]
+        return '; '.join([departure.strip() for departure in departures_list])
+
+    def __repr__(self):
+        return self.departure_data.__repr__()
+
+    def add_to_slot(self, slot, departure):
+        """
+        Adds departure to slot, creating said slot if it doesn't already exist
+        """
+        self.departure_data[slot] = self.departure_data.get(slot, []) + [departure]
+
+    def trim(self, maximum_key):
+        """
+        If we have an excess number of slots, this deletes any empty slots with a key value greater than maximum_key
+        """
+        for (slot, departures) in self.departure_data.items():
+            if slot > maximum_key and not departures:
+                del self.departure_data[slot]
+
+    def merge_common_slots(self):
+        """
+        Merges pairs of slots that serve the same destinations
+
+        Some slots run departures the same way (e.g. at termini). The DLR doesn't tell us if this is the case, so we look at the destinations
+        on each pair of slots and see if there is any overlap, using the set object and its intersection function. Any such
+        overlapping slots, we merge their data together (though only for the first pair though, to be safe)
+        """
+        slot_pairs = [(slot1, slot2) for slot1 in self.departure_data.keys() for slot2 in self.departure_data.keys() if slot1 < slot2]
+        common_slots = [(slot1, slot2) for (slot1, slot2) in slot_pairs
+                             if set([t.destination for t in self.departure_data[slot1]]).intersection([t.destination for t in self.departure_data[slot2]])]
+        for (slot1, slot2) in common_slots[:1]:
+            logging.debug("Merging platforms %s and %s", slot1, slot2)
+            self.departure_data[slot1 + ' & ' + slot2] = unique_values(self.departure_data[slot1] + self.departure_data[slot2])
+            del self.departure_data[slot1], self.departure_data[slot2]
+
+    def filter(self, filter_function, delete_existing_empty_slots=False):
+        """
+        Applies the function filter to each slot's list of Departures, and deletes any slots are emptied as a result
+
+        If delete_existing_empty_slots is True, then this deletes pre-existing empty slots as well as ones that have been emptied by the filter function
+        """
+        for (slot, departures) in self.departure_data.items():
+            if departures or delete_existing_empty_slots:
+                departures = [d for d in departures if filter_function(d)]
+                if not departures:
+                    del self.departure_data[slot]
+                else:
+                    self.departure_data[slot] = departures
+
+    def cleanup(self, null_object_constructor=NullDeparture):
+        """
+        Cleans up any empty slots within the data
+
+        If no departures listed at all, then turn me into an empty dictionary
+        Otherwise, any slot with an empty list as its value has it filled with a null object, which is constructed by null_object_constructor
+
+        null_object_constructor is either a classname constructor, or a function that returns a created object
+        e.g. lambda a: Constructor(a.lower())
+        """
+        # Make sure there is a departure in at least one slot
+        if not [departures for departures in self.departure_data.values() if departures]:
+            self.departure_data = {}
+        # Go through list of slots and departures for them.  If there is a None, then there is no slot at all and we delete it
+        # If there is an empty list (no departures) then we replace it with the null object specified ("None shown...").
+        for slot in self.departure_data.keys():
+            if self.departure_data[slot] == []:
+                self.departure_data[slot] = [null_object_constructor(slot)]
+

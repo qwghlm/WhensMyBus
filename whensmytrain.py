@@ -100,7 +100,7 @@ class WhensMyTrain(WhensMyTransport):
         # All being well, we can now get the departure data for this station and return it
         departure_data = self.get_departure_data(station, line_code, via=destination_name)
         if departure_data:
-            return "%s to %s" % (station.get_abbreviated_name(), self.format_departure_data(departure_data))
+            return "%s to %s" % (station.get_abbreviated_name(), str(departure_data))
         else:
             if destination_name:
                 raise WhensMyTransportException('no_trains_shown_to', line_name, station.name, destination_name)
@@ -152,16 +152,15 @@ class WhensMyTrain(WhensMyTransport):
 
         # Filter out trains terminating here, and any that do not serve our destination
         terminus = lambda departure: self.get_canonical_station_name(line_code, departure.get_clean_destination_name())
-        for (slot, departures) in departure_data.items():
-            # For any non-empty list of departures, filter out any that terminate here. If as a result the list becomes empty, we mark the
-            # slot as deletable by setting the value to None
-            if departures:
-                departure_data[slot] = [d for d in departures if terminus(d) != station.name] or None
-            # If we've specified a station to go via, filter out any that do not stop at that station, or mark for deletion. Note that unlike
-            # the above, this will turn all existing empty lists into Nones (and thus deletable) as well
-            if via:
-                departure_data[slot] = [d for d in departures if self.geodata.direct_route_exists(station.name, terminus(d), line_code, via)] or None
-        departure_data = self.cleanup_departure_data(departure_data, null_constructor)
+        # For any non-empty list of departures, filter out any that terminate here. Note that existing empty lists remain empty and are not deleted
+        train_doesnt_terminate_here = lambda departure: terminus(departure) != station.name
+        departure_data.filter(train_doesnt_terminate_here, delete_existing_empty_slots=False)
+        # If we've specified a station to go via, filter out any that do not stop at that station, or mark for deletion. Note that unlike
+        # the above, this will turn all existing empty lists into Nones (and thus deletable) as well
+        if via:
+            train_goes_via = lambda departure: self.geodata.direct_route_exists(station.name, terminus(departure), line_code, via)
+            departure_data.filter(train_goes_via, delete_existing_empty_slots=True)
+        departure_data.cleanup(null_constructor)
         return departure_data
 
     def check_station_is_open(self, station):
