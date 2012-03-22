@@ -222,6 +222,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
 
         null_departure = NullDeparture("East")
         self.assertEqual(null_departure.get_destination(), "None shown going East")
+        self.assertEqual(null_departure.get_departure_time(), "")
 
         bus = Bus("Trafalgar Square", "Blackwall", "2359")
         bus2 = Bus("Trafalgar Square", "Blackwall", "2359")
@@ -484,12 +485,14 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             # Should say one of our route numbers, expected origin and a time
             route_regex = "^(%s)" % '|'.join(routes_specified.upper().replace(',', '').split(' '))
             self.assertRegexpMatches(result, route_regex)
-            # FIXME None Shown going should not have a time on it
-            self.assertRegexpMatches(result, '(%s to .* [0-9]{4}|None shown going)' % expected_origin)
+            if result.find("None shown") > -1:
+                self.assertRegexpMatches(result, 'None shown going (North|NE|East|SE|South|SW|West|NW)(;|$)')
+            else:
+                self.assertRegexpMatches(result, '(%s to .* [0-9]{4})' % expected_origin)
             # If we have specified a direction or destination, we should not be seeing buses going the other way
             if destination_to_avoid:
                 self.assertNotRegexpMatches(result, destination_to_avoid)
-                # FIXME And a check on the semi-colon as well
+                self.assertNotRegexpMatches(result, ";")
         print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
     #

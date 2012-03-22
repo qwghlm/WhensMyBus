@@ -232,6 +232,12 @@ class NullDeparture(Departure):
         """
         return "None shown going %s" % self.direction
 
+    def get_departure_time(self):
+        """
+        Returns a blank departure time as there is no departure at all
+        """
+        return ""
+
 
 class Bus(Departure):
     """
