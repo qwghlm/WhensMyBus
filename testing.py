@@ -557,7 +557,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                 self.assertNotRegexpMatches(result, destination_to_avoid)
                 #self.assertNotRegexpMatches(result, ";") FIXME
             #else:
-                #self.assertRegexpMatches(result, ";")
+                #self.assertRegexpMatches(result, ";")  FIXME
 
         print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
 
