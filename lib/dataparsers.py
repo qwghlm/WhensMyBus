@@ -3,7 +3,6 @@
 Data parsers for Whens My Transport?
 """
 import logging
-import os
 import re
 from datetime import datetime, timedelta
 from time import localtime
@@ -11,40 +10,6 @@ from time import localtime
 from lib.exceptions import WhensMyTransportException
 from lib.models import TubeTrain, Bus, Train as DLRTrain, DepartureCollection
 from lib.stringutils import capwords
-
-#
-# Live API URLs
-#
-HOME_DIR = os.path.dirname(os.path.abspath(__file__)) + '/..'
-URL_SETS = {
-    'live': {
-        'BUS_URL':  "http://countdown.tfl.gov.uk/stopBoard/%s",
-        'DLR_URL':  "http://www.dlrlondon.co.uk/xml/mobile/%s.xml",
-        'TUBE_URL': "http://cloud.tfl.gov.uk/TrackerNet/PredictionDetailed/%s/%s",
-        'STATUS_URL': "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly",
-    },
-    'test': {
-        'BUS_URL':  "file://" + HOME_DIR + "/testdata/bus/%s.json",
-        'DLR_URL':  "file://" + HOME_DIR + "/testdata/dlr/%s.xml",
-        'TUBE_URL': "file://" + HOME_DIR + "/testdata/tube/%s-%s.xml",
-        'STATUS_URL': "file://" + HOME_DIR + "/testdata/tube/status.xml",
-    }
-}
-
-
-class WMTURLProvider():
-    """
-    Wrapper class that provides URLs for the TfL APIs
-    """
-    #pylint: disable=R0903
-    def __init__(self, use_test_data=False):
-        if use_test_data:
-            self.urls = URL_SETS['test']
-        else:
-            self.urls = URL_SETS['live']
-
-    def __getattr__(self, key):
-        return self.urls[key]
 
 
 def parse_bus_data(bus_data, stop, route_number):
