@@ -65,7 +65,7 @@ def get_best_fuzzy_match(search_term, possible_items, minimum_confidence=70):
 
 def gmt_to_localtime(time_string):
     """
-    Takes a string of a possible GMT time and turns it into a representation in the locality - i.e. if BST 
+    Takes a string of a possible GMT time and turns it into a representation in the locality - i.e. if BST
     is in operation, the time has an hour added on. If we are in GMT, nothing happens
     """
     time_string = time_string.replace(':', '')
