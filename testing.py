@@ -268,6 +268,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertLess(train, train2)  # Fails if test run at 0000-0059
         self.assertEqual(train.get_destination(), "Charing X via Bank")
         self.assertEqual(train.get_clean_destination_name(), "Charing Cross")
+        self.assertEqual(train.get_via(), "Bank")
 
         # TubeTrain
         tube_train = TubeTrain("Charing Cross via Bank", "Northbound", "2359", "001", "", "")

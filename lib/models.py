@@ -281,6 +281,17 @@ class Train(Departure):
         """
         return re.sub(" \(?via .*$", "", self.destination, flags=re.I)
 
+    def get_via(self):
+        """
+        Return the station this train is "via", if there is one
+        """
+        match = re.search(" \(?via (.*)\)?$", self.destination, flags=re.I)
+        if match:
+            via = match.group(1)
+            manual_translations = {"CX": "Charing Cross", "T4": "Heathrow Terminal 4"}
+            return manual_translations.get(via, via)
+        return ""
+
 
 class TubeTrain(Train):
     """
@@ -288,7 +299,8 @@ class TubeTrain(Train):
     """
     #pylint: disable=W0231
     def __init__(self, destination, direction, departure_time, set_number, line_code, destination_code):
-        manual_translations = {"Heathrow T123 + 5": "Heathrow Terminal 5"}
+        manual_translations = {"Heathrow T123 + 5": "Heathrow Terminal 5",
+                               "Olympia": "Kensington (Olympia)"}
         destination = manual_translations.get(destination, destination)
         # Get rid of TfL's odd designations in the Destination field to make it compatible with our list of stations in the database
         # Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this does not exist
@@ -301,7 +313,8 @@ class TubeTrain(Train):
         else:
             # Regular expressions of instructions, depot names (presumably instructions for shunting after arrival), or platform numbers
             undesirables = ('\(rev to .*\)',
-                            r'sidings?\b.*$',
+                            '\(Rev\) Bank Branch',
+                            r'sidings?\b',
                             '(then )?depot',
                             'ex (barnet|edgware) branch',
                             '\(ex .*\)',
@@ -309,7 +322,8 @@ class TubeTrain(Train):
                             '27 Road',
                             '\(plat\. [0-9]+\)',
                             ' loop',
-                            '\(circle\)')
+                            '\(circle\)',
+                            '\(district\)',)
             destination = cleanup_name_from_undesirables(destination, undesirables)
         Train.__init__(self, destination, departure_time, direction)
         self.set_number = set_number
