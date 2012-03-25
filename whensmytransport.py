@@ -35,8 +35,7 @@ import sys
 from pprint import pprint # For debugging
 
 # From library modules in this package
-from lib.browser import WMTBrowser
-from lib.dataparsers import WMTURLProvider
+from lib.browser import WMTBrowser, WMTURLProvider
 from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
 from lib.locations import WMTLocations
