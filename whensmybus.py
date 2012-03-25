@@ -97,7 +97,7 @@ class WhensMyBus(WhensMyTransport):
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         logging.debug("Attempting to get a geomatch on location %s", position)
         max_runs = self.geodata.get_max_value('run', {'route': route_number})
-        logging.debug("Have found total of %s runs" % max_runs)
+        logging.debug("Have found total of %s runs", max_runs)
         relevant_stops = {}
         for run in range(1, max_runs + 1):
             stop = self.geodata.find_closest(position, {'route': route_number, 'run': run}, BusStop)
@@ -165,7 +165,7 @@ class WhensMyBus(WhensMyTransport):
                     logging.debug("Could not find any matching location for %s", origin)
                     continue
 
-                logging.debug("Have found %s matching points" % len(points))
+                logging.debug("Have found %s matching points", len(points))
                 # For each of the places found, get the nearest stop that serves this run
                 possible_stops = [self.get_stops_by_geolocation(route_number, point).get(run, None) for point in points]
                 possible_stops = [stop for stop in possible_stops if stop]
