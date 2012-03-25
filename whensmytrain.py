@@ -147,21 +147,35 @@ class WhensMyTrain(WhensMyTransport):
             null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
             tube_data = self.browser.fetch_xml_tree(self.urls.TUBE_URL % (line_code, station.code))
-            departure_data = parse_tube_data(tube_data, station, line_code, self.get_station_by_station_name)
+            departure_data = parse_tube_data(tube_data, station, line_code)
             null_constructor = lambda direction: NullDeparture(direction)
+
+        # Deal with any departures filed under "Unknown"
+        if "Unknown" in departure_data:
+            for departure in departure_data["Unknown"]:
+                destination_station = self.get_station_by_station_name(line_code, departure.destination)
+                if not destination_station:
+                    continue
+                if destination_station.location_easting < station.location_easting:
+                    departure_data.add_to_slot("Westbound", departure)
+                else:
+                    departure_data.add_to_slot("Eastbound", departure)
+            del departure_data["Unknown"]
 
         # Filter out trains terminating here, and any that do not serve our destination
         terminus = lambda departure: self.get_canonical_station_name(line_code, departure.get_clean_destination_name())
         # For any non-empty list of departures, filter out any that terminate here. Note that existing empty lists remain empty and are not deleted
         train_doesnt_terminate_here = lambda departure: terminus(departure) != station.name
         departure_data.filter(train_doesnt_terminate_here, delete_existing_empty_slots=False)
-        # If we've specified a station to go via, filter out any that do not stop at that station, or mark for deletion. Note that unlike
-        # the above, this will turn all existing empty lists into Nones (and thus deletable) as well
+        # If we've specified a station to go via, filter out any that do not stop at that station or are not in its direction
+        # Note that unlike the above, this will turn all existing empty lists into Nones (and thus deletable) as well
         if via:
-            train_goes_via = lambda departure: self.geodata.direct_route_exists(station.name, terminus(departure), line_code, via)
+            train_goes_via = lambda departure: self.geodata.does_train_stop_at(station.name, via, terminus(departure), departure.direction, line_code)
             departure_data.filter(train_goes_via, delete_existing_empty_slots=True)
         departure_data.cleanup(null_constructor)
         return departure_data
+
+
 
     def check_station_is_open(self, station):
         """

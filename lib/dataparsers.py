@@ -98,7 +98,7 @@ def parse_dlr_data(dlr_data, station):
     return trains_by_platform
 
 
-def parse_tube_data(tube_data, station, line_code, station_object_lookup_function):
+def parse_tube_data(tube_data, station, line_code):
     """
     Take a parsed elementTree tube_data, RailStation object, string representing a line code, and a reference
     to a get_station_by_station_name() function
@@ -128,7 +128,7 @@ def parse_tube_data(tube_data, station, line_code, station_object_lookup_functio
                 direction = "Northbound"
             else:
                 # The following stations will have "issues" with bidrectional platforms: North Acton, Edgware Road, Loughton, White City
-                # These are dealt with the below
+                # These are dealt with by analysing the location of the destination
                 direction = "Unknown"
                 logging.debug("Have encountered a platform without direction specified (%s)", platform_name)
 
@@ -143,21 +143,7 @@ def parse_tube_data(tube_data, station, line_code, station_object_lookup_functio
             departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
             set_number = train.attrib['SetNo']
             destination_code = train.attrib['DestCode']
-
             train_obj = TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code)
-
-            # Try and work out direction from destination. By luck, all the stations that have bidirectional
-            # platforms are on an East-West line, so we just inspect the position of the destination's easting
-            # and compare it to this station's
-            if train_obj.direction == "Unknown":
-                destination_station = station_object_lookup_function(line_code, train_obj.destination)
-                if not destination_station:
-                    continue
-                if destination_station.location_easting < station.location_easting:
-                    train_obj.direction = "Westbound"
-                else:
-                    train_obj.direction = "Eastbound"
-
             trains_by_direction.add_to_slot(direction, train_obj)
 
     return trains_by_direction

@@ -14,6 +14,7 @@ from pygraph.algorithms.minmax import shortest_path
 from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
+from lib.models import RailStation
 
 
 DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/')
@@ -156,6 +157,40 @@ class WMTLocations():
             if i > 1 and path_taken[i][0] == path_taken[i - 2][0]:
                 return False
         return True
+
+    def is_correct_direction(self, direction, origin, destination, line_code):
+        """
+        Return True if a train going in this direction will reach the destination from the origin
+        Whether a direct route exists is assumed to be true, as this is only an estimate
+        """
+        if not direction:
+            return False
+        if direction.endswith("bound"):
+            direction = direction[:-len("bound")]
+        origin = self.find_fuzzy_match({'line': line_code}, origin, RailStation)
+        destination = self.find_fuzzy_match({'line': line_code}, destination, RailStation)
+        if not origin or not destination:
+            return False
+
+        if direction == "East" and origin.location_easting < destination.location_easting or \
+           direction == "West" and origin.location_easting > destination.location_easting or \
+           direction == "North" and origin.location_northing < destination.location_northing or \
+           direction == "South" and origin.location_northing > destination.location_northing:
+            return True
+        else:
+            return False
+
+    def does_train_stop_at(self, origin, desired_station, destination, direction, line_code):
+        """
+        Return True if a train from origin bound for destination and/or in direction on line will stop at
+        desired_station on the way
+        """
+        if destination:
+            return self.direct_route_exists(origin, destination, line_code, via=desired_station)
+        elif direction:
+            return self.is_correct_direction(direction, origin, desired_station, line_code)
+        else:
+            return False
 
     def check_existence_of(self, column, value):
         """
