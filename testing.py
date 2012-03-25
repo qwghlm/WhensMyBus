@@ -457,7 +457,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Test to confirm we are ignoring Tweets from the bot itself
         """
-        tweet = FakeTweet(self.at_reply + self.test_standard_data[0][0], username=self.bot.username)
+        tweet = FakeTweet(self.at_reply + self.standard_test_data[0][0], username=self.bot.username)
         self.assertFalse(self.bot.validate_tweet(tweet))
 
     def test_blank_tweet(self):
@@ -480,7 +480,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Test to confirm lack of geotag handled OK
         """
-        for test_data in self.test_standard_data:
+        for test_data in self.standard_test_data:
             request = "%s" % test_data[0]
             tweet = FakeTweet(self.at_reply + request)
             self._test_correct_exception_produced(tweet, 'no_geotag', request)
@@ -491,7 +491,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Test to confirm ambiguous place information handled OK
         """
-        for test_data in self.test_standard_data:
+        for test_data in self.standard_test_data:
             request = "%s" % test_data[0]
             tweet = FakeTweet(self.at_reply + request, place='foo')
             self._test_correct_exception_produced(tweet, 'placeinfo_only', request)
@@ -500,7 +500,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Test to confirm geolocations outside UK handled OK
         """
-        for test_data in self.test_standard_data:
+        for test_data in self.standard_test_data:
             request = "%s" % test_data[0]
             tweet = FakeTweet(self.at_reply + request, (40.748433, -73.985656))  # Empire State Building, New York
             self._test_correct_exception_produced(tweet, 'not_in_uk')
@@ -509,10 +509,25 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Test to confirm geolocations outside London handled OK
         """
-        for test_data in self.test_standard_data:
+        for test_data in self.standard_test_data:
             request = "%s" % test_data[0]
             tweet = FakeTweet(self.at_reply + request, (55.948611, -3.200833))  # Edinburgh Castle, Edinburgh
             self._test_correct_exception_produced(tweet, 'not_in_london')
+
+    @unittest.skipIf('--live-data' in sys.argv, "Expected responses to messages not replicable with live data")
+    def test_nonstandard_messages(self):
+        """
+        Test to confirm a message that can be troublesome comes out OK
+        """
+        for (request, mandatory_items, forbidden_items) in self.nonstandard_test_data:
+            message = self.at_reply + request
+            tweet = FakeTweet(message)
+            results = self.bot.process_tweet(tweet)
+            for result in results:
+                for mandatory_item in mandatory_items:
+                    self.assertRegexpMatches(result, mandatory_item)
+                for forbidden_item in forbidden_items:
+                    self.assertNotRegexpMatches(result, forbidden_item)
 
 
 class WhensMyBusTestCase(WhensMyTransportTestCase):
@@ -529,9 +544,20 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         self.geodata_table_names = ('locations', )
 
         # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin, Unwanted Destination
-        self.test_standard_data = (
+        self.standard_test_data = (
             ('15',         'Limehouse Station', '53452', 51.5124, -0.0397, 'Poplar',           '73923', 'Limehouse Station', 'Regent Street'),
             ('425 25 205', 'Bow Road Station',  '55489', 51.5272, -0.0247, 'Mile End station', '76239', 'Bow Road Station',  '(Bow Church|Ilford|Stratford)'),
+        )
+        # Troublesome destinations & data
+        #
+        # Hoxton is mistaken as Brixton
+        # Postcodes should be doable with a geocoder
+        # 103 has more than 2 runs, check we delete the empty one
+        #
+        self.nonstandard_test_data = (
+            ('243 from Hoxton',                  ('Hoxton Station / Geffrye Museum'), ('Brixton',)),
+            ('55 from EC1M 4PN',                 ('St John Street',),                 ()),
+            ('103 from Romford Station',         ('Romford Station',),                ('None shown',)),
         )
 
     def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
@@ -656,7 +682,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         Generic test for standard-issue messages
         """
         #pylint: disable=W0612
-        for (route, origin_name, origin_id, lat, lon, destination_name, destination_id, expected_origin, destination_to_avoid) in self.test_standard_data:
+        for (route, origin_name, origin_id, lat, lon, destination_name, destination_id, expected_origin, destination_to_avoid) in self.standard_test_data:
 
             # C-string format helper
             test_variables = dict([(name, eval(name)) for name in ('route', 'origin_name', 'origin_id', 'destination_name', 'destination_id')])
@@ -676,31 +702,6 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
                         self._test_correct_successes(tweet, route, expected_origin, destination_to_avoid)
                     else:
                         self._test_correct_successes(tweet, route, expected_origin)
-
-    def test_nonstandard_messages(self):
-        """
-        Test to confirm a message that can be troublesome comes out OK
-        """
-        # Troublesome destinations & data
-        #
-        # Hoxton is mistaken as Brixton
-        # Postcodes should be doable with a geocoder
-        # 103 has more than 2 runs, check we delete the empty one
-        #
-        nonstandard_messages = (
-            ('243 from Hoxton',                  ('Hoxton Station / Geffrye Museum'), ('Brixton',)),
-            ('55 from EC1M 4PN',                 ('St John Street',),                 ()),
-            ('103 from Romford Station',         ('Romford Station',),                ('None shown',)),
-        )
-        for (request, mandatory_items, forbidden_items) in nonstandard_messages:
-            message = self.at_reply + request
-            tweet = FakeTweet(message)
-            results = self.bot.process_tweet(tweet)
-            for result in results:
-                for mandatory_item in mandatory_items:
-                    self.assertRegexpMatches(result, mandatory_item)
-                for forbidden_item in forbidden_items:
-                    self.assertNotRegexpMatches(result, forbidden_item)
 
     def test_multiple_routes(self):
         """
@@ -726,12 +727,21 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
+        # Regular test data
+        #
         # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted destination (if destination specified)
-        self.test_standard_data = (
+        self.standard_test_data = (
            ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",      'Upminster'),
            ('Victoria Line',        "Victoria",      51.4966, -0.1448, "Walthamstow",     "Victoria",      'Brixton'),
            ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      'Moorgate'),
            ('DLR',                  'Poplar',        51.5077, -0.0174, 'All Saints',      'Poplar',        'Bank'),
+        )
+        # FIXME via routing not yet possible on two vias, needs fixing
+        self.nonstandard_test_data = (
+            #("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
+            ("Northern Line from Camden Town to Kennington",  ("via Bank", "via CX"),                               ("High Barnet",)),
+            ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
+            ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
         )
 
     def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
@@ -847,7 +857,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         Generic test for standard-issue messages
         """
         #pylint: disable=W0612
-        for (line, origin_name, lat, lon, destination_name, expected_origin, destination_to_avoid) in self.test_standard_data:
+        for (line, origin_name, lat, lon, destination_name, expected_origin, destination_to_avoid) in self.standard_test_data:
 
             # C-string format helper
             test_variables = dict([(name, eval(name)) for name in ('line', 'origin_name', 'destination_name', 'line')])
@@ -870,28 +880,6 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                         else:
                             tweet = FakeTweet(message)
                         self._test_correct_successes(tweet, line, expected_origin, to_fragment and destination_to_avoid)
-
-    @unittest.skipIf('--live-data' in sys.argv, "Expected responses to messages not replicable with live data")
-    def test_nonstandard_messages(self):
-        """
-        Test for non-standard messages
-        """
-        # FIXME via routing not yet possible on two vias, needs fixing
-        nonstandard_messages = (
-            #("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
-            ("Northern Line from Camden Town to Kennington",  ("via Bank", "via CX"),                               ("High Barnet",)),
-            ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
-            ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
-        )
-        for (request, mandatory_items, forbidden_items) in nonstandard_messages:
-            message = self.at_reply + request
-            tweet = FakeTweet(message)
-            results = self.bot.process_tweet(tweet)
-            for result in results:
-                for mandatory_item in mandatory_items:
-                    self.assertRegexpMatches(result, mandatory_item)
-                for forbidden_item in forbidden_items:
-                    self.assertNotRegexpMatches(result, forbidden_item)
 
 
 class WhensMyDLRTestCase(WhensMyTubeTestCase):
