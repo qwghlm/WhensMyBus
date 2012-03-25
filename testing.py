@@ -534,6 +534,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             ('425 25 205', 'Bow Road Station',  '55489', 51.5272, -0.0247, 'Mile End station', '76239', 'Bow Road Station',  '(Bow Church|Ilford|Stratford)'),
         )
         # Troublesome destinations & data
+        # TODO Streamline this
         self.test_nonstandard_data = (
             ('%s from Stratford to Walthamstow', ('257',),      'Stratford Bus Station'),
             ('%s from Hoxton',                   ('243',),      'Hoxton Station / Geffrye Museum'),
@@ -718,29 +719,13 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
-        # FIXME *bound trains should be displayed (Circle), via (Central), add in wanted destination
-        #
-        # FIXME Completely revamp this. We should have very few generic tests and lots of specific ones
-        #
-        # Double-check Northern checking is adequate WRT via
         # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted destination (if destination specified)
         self.test_standard_data = (
-           ('Central Line',         "White City",    51.5121, -0.2246, "Redbridge",       "White City",    'Ealing'),
            ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",      'Upminster'),
-           ('Piccadilly Line',      "Acton Town",    51.5028, -0.2800, "Arsenal",         "Acton Town",    'Heathrow'),
-           ('Northern Line',        "Camden Town",   51.5394, -0.1427, "Kennington",      "Camden Town",   'High Barnet'),
-           ('Circle Line',          "Edgware Road",  51.5200, -0.1678, "Moorgate",        "Edgware Rd",    'Barking'),
-           ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      ''),
            ('Victoria Line',        "Victoria",      51.4966, -0.1448, "Walthamstow",     "Victoria",      'Brixton'),
-           ('DLR',                  'Bank',          51.5130, -0.0880, 'Canary Wharf',    'Bank',          'Woolwich A'),
-           ('DLR',                  'Tower Gateway', 51.5104, -0.0746, 'Beckton',         'Tower Gateway', 'Lewisham'),
-           ('DLR',                  'Lewisam',       51.4653, -0.0133, 'Poplar',          'Lewisham',      'Bank'),
-           ('DLR',                  'W India Quay',  51.5067, -0.0222, 'Canary Wharf',    'W India Quay',  'Stratford'),
-           ('DLR',                  'Canning Town',  51.5140,  0.0083, 'Westferry',       'Canning Town',  'Beckton'),
-           ('DLR',                  'Popular',       51.5077, -0.0174, 'All Saints',      'Poplar',        'Bank'),
-           ('DLR',                  'Stratford',     51.5422, -0.0033, 'Canary Wharf',    'Stratford',     'Beckton'),
+           ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      ''),
+           ('DLR',                  'Poplar',        51.5077, -0.0174, 'All Saints',      'Poplar',        'Bank'),
         )
-        self.test_nonstandard_data = ()
 
     def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
         """
@@ -865,13 +850,28 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                             tweet = FakeTweet(message)
                         self._test_correct_successes(tweet, line, expected_origin, to_fragment and destination_to_avoid)
 
+    @unittest.skipIf('--live-data' in sys.argv, "Expected responses to messages not replicable with live data")
     def test_nonstandard_messages(self):
         """
         Test for non-standard messages
         """
-        # TODO Should not be called with live data. Should come back with specific tests of scenarios on the data
-        pass
-
+        # FIXME The greyed-out ones below
+        # Double-check Northern checking is adequate WRT via
+        nonstandard_messages = (
+            #("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
+            ("Northern Line from Camden Town to Kennington",  ("via Bank", "via CX"),                               ("High Barnet",)),
+            #("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
+            ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
+        )
+        for (request, mandatory_items, forbidden_items) in nonstandard_messages:
+            message = self.at_reply + request
+            tweet = FakeTweet(message)
+            results = self.bot.process_tweet(tweet)
+            for result in results:
+                for mandatory_item in mandatory_items:
+                    self.assertRegexpMatches(result, mandatory_item)
+                for forbidden_item in forbidden_items:
+                    self.assertNotRegexpMatches(result, forbidden_item)
 
 
 class WhensMyDLRTestCase(WhensMyTubeTestCase):
@@ -934,7 +934,7 @@ def run_tests():
         tube_errors = ('bad_line_name',)
         station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch', 'known_problems')
         failures = format_errors + geotag_errors + tube_errors + station_errors
-        successes = ('standard_messages',)
+        successes = ('nonstandard_messages', 'standard_messages',)
     else:
         print "Error - %s is not a valid Test Case Name" % test_case_name
         sys.exit(1)

@@ -371,12 +371,12 @@ class DepartureCollection:
         for slot in sorted(self.departure_data.keys()):
             departures_output[slot] = {}
             # Group by departure within each slot
-            for departure in unique_values(sorted(self.departure_data[slot]))[:6]:
+            for departure in unique_values(sorted(self.departure_data[slot]))[:5]:
                 destination = departure.get_destination()
                 departures_output[slot][destination] = departures_output[slot].get(destination, []) + [departure.get_departure_time()]
             # Then sort grouped departures, earliest first within the slot. Different destinations separated by commas
             sort_earliest_departure_first = lambda pair1, pair2: cmp(pair1[1][0], pair2[1][0])
-            departures_output[slot] = ["%s %s" % (destination, ' '.join(times)) for (destination, times) in sorted(departures_output[slot].items(), sort_earliest_departure_first)]
+            departures_output[slot] = ["%s %s" % (destination, ' '.join(times[:3])) for (destination, times) in sorted(departures_output[slot].items(), sort_earliest_departure_first)]
 
             departures_output[slot] = ', '.join([departure.strip() for departure in departures_output[slot]])
             # Bus stops get their names included as well, if there is a departure
