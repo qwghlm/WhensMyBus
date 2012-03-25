@@ -34,7 +34,7 @@ try:
     from lib.exceptions import WhensMyTransportException
     from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
     from lib.listutils import unique_values
-    from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables
+    from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables, gmt_to_localtime
     from lib.models import Location, RailStation, BusStop, Departure, NullDeparture, Train, TubeTrain, Bus, DepartureCollection
 except ImportError as err:
     print """
@@ -196,6 +196,11 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertEqual(get_best_fuzzy_match(similarity_string, similarity_candidates), similarity_candidates[-2])
         dissimilarity_candidates = [random_string(48, 57) for _i in range(0, 10)]
         self.assertIsNone(get_best_fuzzy_match(similarity_string, dissimilarity_candidates))
+
+        if time.localtime().tm_isdst:
+            self.assertEqual(gmt_to_localtime("2359"), "0059")
+        else:
+            self.assertEqual(gmt_to_localtime("2359"), "2359")
 
     @unittest.skipIf(time.localtime()[3] < 2, "Arbitrary nature of test data fails at midnight")
     def test_models(self):
@@ -376,7 +381,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         # Check against our test data and make sure we are correctly parsing & fetching the right objects from the data
         bus_data = parse_bus_data(self.bot.browser.fetch_json(self.bot.urls.BUS_URL % "53410"), BusStop("LIMEHOUSE"), '15')
-        self.assertEqual(bus_data[0], Bus("Regent Street", "1931"))  # FIXME Will fail on GMT/BST change
+        self.assertEqual(bus_data[0], Bus("Regent Street", gmt_to_localtime("1831")))
         tube_data = parse_tube_data(self.bot.browser.fetch_xml_tree(self.bot.urls.TUBE_URL % ("D", "ECT")), RailStation("Earl's Court"), "D")
         self.assertEqual(tube_data["Eastbound"][0], TubeTrain("Edgware Road", "Eastbound", "2139", "075", "D", "147"))
         dlr_data = parse_dlr_data(self.bot.browser.fetch_xml_tree(self.bot.urls.DLR_URL % "pop"), RailStation("Poplar"))

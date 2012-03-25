@@ -5,11 +5,10 @@ Data parsers for Whens My Transport?
 import logging
 import re
 from datetime import datetime, timedelta
-from time import localtime
 
 from lib.exceptions import WhensMyTransportException
 from lib.models import TubeTrain, Bus, Train as DLRTrain, DepartureCollection
-from lib.stringutils import capwords
+from lib.stringutils import capwords, gmt_to_localtime
 
 
 def parse_bus_data(bus_data, stop, route_number):
@@ -29,11 +28,7 @@ def parse_bus_data(bus_data, stop, route_number):
     relevant_buses = []
     if relevant_arrivals:
         for arrival in relevant_arrivals[:3]:
-            scheduled_time = arrival['scheduledTime'].replace(':', '')
-            # Short hack to get BST working
-            if localtime().tm_isdst:
-                hour = (int(scheduled_time[0:2]) + 1) % 24
-                scheduled_time = '%02d%s' % (hour, scheduled_time[2:4])
+            scheduled_time = gmt_to_localtime(arrival['scheduledTime'])
             relevant_buses.append(Bus(arrival['destination'], scheduled_time))
         logging.debug("Stop %s produced buses: %s", stop.get_clean_name(), ', '.join([str(bus) for bus in relevant_buses]))
 

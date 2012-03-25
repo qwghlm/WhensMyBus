@@ -4,6 +4,7 @@ String utilities, including fuzzy string matching
 """
 import difflib
 import re
+from time import localtime
 
 
 def capwords(phrase):
@@ -60,3 +61,16 @@ def get_best_fuzzy_match(search_term, possible_items, minimum_confidence=70):
         return best_value
     else:
         return None
+
+
+def gmt_to_localtime(time_string):
+    """
+    Takes a string of a possible GMT time and turns it into a representation in the locality - i.e. if BST 
+    is in operation, the time has an hour added on. If we are in GMT, nothing happens
+    """
+    time_string = time_string.replace(':', '')
+    hour = int(time_string[0:2])
+    minute = int(time_string[2:4])
+    if localtime().tm_isdst:
+        hour = (hour + 1) % 24
+    return "%02d%02d" % (hour, minute)
