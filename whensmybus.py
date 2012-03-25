@@ -95,8 +95,9 @@ class WhensMyBus(WhensMyTransport):
             Values are BusStop objects
         """
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
-        logging.debug("Attempting to get a match on location %s", position)
+        logging.debug("Attempting to get a geomatch on location %s", position)
         max_runs = self.geodata.get_max_value('run', {'route': route_number})
+        logging.debug("Have found total of %s runs" % max_runs)
         relevant_stops = {}
         for run in range(1, max_runs + 1):
             stop = self.geodata.find_closest(position, {'route': route_number, 'run': run}, BusStop)
@@ -164,6 +165,7 @@ class WhensMyBus(WhensMyTransport):
                     logging.debug("Could not find any matching location for %s", origin)
                     continue
 
+                logging.debug("Have found %s matching points" % len(points))
                 # For each of the places found, get the nearest stop that serves this run
                 possible_stops = [self.get_stops_by_geolocation(route_number, point).get(run, None) for point in points]
                 possible_stops = [stop for stop in possible_stops if stop]
@@ -192,7 +194,7 @@ class WhensMyBus(WhensMyTransport):
             logging.debug("Number of runs is %s, removing any non-existent entries", len(relevant_buses))
             for i in range(3, max(relevant_stops.keys()) + 1):
                 if i in relevant_stops.keys() and not relevant_buses[relevant_stops[i]]:
-                    del relevant_buses[relevant_stops[i]]  # TODO Check for this
+                    del relevant_buses[relevant_stops[i]]
 
         null_constructor = lambda stop: NullDeparture(stop_directions[stop.run])
         relevant_buses.cleanup(null_constructor)
