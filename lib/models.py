@@ -260,13 +260,14 @@ class Train(Departure):
 
     Unlike Buses, trains can have unknown destinations or complicated destination names
     """
-    def __init__(self, destination, departure_time, direction=""):
+    def __init__(self, destination, departure_time, direction="", via=""):
         Departure.__init__(self, destination, departure_time)
         self.direction = direction
+        self.via = via
 
-    def get_destination(self):
+    def get_destination_no_via(self):
         """
-        Return this train's destination in suitably shortened format
+        Return this train's destination in suitably shortened format, without the via
         """
         if self.destination == "Unknown":
             destination = "%s Train" % self.direction
@@ -274,31 +275,26 @@ class Train(Departure):
             destination = RailStation(self.destination).get_abbreviated_name()
         return destination
 
-    def get_clean_destination_name(self):
-        """
-        Get rid of "via" from a destination name to make
-        it match easier to a canonical station name
-        """
-        return re.sub(" \(?via .*$", "", self.destination, flags=re.I)
-
     def get_via(self):
         """
         Return the station this train is "via", if there is one
         """
-        match = re.search(" \(?via (.*)\)?$", self.destination, flags=re.I)
-        if match:
-            via = match.group(1)
-            manual_translations = {"CX": "Charing Cross", "T4": "Heathrow Terminal 4"}
-            return manual_translations.get(via, via)
-        return ""
+        return RailStation(self.via).get_abbreviated_name()
 
+    def get_destination(self):
+        destination = self.get_destination_no_via()
+        via = self.get_via()
+        if via:
+            return "%s via %s" % (destination, via)
+        else:
+            return destination
 
 class TubeTrain(Train):
     """
     Class representing a Tube train
     """
     #pylint: disable=W0231
-    def __init__(self, destination, direction, departure_time, set_number, line_code, destination_code):
+    def __init__(self, destination, direction, departure_time, set_number, line_code):  # FIXME Swap
         manual_translations = {"Heathrow T123 + 5": "Heathrow Terminal 5",
                                "Olympia": "Kensington (Olympia)"}
         destination = manual_translations.get(destination, destination)
@@ -325,16 +321,24 @@ class TubeTrain(Train):
                             '\(circle\)',
                             '\(district\)',)
             destination = cleanup_name_from_undesirables(destination, undesirables)
-        Train.__init__(self, destination, departure_time, direction)
+
+        via_match = re.search(" \(?via (.*)\)?$", destination, flags=re.I)
+        if via_match:
+            manual_translations = {"CX": "Charing Cross", "T4": "Heathrow Terminal 4"}
+            via = manual_translations.get(via_match.group(1), via_match.group(1))
+            destination = re.sub(" \(?via .*$", "", destination, flags=re.I)
+        else:
+            via = ""
+
+        Train.__init__(self, destination, departure_time, direction, via)
         self.set_number = set_number
         self.line_code = line_code
-        self.destination_code = destination_code
 
     def __hash__(self):
         """
         Return hash value to enable ability to use as dictionary key
         """
-        return hash(' '.join([self.set_number, self.destination_code, self.get_departure_time()]))
+        return hash(' '.join([self.set_number, self.destination, self.via, self.get_departure_time()]))
 
 #
 # Representation of a collection of Departures
@@ -407,7 +411,7 @@ class DepartureCollection:
         """
         Adds departure to slot, creating said slot if it doesn't already exist
         """
-        self.departure_data[slot] = self.departure_data.get(slot, []) + [departure]
+        self.departure_data[slot] = self.departure_data.get(slot, []) + [departure] # FIXME Uniqueness
 
     def merge_common_slots(self):
         """
@@ -457,4 +461,3 @@ class DepartureCollection:
         for slot in self.departure_data.keys():
             if self.departure_data[slot] == []:
                 self.departure_data[slot] = [null_object_constructor(slot)]
-

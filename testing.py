@@ -166,7 +166,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         Unit test for stringutils' methods
         """
         # Check capwords
-        capitalised_strings = ("Bank", "Morden East", "King's Cross St. Pancras", "Kennington Oval via CX")
+        capitalised_strings = ("Bank", "Morden East", "King's Cross St. Pancras", "Kennington Oval via Charing X")
         for test_string in capitalised_strings:
             self.assertEqual(test_string, capwords(test_string))
             self.assertEqual(test_string, capwords(test_string.lower()))
@@ -267,7 +267,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         train2 = Train("Charing Cross via Bank", "0001")
         self.assertLess(train, train2)  # Fails if test run at 0000-0059
         self.assertEqual(train.get_destination(), "Charing X via Bank")
-        self.assertEqual(train.get_clean_destination_name(), "Charing Cross")
+        self.assertEqual(train.get_destination_no_via(), "Charing Cross")
         self.assertEqual(train.get_via(), "Bank")
 
         # TubeTrain
@@ -279,7 +279,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertEqual(tube_train.get_destination(), "Charing X via Bank")
         self.assertEqual(tube_train3.get_destination(), "Northbound Train")
         self.assertEqual(tube_train4.get_destination(), "Heathrow T 5")
-        self.assertEqual(tube_train.get_clean_destination_name(), "Charing Cross")
+        self.assertEqual(tube_train.get_destination_no_via(), "Charing Cross")
 
         # DepartureCollection fundamentals
         departures = DepartureCollection()
@@ -384,7 +384,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         bus_data = parse_bus_data(self.bot.browser.fetch_json(self.bot.urls.BUS_URL % "53410"), BusStop("LIMEHOUSE"), '15')
         self.assertEqual(bus_data[0], Bus("Regent Street", gmt_to_localtime("1831")))
         tube_data = parse_tube_data(self.bot.browser.fetch_xml_tree(self.bot.urls.TUBE_URL % ("D", "ECT")), RailStation("Earl's Court"), "D")
-        self.assertEqual(tube_data["Eastbound"][0], TubeTrain("Edgware Road", "Eastbound", "2139", "075", "D", "147"))
+        self.assertEqual(tube_data["Eastbound"][0], TubeTrain("Edgware Road", "Eastbound", "2139", "D", "075"))
         dlr_data = parse_dlr_data(self.bot.browser.fetch_xml_tree(self.bot.urls.DLR_URL % "pop"), RailStation("Poplar"))
         self.assertEqual(dlr_data['P1'][0], Train("Beckton", "2107"))
 
@@ -745,7 +745,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         # FIXME via routing not yet possible on two vias, needs fixing
         self.nonstandard_test_data = (
             #("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
-            ("Northern Line from Camden Town to Kennington",  ("via Bank", "via CX"),                               ("High Barnet",)),
+            ("Northern Line from Camden Town to Kennington",  ("via Bank", "via Charing X"),                               ("High Barnet",)),
             ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
             ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
         )

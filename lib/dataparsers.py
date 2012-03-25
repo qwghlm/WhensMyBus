@@ -137,8 +137,7 @@ def parse_tube_data(tube_data, station, line_code):
             departure_delta = timedelta(seconds=int(train.attrib['SecondsTo']))
             departure_time = datetime.strftime(publication_time + departure_delta, "%H%M")
             set_number = train.attrib['SetNo']
-            destination_code = train.attrib['DestCode']
-            train_obj = TubeTrain(destination, direction, departure_time, set_number, line_code, destination_code)
+            train_obj = TubeTrain(destination, direction, departure_time, line_code, set_number)
             trains_by_direction.add_to_slot(direction, train_obj)
 
     return trains_by_direction

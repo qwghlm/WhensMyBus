@@ -45,8 +45,8 @@ def check_tfl_destination_codes():
     for (destination_name, destination_code, line_code) in rows:
         if not filter_tube_train(destination_name, str(destination_code)):
             continue
-        train = TubeTrain(destination_name, "", "1200", "", "", "")
-        destination = train.get_clean_destination_name()
+        train = TubeTrain(destination_name, "", "1200", "", "")
+        destination = train.get_destination_no_via()
         if destination != "Unknown" and not geodata.find_fuzzy_match({}, destination, RailStation):
             print "Destination %s (%s) on %s not found in locations database" % (destination_name, destination_code, line_code)
         via = train.get_via()

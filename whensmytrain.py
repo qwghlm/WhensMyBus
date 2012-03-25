@@ -163,14 +163,14 @@ class WhensMyTrain(WhensMyTransport):
             del departure_data["Unknown"]
 
         # Filter out trains terminating here, and any that do not serve our destination
-        terminus = lambda departure: self.get_canonical_station_name(line_code, departure.get_clean_destination_name())
+        terminus = lambda train: self.get_canonical_station_name(line_code, train.get_destination_no_via())
         # For any non-empty list of departures, filter out any that terminate here. Note that existing empty lists remain empty and are not deleted
-        train_doesnt_terminate_here = lambda departure: terminus(departure) != station.name
+        train_doesnt_terminate_here = lambda train: terminus(train) != station.name
         departure_data.filter(train_doesnt_terminate_here, delete_existing_empty_slots=False)
         # If we've specified a station to go via, filter out any that do not stop at that station or are not in its direction
         # Note that unlike the above, this will turn all existing empty lists into Nones (and thus deletable) as well
         if via:
-            train_goes_via = lambda departure: self.geodata.does_train_stop_at(station.name, via, terminus(departure), departure.direction, line_code)
+            train_goes_via = lambda train: self.geodata.does_train_stop_at(station.name, via, terminus(train), train.direction, line_code)
             departure_data.filter(train_goes_via, delete_existing_empty_slots=True)
         departure_data.cleanup(null_constructor)
         return departure_data
