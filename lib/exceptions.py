@@ -64,10 +64,7 @@ class WhensMyTransportException(Exception):
         self.value = value
 
     def __str__(self):
-        """
-        Return a string representation of this Exception
-        """
-        return repr(self.value)
+        return self.value
 
     def get_user_message(self):
         """
