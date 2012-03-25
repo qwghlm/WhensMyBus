@@ -127,7 +127,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         exc = WhensMyTransportException()
         self.assertEqual(exc.value, str(exc))
-        self.assertLessEqual(len(exc.get_value()), 115)
+        self.assertLessEqual(len(exc.get_user_message()), 115)
 
     def test_geo(self):
         """
@@ -377,9 +377,8 @@ class WhensMyTransportTestCase(unittest.TestCase):
         # Check against our test data and make sure we are correctly parsing & fetching the right objects from the data
         bus_data = parse_bus_data(self.bot.browser.fetch_json(self.bot.urls.BUS_URL % "53410"), BusStop("LIMEHOUSE"), '15')
         self.assertEqual(bus_data[0], Bus("Regent Street", "1931"))  # FIXME Will fail on GMT/BST change
-        if False: # FIXME
-            tube_data = parse_tube_data(self.bot.browser.fetch_xml_tree(self.bot.urls.TUBE_URL % ("D", "ECT")), RailStation("Earl's Court"), "D", self.bot.get_station_by_station_name)
-            self.assertEqual(tube_data["Eastbound"][0], TubeTrain("Edgware Road", "Eastbound", "2139", "075", "D", "147"))
+        tube_data = parse_tube_data(self.bot.browser.fetch_xml_tree(self.bot.urls.TUBE_URL % ("D", "ECT")), RailStation("Earl's Court"), "D")
+        self.assertEqual(tube_data["Eastbound"][0], TubeTrain("Edgware Road", "Eastbound", "2139", "075", "D", "147"))
         dlr_data = parse_dlr_data(self.bot.browser.fetch_xml_tree(self.bot.urls.DLR_URL % "pop"), RailStation("Poplar"))
         self.assertEqual(dlr_data['P1'][0], Train("Beckton", "2107"))
 
@@ -731,7 +730,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.test_standard_data = (
            ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",      'Upminster'),
            ('Victoria Line',        "Victoria",      51.4966, -0.1448, "Walthamstow",     "Victoria",      'Brixton'),
-           ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      'Bank'),
+           ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      'Moorgate'),
            ('DLR',                  'Poplar',        51.5077, -0.0174, 'All Saints',      'Poplar',        'Bank'),
         )
 
@@ -762,12 +761,26 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
         self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N"))
         self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N", "Bank"))
+        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Epping", "C"))
+        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault"))
+        self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Wanstead", "C"))
+        self.assertFalse(self.bot.geodata.direct_route_exists("Heathrow Terminals 1, 2, 3", "Heathrow Terminal 4", "P"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", "Oxford Circus", "Epping", "C"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Westbound", "Epping", "Oxford Circus", "C"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Northbound", "Morden", "High Barnet", "N"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Southbound", "Stanmore", "Waterloo", "J"))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Southbound", "Holborn", "Cockfosters", "P"))
+
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'line': 'DLR'}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Limehouse", RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "Stratford Int", RailStation).code, "sti")
         self.assertEqual(self.bot.geodata.find_fuzzy_match({}, "W'wich Arsenal", RailStation).code, "woa")
         self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton"))
         self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton", "DLR", "Poplar"))
+        self.assertTrue(self.bot.geodata.direct_route_exists("Bank", "Beckton", "DLR"))
+        self.assertFalse(self.bot.geodata.direct_route_exists("East India", "All Saints", "DLR"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", "Bank", "Beckton", "DLR"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Southbound", "Stratford", "Lewisham", "DLR"))
 
     def test_bad_line_name(self):
         """
@@ -863,12 +876,11 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Test for non-standard messages
         """
-        # FIXME The greyed-out ones below
-        # Double-check Northern checking is adequate WRT via
+        # FIXME via routing not yet possible on two vias, needs fixing
         nonstandard_messages = (
             #("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
             ("Northern Line from Camden Town to Kennington",  ("via Bank", "via CX"),                               ("High Barnet",)),
-            #("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
+            ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
             ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
         )
         for (request, mandatory_items, forbidden_items) in nonstandard_messages:
@@ -925,7 +937,7 @@ def run_tests():
     test_case_name = parser.parse_args().test_case_name
 
     # Init tests (same for all)
-    unit_tests = ('geo', 'listutils', 'models', 'stringutils',)  # FIXME 'exceptions', 
+    unit_tests = ('exceptions', 'geo', 'listutils', 'models', 'stringutils',)
     local_tests = ('init', 'browser', 'database', 'dataparsers', 'location', 'logger', 'settings', 'textparser')
     remote_tests = ('geocoder', 'twitter_client',)
 
