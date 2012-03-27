@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#pylint: disable=C0103,W0142,R0904,W0141
+#pylint: disable=C0103,W0142,R0904,W0141,R0915,C0302
 """
 A set of unit tests for When's My Bus?
 
@@ -780,6 +780,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N", "Bank"))
         self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Epping", "C"))
         self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault"))
+        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault", must_stop_at="Newbury Park"))
         self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Wanstead", "C"))
         self.assertFalse(self.bot.geodata.direct_route_exists("Heathrow Terminals 1, 2, 3", "Heathrow Terminal 4", "P"))
         self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", "Oxford Circus", "Epping", "C"))
@@ -893,9 +894,8 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Test for non-standard messages
         """
-        # FIXME via routing not yet possible on two vias, needs fixing
         nonstandard_messages = (
-            #("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
+            ("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
             ("Northern Line from Camden Town to Kennington",  ("via Bank", "via CX"),                               ("High Barnet",)),
             ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
             ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
