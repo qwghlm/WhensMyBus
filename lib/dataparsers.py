@@ -123,7 +123,7 @@ def parse_tube_data(tube_data, station, line_code):
                 direction = "Northbound"
             else:
                 # The following stations will have "issues" with bidrectional platforms: North Acton, Edgware Road, Loughton, White City
-                # These are dealt with by analysing the location of the destination
+                # These are dealt with by analysing the location of the destination by the calling WhensMyTrain object
                 direction = "Unknown"
                 logging.debug("Have encountered a platform without direction specified (%s)", platform_name)
 

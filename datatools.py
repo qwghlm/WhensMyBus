@@ -218,7 +218,7 @@ def import_network_data_to_graph():
             # When a line splits into two branches, we don't want people being able to travel from one branch to another without
             # changing. So for these special cases, we mark the transitions as being in a particular direction in the CSV, with the
             # direction coming after a colon (e.g. "Leytonstone:Northbound","Wanstead","Central" and "Snaresbrook","Leytonstone:Southbound","Central"
-            # Effectively the station has become two nodes, and now you cannot go directly from Snaresbrook to Wanstead.
+            # Effectively the Central Line station has become two nodes, and now you cannot go directly from Snaresbrook to Wanstead.
             direction = station1.partition(':')[2]  # Blank for most
             station1 = station1.partition(':')[0]  # So station name becomes just e.g. Leytonstone
 
@@ -250,12 +250,12 @@ def import_network_data_to_graph():
     graphs = {}
     lines = unique_values([line for station in stations_neighbours.values() for (neighbour, direction, line) in station])
     for line in lines:
-        subset_of_stations = {}
+        this_line_only = {}
         for (station_name, neighbours) in stations_neighbours.items():
             neighbours_for_this_line = [neighbour for neighbour in neighbours if neighbour[2] == line]
             if neighbours_for_this_line:
-                subset_of_stations[station_name] = neighbours_for_this_line
-        graphs[get_line_code(line)] = create_graph_from_dict(subset_of_stations, database, interchanges_by_foot)
+                this_line_only[station_name] = neighbours_for_this_line
+        graphs[get_line_code(line)] = create_graph_from_dict(this_line_only, database, interchanges_by_foot)
     graphs['All'] = create_graph_from_dict(stations_neighbours, database, interchanges_by_foot)
 
     pickle.dump(graphs, open("./db/whensmytrain.network.gr", "w"))
@@ -328,6 +328,7 @@ def create_graph_from_dict(stations, database, interchanges_by_foot):
             graph.add_node(":".join((station, direction, line)))
 
     # Now we add the nodes for each line - connecting each set of platforms for each station to the neighbouring stations
+    # Each node is encoded as a Name:Direction:Line string. If Direction is an empty string, we treat is both directions
     for (station, station_data) in stations.items():
         for (neighbour, direction, line) in station_data:
             neighbour_name = neighbour.partition(':')[0]

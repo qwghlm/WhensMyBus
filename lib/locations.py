@@ -7,7 +7,6 @@ from math import sqrt
 import logging
 import os.path
 import cPickle as pickle
-import sys
 
 from pygraph.algorithms.minmax import shortest_path
 
@@ -33,7 +32,7 @@ class WMTLocations():
             filename = 'whensmytrain'
         else:
             logging.error("No data files exist for instance name %s, aborting", instance_name)
-            sys.exit(1)
+            raise RuntimeError("No data files exist for instance name %s, aborting" % instance_name)
 
         self.database = WMTDatabase('%s.geodata.db' % filename)
         network_file = DB_PATH + '/%s.network.gr' % filename
@@ -56,7 +55,7 @@ class WMTLocations():
         # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
         # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
         # and find the first row
-        (where_statement, where_values) = self.make_where_statement(params)
+        (where_statement, where_values) = self.database.make_where_statement('locations', params)
         query = """
                 SELECT (location_easting - %d)*(location_easting - %d) + (location_northing - %d)*(location_northing - %d) AS dist_squared,
                       *
@@ -74,23 +73,25 @@ class WMTLocations():
             logging.debug("No location found near %s, sorry", position)
             return None
 
-    def find_fuzzy_match(self, params, fuzzy_match_query, returned_object):
+    def find_fuzzy_match(self, stop_or_station_name, params, returned_object):
         """
         Find the best fuzzy match to the query_string, querying the database with dictionary params, of the format
         { Column Name : value, }. Returns an object of class returned_object, or None if no fuzzy match found
         """
+        if not stop_or_station_name or stop_or_station_name == "Unknown":
+            return None
         # Try to get an exact match first against station names in database
         exact_params = params.copy()
-        exact_params.update({'name': fuzzy_match_query})
+        exact_params.update({'name': stop_or_station_name})
         exact_match = self.find_exact_match(exact_params, returned_object)
         if exact_match:
             return exact_match
 
         # Users may not give exact details, so we try to match fuzzily
-        (where_statement, where_values) = self.make_where_statement(params)
+        (where_statement, where_values) = self.database.make_where_statement('locations', params)
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
         possible_matches = [returned_object(**row) for row in rows]
-        best_match = get_best_fuzzy_match(fuzzy_match_query, possible_matches)
+        best_match = get_best_fuzzy_match(stop_or_station_name, possible_matches)
         if best_match:
             return best_match
         else:
@@ -101,7 +102,7 @@ class WMTLocations():
         Find the exact match for an item matching params. Returns an object of class returned_object, or None if no
         fuzzy match found
         """
-        (where_statement, where_values) = self.make_where_statement(params)
+        (where_statement, where_values) = self.database.make_where_statement('locations', params)
         row = self.database.get_row("SELECT * FROM locations WHERE %s LIMIT 1" % where_statement, where_values)
         if row:
             return returned_object(**row)
@@ -110,10 +111,11 @@ class WMTLocations():
 
     def describe_route(self, origin, destination, line_code='All', via=None):
         """
-        Return the shortest route between origin and destination
+        Return the shortest route between origin and destination. Returns an list describing the route from start to finish
+        Each element of the list is a tuple of form (station_name, direction, line_code)
         """
         if not self.network:
-            raise ValueError("No network information available for these locations")
+            return []
         if via:
             first_half = self.describe_route(origin, via, line_code)
             second_half = self.describe_route(via, destination, line_code)
@@ -126,10 +128,8 @@ class WMTLocations():
 
         network = self.network[line_code]
         shortest_path_dictionary = shortest_path(network, origin)[0]
-        if origin not in shortest_path_dictionary:
-            raise KeyError("Not found - no such node %s exists" % origin)
-        if destination not in shortest_path_dictionary:
-            raise KeyError("Not found - no such node %s exists" % destination)
+        if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
+            return []
         # Shortest path dictionary consists of a dictionary of node names as keys, with the values
         # being the name of the node that preceded it in the shortest path
         # Count back from our destinaton, to the origin point
@@ -142,23 +142,26 @@ class WMTLocations():
         path_taken = path_taken[1:-1][::-1]
         return path_taken
 
-    def direct_route_exists(self, origin, destination, line_code, via=None):
+    def direct_route_exists(self, origin, destination, line_code, via=None, must_stop_at=None):
         """
-        Return whether there is a direct route (i.e. one that does work without changing) on a list of stops
+        Return whether there is a direct route (i.e. one that does work without changing) between origin and destination on the line
+        with code line_code (going via via if specified). If must_stop_at is specified, must also check that it stops at must_stop_at
         """
         if not origin or not destination:
             return False
-        path_taken = self.describe_route(origin, destination, line_code, via)
+        path_taken = [stop[0] for stop in self.describe_route(origin, destination, line_code, via)]
+        if must_stop_at and must_stop_at not in path_taken:
+            return False
         for i in range(1, len(path_taken)):
             # If same station twice in a row, then we must have a change
-            if path_taken[i][0] == path_taken[i - 1][0]:
+            if path_taken[i] == path_taken[i - 1]:
                 return False
             # If visiting same station with one in between, then we must have visited a station & doubled back
-            if i > 1 and path_taken[i][0] == path_taken[i - 2][0]:
+            if i > 1 and path_taken[i] == path_taken[i - 2]:
                 return False
         return True
 
-    def is_correct_direction(self, direction, origin, destination, line_code):
+    def is_correct_direction(self, origin, destination, direction, line_code):
         """
         Return True if a train going in this direction will reach the destination from the origin
         Whether a direct route exists is assumed to be true, as this is only an estimate
@@ -180,44 +183,14 @@ class WMTLocations():
         else:
             return False
 
-    def does_train_stop_at(self, origin, desired_station, destination, direction, line_code):
+    def does_train_stop_at(self, origin, desired_station, train):
         """
         Return True if a train from origin bound for destination and/or in direction on line will stop at
         desired_station on the way
         """
-        if destination:
-            return self.direct_route_exists(origin, destination, line_code, via=desired_station)
-        elif direction:
-            return self.is_correct_direction(direction, origin, desired_station, line_code)
+        if train.destination and train.destination != "Unknown":
+            return self.direct_route_exists(origin, train.destination, train.line_code, via=train.via, must_stop_at=desired_station)
+        elif train.direction:
+            return self.is_correct_direction(origin, desired_station, train.direction, train.line_code)
         else:
             return False
-
-    def check_existence_of(self, column, value):
-        """
-        Check to see if any row in the database has a value in column; returns True if exists, False if not
-        """
-        (where_statement, where_values) = self.make_where_statement({column: value})
-        rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
-        return bool(rows)
-
-    def get_max_value(self, column, params):
-        """
-        Return the maximum value of integer column out of the table given the params given
-        """
-        (where_statement, where_values) = self.make_where_statement(params)
-        return int(self.database.get_value("SELECT MAX(\"%s\") FROM locations WHERE %s" % (column, where_statement), where_values))
-
-    def make_where_statement(self, params):
-        """
-        Convert a dictionary of params and return a statement that can go after a WHERE
-        """
-        if not params:
-            return (" 1 ", ())
-        column_names = [row[1] for row in self.database.get_rows("PRAGMA table_info(locations)")]
-        for column in params.keys():
-            if column not in column_names:
-                raise KeyError("Error: Database column %s not in our database" % column)
-        # Construct our SQL statement
-        where_statement = ' AND '.join(['"%s" = ?' % column for (column, value) in params.items()])
-        where_values = tuple([value for (column, value) in params.items()])
-        return (where_statement, where_values)

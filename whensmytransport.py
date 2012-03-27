@@ -12,7 +12,7 @@ loading the databases, config, connecting to Twitter, reading @ replies, replyin
 as well as models and classes for useful constructs such as Trains and Stations
 
 The WhensMyBus and WhensMyTrain classes handle looking up route, line, station and stop locations and names, and processing
-data via the respective services' APIs
+data using the respective services' APIs
 
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
@@ -31,7 +31,6 @@ import ConfigParser
 import logging
 import os
 import re
-import sys
 from pprint import pprint # For debugging
 
 # From library modules in this package
@@ -73,9 +72,8 @@ class WhensMyTransport:
             config.read(HOME_DIR + '/' + config_file)
             config.get(self.instance_name, 'debug_level')
         except (ConfigParser.Error, IOError):
-            print """Fatal error: can't find a valid config file with options for %s.""" % self.instance_name
-            print """Please make sure there is a %s file in this directory""" % config_file
-            sys.exit(1)
+            error_string = "Fatal error: can't find a valid config file for %s. Please make sure there is a %s file in this directory" % (self.instance_name, config_file)
+            raise RuntimeError(error_string)
 
         # Setup debugging
         debug_level = config.get(self.instance_name, 'debug_level')
@@ -234,7 +232,7 @@ class WhensMyTransport:
 
     def sanitize_message(self, message):
         """
-        Takes a message, scrub out the @username of this bot and any #hashtags, and return the sanitized messages
+        Takes a message string, scrub out the @username of this bot and any #hashtags, and return the sanitized messages
         """
         # Remove hashtags and @username
         message = re.sub(r"\s#\w+\b", '', message)
@@ -294,7 +292,7 @@ class WhensMyTransport:
         return ""
 
     @abstractmethod
-    def get_departure_data(self, station_or_stops, line_or_route, via):
+    def get_departure_data(self, station_or_stops, line_or_route, must_stop_at):
         """
         Abstract method. This must be overridden by a child class to do anything useful
 

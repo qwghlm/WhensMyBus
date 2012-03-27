@@ -52,3 +52,33 @@ class WMTDatabase():
         row = self.get_row(sql, args)
         value = row and row[0]
         return value
+
+    def check_existence_of(self, table_name, column, value):
+        """
+        Check to see if any row in the table has a value in column; returns True if exists, False if not
+        """
+        (where_statement, where_values) = self.make_where_statement(table_name, {column: value})
+        rows = self.database.get_rows("SELECT * FROM %s WHERE %s" % (table_name, where_statement), where_values)
+        return bool(rows)
+
+    def get_max_value(self, table_name, column, params):
+        """
+        Return the maximum value of integer column out of the table given the params given
+        """
+        (where_statement, where_values) = self.make_where_statement(table_name, params)
+        return int(self.database.get_value("SELECT MAX(\"%s\") FROM %s WHERE %s" % (column, table_name, where_statement), where_values))
+
+    def make_where_statement(self, table_name, params):
+        """
+        Convert a dictionary of params, checks it against the table, and return a statement that can go after a WHERE
+        """
+        if not params:
+            return (" 1 ", ())
+        column_names = [row[1] for row in self.database.get_rows("PRAGMA table_info(%s)" % table_name)]
+        for column in params.keys():
+            if column not in column_names:
+                raise KeyError("Error: Database column %s not in our database" % column)
+        # Construct our SQL statement
+        where_statement = ' AND '.join(['"%s" = ?' % column for (column, value) in params.items()])
+        where_values = tuple([value for (column, value) in params.items()])
+        return (where_statement, where_values)
