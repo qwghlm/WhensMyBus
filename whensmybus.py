@@ -47,7 +47,7 @@ class WhensMyBus(WhensMyTransport):
         """
         # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
         route_number = route_number.upper()
-        if not self.geodata.check_existence_of('route', route_number):
+        if not self.geodata.database.check_existence_of('locations', 'route', route_number):
             raise WhensMyTransportException('nonexistent_bus', route_number)
 
         # Dig out relevant bus stop for this route from the geotag, if provided, or else the stop name
@@ -96,7 +96,7 @@ class WhensMyBus(WhensMyTransport):
         """
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         logging.debug("Attempting to get a geomatch on location %s", position)
-        max_runs = self.geodata.get_max_value('run', {'route': route_number})
+        max_runs = self.geodata.database.get_max_value('locations', 'run', {'route': route_number})
         logging.debug("Have found total of %s runs", max_runs)
         relevant_stops = {}
         for run in range(1, max_runs + 1):
@@ -112,7 +112,7 @@ class WhensMyBus(WhensMyTransport):
         value is the corresponding BusStop object
         """
         # Pull the stop ID out of the routes database and see if it exists
-        if not self.geodata.check_existence_of('bus_stop_code', stop_number):
+        if not self.geodata.database.check_existence_of('locations', 'bus_stop_code', stop_number):
             raise WhensMyTransportException('bad_stop_id', stop_number)
 
         # Try and get a match on it
@@ -142,7 +142,7 @@ class WhensMyBus(WhensMyTransport):
         relevant_stops = {}
 
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
-        max_runs = self.geodata.get_max_value('run', {'route': route_number})
+        max_runs = self.geodata.database.get_max_value('locations', 'run', {'route': route_number})
         for run in range(1, max_runs + 1):
             best_match = self.geodata.find_fuzzy_match({'route': route_number, 'run': run}, origin, BusStop)
             if best_match:

@@ -56,7 +56,7 @@ class WMTLocations():
         # Do a funny bit of Pythagoras to work out closest stop. We can't find square root of a number in sqlite
         # but then again, we don't need to, the smallest square will do. Sort by this column in ascending order
         # and find the first row
-        (where_statement, where_values) = self.make_where_statement(params)
+        (where_statement, where_values) = self.database.make_where_statement('locations', params)
         query = """
                 SELECT (location_easting - %d)*(location_easting - %d) + (location_northing - %d)*(location_northing - %d) AS dist_squared,
                       *
@@ -87,7 +87,7 @@ class WMTLocations():
             return exact_match
 
         # Users may not give exact details, so we try to match fuzzily
-        (where_statement, where_values) = self.make_where_statement(params)
+        (where_statement, where_values) = self.database.make_where_statement('locations', params)
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
         possible_matches = [returned_object(**row) for row in rows]
         best_match = get_best_fuzzy_match(fuzzy_match_query, possible_matches)
@@ -101,7 +101,7 @@ class WMTLocations():
         Find the exact match for an item matching params. Returns an object of class returned_object, or None if no
         fuzzy match found
         """
-        (where_statement, where_values) = self.make_where_statement(params)
+        (where_statement, where_values) = self.database.make_where_statement('locations', params)
         row = self.database.get_row("SELECT * FROM locations WHERE %s LIMIT 1" % where_statement, where_values)
         if row:
             return returned_object(**row)
@@ -191,33 +191,3 @@ class WMTLocations():
             return self.is_correct_direction(direction, origin, desired_station, line_code)
         else:
             return False
-
-    def check_existence_of(self, column, value):
-        """
-        Check to see if any row in the database has a value in column; returns True if exists, False if not
-        """
-        (where_statement, where_values) = self.make_where_statement({column: value})
-        rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
-        return bool(rows)
-
-    def get_max_value(self, column, params):
-        """
-        Return the maximum value of integer column out of the table given the params given
-        """
-        (where_statement, where_values) = self.make_where_statement(params)
-        return int(self.database.get_value("SELECT MAX(\"%s\") FROM locations WHERE %s" % (column, where_statement), where_values))
-
-    def make_where_statement(self, params):
-        """
-        Convert a dictionary of params and return a statement that can go after a WHERE
-        """
-        if not params:
-            return (" 1 ", ())
-        column_names = [row[1] for row in self.database.get_rows("PRAGMA table_info(locations)")]
-        for column in params.keys():
-            if column not in column_names:
-                raise KeyError("Error: Database column %s not in our database" % column)
-        # Construct our SQL statement
-        where_statement = ' AND '.join(['"%s" = ?' % column for (column, value) in params.items()])
-        where_values = tuple([value for (column, value) in params.items()])
-        return (where_statement, where_values)

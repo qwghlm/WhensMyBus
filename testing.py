@@ -362,6 +362,11 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertEqual(value, 1)
         value = self.bot.geodata.database.get_value("SELECT value FROM test_data WHERE key = 'c'")
         self.assertIsNone(value)
+        self.assertTrue(self.bot.geodata.database.check_existence_of('test_data', 'key', 'a'))
+        self.assertEqual(self.bot.geodata.database.get_max_value('test_data', 'value', {}), 3)
+        self.assertEqual(self.bot.geodata.database.make_where_statement('test_data', {}), (" 1 ", ()))
+        self.assertEqual(self.bot.geodata.database.make_where_statement('test_data', {'key': 'a', 'value': 1}), (" key=? AND value=? ", ('a', 1)))
+        self.assertRaises(KeyError, self.bot.geodata.database.make_where_statement, 'test_data', {'foo': 'a'})
 
         self.bot.geodata.database.write_query("DROP TABLE test_data")
 
@@ -585,9 +590,9 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'run': '1', 'route': '15'}, BusStop).number, "53410")
         self.assertEqual(self.bot.geodata.find_fuzzy_match({'run': '1', 'route': '15'}, "Limehouse Sta", BusStop).number, "53410")
         self.assertEqual(self.bot.geodata.find_exact_match({'run': '1', 'route': '15', 'name': 'LIMEHOUSE TOWN HALL'}, BusStop).number, "48264")
-        self.assertTrue(self.bot.geodata.check_existence_of('bus_stop_code', '47001'))
-        self.assertFalse(self.bot.geodata.check_existence_of('bus_stop_code', '47000'))
-        self.assertEqual(self.bot.geodata.get_max_value('run', {}), 4)
+        self.assertTrue(self.bot.geodata.database.check_existence_of('locations', 'bus_stop_code', '47001'))
+        self.assertFalse(self.bot.geodata.database.check_existence_of('locations', 'bus_stop_code', '47000'))
+        self.assertEqual(self.bot.geodata.database.get_max_value('locations', 'run', {}), 4)
 
     def test_no_bus_number(self):
         """
