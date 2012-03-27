@@ -7,7 +7,7 @@ import re
 from datetime import datetime, timedelta
 
 from lib.exceptions import WhensMyTransportException
-from lib.models import TubeTrain, Bus, Train as DLRTrain, DepartureCollection
+from lib.models import TubeTrain, Bus, DLRTrain, DepartureCollection
 from lib.stringutils import capwords, gmt_to_localtime
 
 
