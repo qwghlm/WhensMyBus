@@ -141,37 +141,42 @@ class WhensMyTrain(WhensMyTransport):
             line_code = 'H'
         if line_code == 'DLR':
             dlr_data = self.browser.fetch_xml_tree(self.urls.DLR_URL % station.code)
-            departure_data = parse_dlr_data(dlr_data, station)
+            departures = parse_dlr_data(dlr_data, station)
             null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
             tube_data = self.browser.fetch_xml_tree(self.urls.TUBE_URL % (line_code, station.code))
-            departure_data = parse_tube_data(tube_data, station, line_code)
+            departures = parse_tube_data(tube_data, station, line_code)
             null_constructor = lambda direction: NullDeparture(direction)
 
-        # Deal with any departures filed under "Unknown"
-        if "Unknown" in departure_data:
-            for departure in departure_data["Unknown"]:
-                destination_station = self.get_station_by_station_name(line_code, departure.destination)
+        # Turn parsed destination & via names into canonical versions for this train so we can do lookups & checks
+        for slot in departures:
+            for train in departures[slot]:
+                if train.destination != "Unknown":
+                    train.destination = self.get_canonical_station_name(line_code, train.destination)
+                if train.via:
+                    train.via = self.get_canonical_station_name(line_code, train.via)
+
+        # Deal with any departures filed under "Unknown", slotting them into Eastbound/Westbound if their direction is not known
+        # (By a stroke of luck, all the stations this applies to - North Acton, Edgware Road, Loughton, White City - are on an east/west line)
+        if "Unknown" in departures:
+            for train in departures["Unknown"]:
+                destination_station = self.get_station_by_station_name(line_code, train.destination)
                 if not destination_station:
                     continue
                 if destination_station.location_easting < station.location_easting:
-                    departure_data.add_to_slot("Westbound", departure)
+                    departures.add_to_slot("Westbound", train)
                 else:
-                    departure_data.add_to_slot("Eastbound", departure)
-            del departure_data["Unknown"]
+                    departures.add_to_slot("Eastbound", train)
+            del departures["Unknown"]
 
-        # Filter out trains terminating here, and any that do not serve our destination
-        terminus = lambda departure: self.get_canonical_station_name(line_code, departure.get_clean_destination_name())
         # For any non-empty list of departures, filter out any that terminate here. Note that existing empty lists remain empty and are not deleted
-        train_doesnt_terminate_here = lambda departure: terminus(departure) != station.name
-        departure_data.filter(train_doesnt_terminate_here, delete_existing_empty_slots=False)
+        departures.filter(lambda train: train.destination != station.name, delete_existing_empty_slots=False)
         # If we've specified a station to stop at, filter out any that do not stop at that station or are not in its direction
         # Note that unlike the above, this will turn all existing empty lists into Nones (and thus deletable) as well
         if must_stop_at:
-            train_stops_at = lambda departure: self.geodata.does_train_stop_at(station.name, must_stop_at, terminus(departure), departure.direction, line_code)
-            departure_data.filter(train_stops_at, delete_existing_empty_slots=True)
-        departure_data.cleanup(null_constructor)
-        return departure_data
+            departures.filter(lambda train: self.geodata.does_train_stop_at(station.name, must_stop_at, train), delete_existing_empty_slots=True)
+        departures.cleanup(null_constructor)
+        return departures
 
     def check_station_is_open(self, station):
         """

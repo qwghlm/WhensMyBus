@@ -77,9 +77,9 @@ class WhensMyBus(WhensMyTransport):
                 logging.debug("Could not find a destination matching %s this route, skipping and not filtering results", destination)
 
         # If the above has found stops on this route, get data for each
-        departure_data = self.get_departure_data(relevant_stops, route_number)
-        if departure_data:
-            return "%s %s" % (route_number, str(departure_data))
+        departures = self.get_departure_data(relevant_stops, route_number)
+        if departures:
+            return "%s %s" % (route_number, str(departures))
         else:
             if destination:
                 raise WhensMyTransportException('no_buses_shown_to', route_number, destination)
@@ -182,25 +182,25 @@ class WhensMyBus(WhensMyTransport):
         Fetch the JSON data from the TfL website, for a dictionary of relevant_stops (each a BusStop object)
         and a particular route_number, and returns a DepartureCollection containing Bus objects
 
-        must_stop_at is ignored; filtering by destination has already been done by process_individual_request()
+        must_stop_at is ignored; filtering by direction has already been done by process_individual_request()
         """
         stop_directions = dict([(run, heading_to_direction(stop.heading)) for (run, stop) in relevant_stops.items()])
-        relevant_buses = DepartureCollection()
+        departures = DepartureCollection()
         for (run, stop) in relevant_stops.items():
             tfl_url = self.urls.BUS_URL % stop.number
             bus_data = self.browser.fetch_json(tfl_url)
-            relevant_buses[stop] = parse_bus_data(bus_data, stop, route_number)
+            departures[stop] = parse_bus_data(bus_data, stop, route_number)
 
         # If the number of runs is 3 or more, get rid of any without buses shown
-        if len(relevant_buses) > 2:
-            logging.debug("Number of runs is %s, removing any non-existent entries", len(relevant_buses))
-            for i in range(3, max(relevant_stops.keys()) + 1):
-                if i in relevant_stops.keys() and not relevant_buses[relevant_stops[i]]:
-                    del relevant_buses[relevant_stops[i]]
+        if len(departures) > 2:
+            logging.debug("Number of runs is %s, removing any non-existent entries", len(departures))
+            for run in range(3, max(relevant_stops.keys()) + 1):
+                if run in relevant_stops.keys() and not departures[relevant_stops[run]]:
+                    del departures[relevant_stops[run]]
 
         null_constructor = lambda stop: NullDeparture(stop_directions[stop.run])
-        relevant_buses.cleanup(null_constructor)
-        return relevant_buses
+        departures.cleanup(null_constructor)
+        return departures
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 # Instantiate with no variables (all config is done in the file config.cfg
