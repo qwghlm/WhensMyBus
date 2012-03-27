@@ -80,7 +80,7 @@ class WMTTwitterClient():
             direct_messages = tweepy.Cursor(self.api.direct_messages, since_id=last_answered_direct_message).items()
         except tweepy.error.TweepError:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
-            sys.exit(1)
+            raise RuntimeError("Error: OAuth connection to Twitter failed, probably due to an invalid token")
 
         # Convert iterators to lists & reverse
         tweets = list(tweets)[::-1]

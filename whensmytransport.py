@@ -31,7 +31,6 @@ import ConfigParser
 import logging
 import os
 import re
-import sys
 from pprint import pprint # For debugging
 
 # From library modules in this package
@@ -73,7 +72,8 @@ class WhensMyTransport:
             config.read(HOME_DIR + '/' + config_file)
             config.get(self.instance_name, 'debug_level')
         except (ConfigParser.Error, IOError):
-            raise RuntimeError("""Fatal error: can't find a valid config file with options for %s. Please make sure there is a %s file in this directory""" % (self.instance_name, config_file))
+            error_string = "Fatal error: can't find a valid config file for %s. Please make sure there is a %s file in this directory" % (self.instance_name, config_file)
+            raise RuntimeError(error_string)
 
         # Setup debugging
         debug_level = config.get(self.instance_name, 'debug_level')
