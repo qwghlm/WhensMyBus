@@ -170,9 +170,10 @@ class WMTLocations():
             return False
         if direction.endswith("bound"):
             direction = direction[:-len("bound")]
-        origin = self.find_fuzzy_match({'line': line_code}, origin, RailStation)
-        destination = self.find_fuzzy_match({'line': line_code}, destination, RailStation)
-        if not origin or not destination:
+        origin = self.find_fuzzy_match(origin, {'line': line_code}, RailStation)
+        destination = self.find_fuzzy_match(destination, {'line': line_code}, RailStation)
+        # If we can't find a match, or there doesn't exist direct route between the two, then can't be correct direction
+        if not origin or not destination or not self.direct_route_exists(origin.name, destination.name, line_code):
             return False
 
         if direction == "East" and origin.location_easting < destination.location_easting or \
