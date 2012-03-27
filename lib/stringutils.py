@@ -29,13 +29,13 @@ def cleanup_name_from_undesirables(name, undesirables):
     return capwords(name)
 
 
-def get_name_similarity(origin, stop):
+def get_name_similarity(string1, string2):
     """
     Return a score between 0 and 100 of the strings' similarity, based on difflib's string similarity algorithm returning an integer
     between 0 (no match) and 100 (perfect). 70 or more seems to be a confident enough match
     """
     # Based on https://github.com/seatgeek/fuzzywuzzy/blob/master/fuzzywuzzy/fuzz.py
-    return int(100 * difflib.SequenceMatcher(None, origin, stop).ratio())
+    return int(100 * difflib.SequenceMatcher(None, string1, string2).ratio())
 
 
 def get_best_fuzzy_match(search_term, possible_items, minimum_confidence=70):
