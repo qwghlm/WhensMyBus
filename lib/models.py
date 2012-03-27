@@ -260,10 +260,11 @@ class Train(Departure):
 
     Unlike Buses, trains can have unknown destinations or complicated destination names
     """
-    def __init__(self, destination, departure_time, direction="", via=""):
+    def __init__(self, destination, departure_time):
         Departure.__init__(self, destination, departure_time)
-        self.direction = direction
-        self.via = via
+        self.direction = ""
+        self.via = ""
+        self.line_code = ""
 
     def get_destination_no_via(self):
         """
@@ -289,12 +290,13 @@ class Train(Departure):
         else:
             return destination
 
+
 class TubeTrain(Train):
     """
     Class representing a Tube train
     """
     #pylint: disable=W0231
-    def __init__(self, destination, direction, departure_time, set_number, line_code):  # FIXME Swap
+    def __init__(self, destination, direction, departure_time, line_code, set_number):
         manual_translations = {"Heathrow T123 + 5": "Heathrow Terminal 5",
                                "Olympia": "Kensington (Olympia)"}
         destination = manual_translations.get(destination, destination)
@@ -330,15 +332,27 @@ class TubeTrain(Train):
         else:
             via = ""
 
-        Train.__init__(self, destination, departure_time, direction, via)
-        self.set_number = set_number
+        Train.__init__(self, destination, departure_time)
+        self.direction = direction
+        self.via = via
         self.line_code = line_code
+        self.set_number = set_number
 
     def __hash__(self):
         """
         Return hash value to enable ability to use as dictionary key
         """
         return hash(' '.join([self.set_number, self.destination, self.via, self.get_departure_time()]))
+
+
+class DLRTrain(Train):
+    """
+    Class representing a DLR train
+    """
+    def __init__(self, destination, departure_time):
+        Train.__init__(self, destination, departure_time)
+        self.line_code = "DLR"
+
 
 #
 # Representation of a collection of Departures
@@ -374,6 +388,9 @@ class DepartureCollection:
 
     def __contains__(self, slot):
         return slot in self.departure_data
+
+    def __iter__(self):
+        return iter(self.departure_data)
 
     def __str__(self):
         """
