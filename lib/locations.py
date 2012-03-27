@@ -7,7 +7,6 @@ from math import sqrt
 import logging
 import os.path
 import cPickle as pickle
-import sys
 
 from pygraph.algorithms.minmax import shortest_path
 
@@ -33,7 +32,7 @@ class WMTLocations():
             filename = 'whensmytrain'
         else:
             logging.error("No data files exist for instance name %s, aborting", instance_name)
-            sys.exit(1)
+            raise RuntimeError("No data files exist for instance name %s, aborting" % instance_name)
 
         self.database = WMTDatabase('%s.geodata.db' % filename)
         network_file = DB_PATH + '/%s.network.gr' % filename
@@ -130,7 +129,7 @@ class WMTLocations():
         network = self.network[line_code]
         shortest_path_dictionary = shortest_path(network, origin)[0]
         if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
-            raise []
+            return []
         # Shortest path dictionary consists of a dictionary of node names as keys, with the values
         # being the name of the node that preceded it in the shortest path
         # Count back from our destinaton, to the origin point
@@ -143,23 +142,26 @@ class WMTLocations():
         path_taken = path_taken[1:-1][::-1]
         return path_taken
 
-    def direct_route_exists(self, origin, destination, line_code, via=None):
+    def direct_route_exists(self, origin, destination, line_code, via=None, must_stop_at=None):
         """
-        Return whether there is a direct route (i.e. one that does work without changing) on a list of stops
+        Return whether there is a direct route (i.e. one that does work without changing) between origin and destination on the line
+        with code line_code (going via via if specified). If must_stop_at is specified, must also check that it stops at must_stop_at
         """
         if not origin or not destination:
             return False
-        path_taken = self.describe_route(origin, destination, line_code, via)
+        path_taken = [stop[0] for stop in self.describe_route(origin, destination, line_code, via)]
+        if must_stop_at and must_stop_at not in path_taken:
+            return False
         for i in range(1, len(path_taken)):
             # If same station twice in a row, then we must have a change
-            if path_taken[i][0] == path_taken[i - 1][0]:
+            if path_taken[i] == path_taken[i - 1]:
                 return False
             # If visiting same station with one in between, then we must have visited a station & doubled back
-            if i > 1 and path_taken[i][0] == path_taken[i - 2][0]:
+            if i > 1 and path_taken[i] == path_taken[i - 2]:
                 return False
         return True
 
-    def is_correct_direction(self, direction, origin, destination, line_code):
+    def is_correct_direction(self, origin, destination, direction, line_code):
         """
         Return True if a train going in this direction will reach the destination from the origin
         Whether a direct route exists is assumed to be true, as this is only an estimate
@@ -181,14 +183,14 @@ class WMTLocations():
         else:
             return False
 
-    def does_train_stop_at(self, origin, desired_station, destination, direction, line_code):
+    def does_train_stop_at(self, origin, desired_station, train):
         """
         Return True if a train from origin bound for destination and/or in direction on line will stop at
         desired_station on the way
         """
-        if destination:
-            return self.direct_route_exists(origin, destination, line_code, via=desired_station)
-        elif direction:
-            return self.is_correct_direction(direction, origin, desired_station, line_code)
+        if train.destination and train.destination != "Unknown":
+            return self.direct_route_exists(origin, train.destination, train.line_code, via=train.via, must_stop_at=desired_station)
+        elif train.direction:
+            return self.is_correct_direction(origin, desired_station, train.direction, train.line_code)
         else:
             return False
