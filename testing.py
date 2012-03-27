@@ -35,7 +35,7 @@ try:
     from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
     from lib.listutils import unique_values
     from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables, gmt_to_localtime
-    from lib.models import Location, RailStation, BusStop, Departure, NullDeparture, Train, TubeTrain, Bus, DepartureCollection
+    from lib.models import Location, RailStation, BusStop, Departure, NullDeparture, Train, TubeTrain, DLRTrain, Bus, DepartureCollection
 except ImportError as err:
     print """
 Sorry, testing failed because a package that WhensMyTransport depends on is not installed. Reported error:
@@ -271,15 +271,20 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertEqual(train.get_via(), "Bank")
 
         # TubeTrain
-        tube_train = TubeTrain("Charing Cross via Bank", "Northbound", "2359", "001", "", "")
-        tube_train2 = TubeTrain("Charing Cross via Bank then depot", "Northbound", "2359", "001", "", "")
-        tube_train3 = TubeTrain("Northern Line", "Northbound", "2359", "001", "", "")
-        tube_train4 = TubeTrain("Heathrow T123 + 5", "Westbound", "2359", "001", "", "")
+        tube_train = TubeTrain("Charing Cross via Bank", "Northbound", "2359", "N", "001")
+        tube_train2 = TubeTrain("Charing Cross via Bank then depot", "Northbound", "2359", "N", "001")
+        tube_train3 = TubeTrain("Northern Line", "Northbound", "2359", "N", "001")
+        tube_train4 = TubeTrain("Heathrow T123 + 5", "Westbound", "2359", "P", "001")
         self.assertEqual(hash(tube_train), hash(tube_train2))
         self.assertEqual(tube_train.get_destination(), "Charing X via Bank")
         self.assertEqual(tube_train3.get_destination(), "Northbound Train")
         self.assertEqual(tube_train4.get_destination(), "Heathrow T 5")
         self.assertEqual(tube_train.get_destination_no_via(), "Charing Cross")
+        self.assertEqual(tube_train.get_via(), "Bank")
+
+        # DLRTrain
+        dlr_train = DLRTrain("Beckton", "1200")
+        self.assertEqual(dlr_train.line_code, "DLR")
 
         # DepartureCollection fundamentals
         departures = DepartureCollection()
@@ -371,7 +376,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertTrue(self.bot.geodata.database.check_existence_of('test_data', 'key', 'a'))
         self.assertEqual(self.bot.geodata.database.get_max_value('test_data', 'value', {}), 3)
         self.assertEqual(self.bot.geodata.database.make_where_statement('test_data', {}), (" 1 ", ()))
-        self.assertEqual(self.bot.geodata.database.make_where_statement('test_data', {'key': 'a', 'value': 1}), (" key=? AND value=? ", ('a', 1)))
+        self.assertEqual(self.bot.geodata.database.make_where_statement('test_data', {'key': 'a', 'value': 1}), ('"key" = ? AND "value" = ?', ('a', 1)))
         self.assertRaises(KeyError, self.bot.geodata.database.make_where_statement, 'test_data', {'foo': 'a'})
 
         self.bot.geodata.database.write_query("DROP TABLE test_data")
@@ -417,10 +422,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         Unit tests for WMTLocation objects
         """
-        self.assertEqual(self.bot.geodata.make_where_statement({}), (" 1 ", ()))
-        self.assertEqual(self.bot.geodata.make_where_statement({'location_easting': 0}),
-                                                               ('"location_easting" = ?', (0,)))
-        self.assertRaises(KeyError, self.bot.geodata.make_where_statement, {'XXX': 1})
+        pass  # FIXME Might be entirely redundant?
 
     def test_logger(self):
         """
@@ -799,11 +801,12 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault", must_stop_at="Newbury Park"))
         self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Wanstead", "C"))
         self.assertFalse(self.bot.geodata.direct_route_exists("Heathrow Terminals 1, 2, 3", "Heathrow Terminal 4", "P"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", "Oxford Circus", "Epping", "C"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Westbound", "Epping", "Oxford Circus", "C"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Northbound", "Morden", "High Barnet", "N"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Southbound", "Stanmore", "Waterloo", "J"))
-        self.assertFalse(self.bot.geodata.is_correct_direction("Southbound", "Holborn", "Cockfosters", "P"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Oxford Circus", "Epping", "Eastbound", "C"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Epping", "Oxford Circus", "Westbound", "C"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Morden", "High Barnet", "Northbound", "N"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Hainault", "Wanstead", "Southbound", "C"))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Epping", "Wanstead", "Southbound", "C"))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Holborn", "Cockfosters", "Southbound", "P"))
 
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'line': 'DLR'}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Limehouse", {}, RailStation).code, "lim")
@@ -813,8 +816,8 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton", "DLR", "Poplar"))
         self.assertTrue(self.bot.geodata.direct_route_exists("Bank", "Beckton", "DLR"))
         self.assertFalse(self.bot.geodata.direct_route_exists("East India", "All Saints", "DLR"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", "Bank", "Beckton", "DLR"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Southbound", "Stratford", "Lewisham", "DLR"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Bank", "Beckton", "Eastbound", "DLR"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Stratford", "Lewisham", "Southbound", "DLR"))
 
     def test_bad_line_name(self):
         """
