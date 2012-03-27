@@ -524,7 +524,13 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyBus(testing=TEST_LEVEL)
+        try:
+            self.bot = WhensMyBus(testing=TEST_LEVEL)
+        except RuntimeError as exc:
+            print exc
+            self.tearDown()
+            sys.exit(1)
+
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 
@@ -722,7 +728,13 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Setup test
         """
-        self.bot = WhensMyTrain("whensmytube", testing=TEST_LEVEL)
+        try:
+            self.bot = WhensMyTrain("whensmytube", testing=TEST_LEVEL)
+        except RuntimeError as exc:
+            print exc
+            self.tearDown()
+            sys.exit(1)
+
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
 

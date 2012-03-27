@@ -203,5 +203,8 @@ class WhensMyBus(WhensMyTransport):
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 if __name__ == "__main__":
     # Instantiate with no variables (all config is done in the file config.cfg) and then call check_tweets()
-    WMB = WhensMyBus()
-    WMB.check_tweets()
+    try:
+        WMB = WhensMyBus()
+        WMB.check_tweets()
+    except RuntimeError as err:
+        print err

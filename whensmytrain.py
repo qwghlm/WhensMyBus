@@ -211,7 +211,10 @@ if __name__ == "__main__":
     parser.add_argument("instance_name", action="store", help="Name of the instance to run (e.g. whensmytube, whensmydlr)")
     instance = parser.parse_args().instance_name
     if instance in ("whensmytube", "whensmydlr"):
-        WMT = WhensMyTrain(instance)
-        WMT.check_tweets()
+        try:
+            WMT = WhensMyTrain(instance)
+            WMT.check_tweets()
+        except RuntimeError as err:
+            print err
     else:
         print "Error - %s is not a valid instance name" % instance
