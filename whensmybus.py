@@ -125,26 +125,26 @@ class WhensMyBus(WhensMyTransport):
             logging.debug("No such bus stop found")
             return {}
 
-    def get_stops_by_stop_name(self, route_number, origin):
+    def get_stops_by_stop_name(self, route_number, stop_name):
         """
         Take a route number and name of the origin, and work out closest bus stops in each direction
 
         Returns a dictionary. Keys are numbers of the Run (usually 1 or 2, sometimes 3 and 4). Values are BusStop objects
         """
         # First check to see if the name is actually an ID number - if so, then use the more precise numeric method above
-        match = re.match('^[0-9]{5}$', origin)
+        match = re.match('^[0-9]{5}$', stop_name)
         if match:
-            return self.get_stops_by_stop_number(route_number, origin)
+            return self.get_stops_by_stop_number(route_number, stop_name)
 
         # First off, try to get a match against bus stop names in database
         # Users may not give exact details, so we try to match fuzzily
-        logging.debug("Attempting to get a match on placename %s", origin)
+        logging.debug("Attempting to get a match on placename %s", stop_name)
         relevant_stops = {}
 
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         max_runs = self.geodata.database.get_max_value('locations', 'run', {'route': route_number})
         for run in range(1, max_runs + 1):
-            best_match = self.geodata.find_fuzzy_match({'route': route_number, 'run': run}, origin, BusStop)
+            best_match = self.geodata.find_fuzzy_match(stop_name, {'route': route_number, 'run': run}, BusStop)
             if best_match:
                 logging.info("Found stop name %s for Run %s via fuzzy matching", best_match.name, best_match.run)
                 relevant_stops[run] = best_match
@@ -152,8 +152,8 @@ class WhensMyBus(WhensMyTransport):
         # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name
         for run in (1, 2):
             if run not in relevant_stops and self.geocoder:
-                logging.debug("No match found for run %s, attempting to get geocode placename %s", run, origin)
-                geocode_url = self.geocoder.get_geocode_url(origin)
+                logging.debug("No match found for run %s, attempting to get geocode placename %s", run, stop_name)
+                geocode_url = self.geocoder.get_geocode_url(stop_name)
                 try:
                     geodata = self.browser.fetch_json(geocode_url)
                 except WhensMyTransportException:
@@ -162,7 +162,7 @@ class WhensMyBus(WhensMyTransport):
 
                 points = self.geocoder.parse_geodata(geodata)
                 if not points:
-                    logging.debug("Could not find any matching location for %s", origin)
+                    logging.debug("Could not find any matching location for %s", stop_name)
                     continue
 
                 logging.debug("Have found %s matching points", len(points))
@@ -173,14 +173,16 @@ class WhensMyBus(WhensMyTransport):
                     relevant_stops[run] = sorted(possible_stops)[0]
                     logging.debug("Have found stop named: %s", relevant_stops[run].name)
                 else:
-                    logging.debug("Found a location, but could not find a nearby stop for %s", origin)
+                    logging.debug("Found a location, but could not find a nearby stop for %s", stop_name)
 
         return relevant_stops
 
-    def get_departure_data(self, relevant_stops, route_number, via=None):
+    def get_departure_data(self, relevant_stops, route_number, must_stop_at=None):
         """
         Fetch the JSON data from the TfL website, for a dictionary of relevant_stops (each a BusStop object)
         and a particular route_number, and returns a DepartureCollection containing Bus objects
+
+        must_stop_at is ignored; filtering by destination has already been done by process_individual_request()
         """
         stop_directions = dict([(run, heading_to_direction(stop.heading)) for (run, stop) in relevant_stops.items()])
         relevant_buses = DepartureCollection()
@@ -201,8 +203,8 @@ class WhensMyBus(WhensMyTransport):
         return relevant_buses
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
+# Instantiate with no variables (all config is done in the file config.cfg
 if __name__ == "__main__":
-    # Instantiate with no variables (all config is done in the file config.cfg) and then call check_tweets()
     try:
         WMB = WhensMyBus()
         WMB.check_tweets()

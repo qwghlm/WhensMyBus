@@ -74,14 +74,16 @@ class WMTLocations():
             logging.debug("No location found near %s, sorry", position)
             return None
 
-    def find_fuzzy_match(self, params, fuzzy_match_query, returned_object):
+    def find_fuzzy_match(self, stop_or_station_name, params, returned_object):
         """
         Find the best fuzzy match to the query_string, querying the database with dictionary params, of the format
         { Column Name : value, }. Returns an object of class returned_object, or None if no fuzzy match found
         """
+        if not stop_or_station_name or stop_or_station_name == "Unknown":
+            return None
         # Try to get an exact match first against station names in database
         exact_params = params.copy()
-        exact_params.update({'name': fuzzy_match_query})
+        exact_params.update({'name': stop_or_station_name})
         exact_match = self.find_exact_match(exact_params, returned_object)
         if exact_match:
             return exact_match
@@ -90,7 +92,7 @@ class WMTLocations():
         (where_statement, where_values) = self.database.make_where_statement('locations', params)
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
         possible_matches = [returned_object(**row) for row in rows]
-        best_match = get_best_fuzzy_match(fuzzy_match_query, possible_matches)
+        best_match = get_best_fuzzy_match(stop_or_station_name, possible_matches)
         if best_match:
             return best_match
         else:
@@ -110,10 +112,11 @@ class WMTLocations():
 
     def describe_route(self, origin, destination, line_code='All', via=None):
         """
-        Return the shortest route between origin and destination
+        Return the shortest route between origin and destination. Returns an list describing the route from start to finish
+        Each element of the list is a tuple of form (station_name, direction, line_code)
         """
         if not self.network:
-            raise ValueError("No network information available for these locations")
+            return []
         if via:
             first_half = self.describe_route(origin, via, line_code)
             second_half = self.describe_route(via, destination, line_code)
@@ -126,10 +129,8 @@ class WMTLocations():
 
         network = self.network[line_code]
         shortest_path_dictionary = shortest_path(network, origin)[0]
-        if origin not in shortest_path_dictionary:
-            raise KeyError("Not found - no such node %s exists" % origin)
-        if destination not in shortest_path_dictionary:
-            raise KeyError("Not found - no such node %s exists" % destination)
+        if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
+            raise []
         # Shortest path dictionary consists of a dictionary of node names as keys, with the values
         # being the name of the node that preceded it in the shortest path
         # Count back from our destinaton, to the origin point

@@ -42,6 +42,7 @@ LINE_NAMES = (
     'DLR',
 )
 
+
 class WhensMyTrain(WhensMyTransport):
     """
     Class for the @WhensMyDLR and @WhensMyTube bots. This inherits from the WhensMyTransport and provides specialist functionality for when
@@ -98,7 +99,7 @@ class WhensMyTrain(WhensMyTransport):
             raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
         # All being well, we can now get the departure data for this station and return it
-        departure_data = self.get_departure_data(station, line_code, via=destination_name)
+        departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name)
         if departure_data:
             return "%s to %s" % (station.get_abbreviated_name(), str(departure_data))
         else:
@@ -113,23 +114,20 @@ class WhensMyTrain(WhensMyTransport):
         """
         return self.geodata.find_closest(position, {'line': line_code}, RailStation)
 
-    def get_station_by_station_name(self, line_code, origin):
+    def get_station_by_station_name(self, line_code, station_name):
         """
-        Take a line and a string specifying origin, and work out matching for that name
+        Take a line and a string specifying station name, and work out matching for that name
         """
-        if origin == "Unknown":
-            return None
-        else:
-            return self.geodata.find_fuzzy_match({'line': line_code}, origin, RailStation)
+        return self.geodata.find_fuzzy_match(station_name, {'line': line_code}, RailStation)
 
-    def get_canonical_station_name(self, line_code, origin):
+    def get_canonical_station_name(self, line_code, station_name):
         """
-        Return just the string matching for a line code and origin name, or blank if none exists
+        Return just the string matching for a line code and station name, or blank if none exists
         """
-        station_obj = self.get_station_by_station_name(line_code, origin)
+        station_obj = self.get_station_by_station_name(line_code, station_name)
         return station_obj and station_obj.name or ""
 
-    def get_departure_data(self, station, line_code, via=None):
+    def get_departure_data(self, station, line_code, must_stop_at=None):
         """
         Take a station object and a line ID, and get departure data for that station
         Returns a dictionary; keys are slot names (platform for DLR, direction for Tube), values lists of Train objects
@@ -167,15 +165,13 @@ class WhensMyTrain(WhensMyTransport):
         # For any non-empty list of departures, filter out any that terminate here. Note that existing empty lists remain empty and are not deleted
         train_doesnt_terminate_here = lambda departure: terminus(departure) != station.name
         departure_data.filter(train_doesnt_terminate_here, delete_existing_empty_slots=False)
-        # If we've specified a station to go via, filter out any that do not stop at that station or are not in its direction
+        # If we've specified a station to stop at, filter out any that do not stop at that station or are not in its direction
         # Note that unlike the above, this will turn all existing empty lists into Nones (and thus deletable) as well
-        if via:
-            train_goes_via = lambda departure: self.geodata.does_train_stop_at(station.name, via, terminus(departure), departure.direction, line_code)
-            departure_data.filter(train_goes_via, delete_existing_empty_slots=True)
+        if must_stop_at:
+            train_stops_at = lambda departure: self.geodata.does_train_stop_at(station.name, must_stop_at, terminus(departure), departure.direction, line_code)
+            departure_data.filter(train_stops_at, delete_existing_empty_slots=True)
         departure_data.cleanup(null_constructor)
         return departure_data
-
-
 
     def check_station_is_open(self, station):
         """
@@ -205,6 +201,8 @@ def get_line_code(line_name):
     else:
         return line_name[0]
 
+# If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
+# Instance name comes from command line, all other config is done in the file config.cfg
 if __name__ == "__main__":
     #pylint: disable=C0103
     parser = argparse.ArgumentParser(description="Run When's My Tube? or When's My DLR?")

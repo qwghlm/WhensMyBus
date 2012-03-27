@@ -232,7 +232,7 @@ class WhensMyTransport:
 
     def sanitize_message(self, message):
         """
-        Takes a message, scrub out the @username of this bot and any #hashtags, and return the sanitized messages
+        Takes a message string, scrub out the @username of this bot and any #hashtags, and return the sanitized messages
         """
         # Remove hashtags and @username
         message = re.sub(r"\s#\w+\b", '', message)
