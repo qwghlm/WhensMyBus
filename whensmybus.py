@@ -146,7 +146,7 @@ class WhensMyBus(WhensMyTransport):
         for run in range(1, max_runs + 1):
             best_match = self.geodata.find_fuzzy_match(stop_name, {'route': route_number, 'run': run}, BusStop)
             if best_match:
-                logging.info("Found stop name %s for Run %s via fuzzy matching", best_match.name, best_match.run)
+                logging.info("Found stop name %s for Run %s by fuzzy matching", best_match.name, best_match.run)
                 relevant_stops[run] = best_match
 
         # If we can't find a location for either Run 1 or 2, use the geocoder to find a location on that Run matching our name

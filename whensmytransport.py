@@ -12,7 +12,7 @@ loading the databases, config, connecting to Twitter, reading @ replies, replyin
 as well as models and classes for useful constructs such as Trains and Stations
 
 The WhensMyBus and WhensMyTrain classes handle looking up route, line, station and stop locations and names, and processing
-data via the respective services' APIs
+data using the respective services' APIs
 
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
@@ -292,7 +292,7 @@ class WhensMyTransport:
         return ""
 
     @abstractmethod
-    def get_departure_data(self, station_or_stops, line_or_route, via):
+    def get_departure_data(self, station_or_stops, line_or_route, must_stop_at):
         """
         Abstract method. This must be overridden by a child class to do anything useful
 
