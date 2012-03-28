@@ -429,7 +429,7 @@ class DepartureCollection:
         """
         Adds departure to slot, creating said slot if it doesn't already exist
         """
-        self.departure_data[slot] = self.departure_data.get(slot, []) + [departure] # FIXME Uniqueness
+        self.departure_data[slot] = self.departure_data.get(slot, []) + [departure]
 
     def merge_common_slots(self):
         """

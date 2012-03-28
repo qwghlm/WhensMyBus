@@ -761,9 +761,8 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
            ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      'Moorgate'),
            ('DLR',                  'Poplar',        51.5077, -0.0174, 'All Saints',      'Poplar',        'Bank'),
         )
-        # FIXME via routing not yet possible on two vias, needs fixing
         self.nonstandard_test_data = (
-            #("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
+            ("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
             ("Northern Line from Camden Town to Kennington",  ("via Bank", "via Charing X"),                               ("High Barnet",)),
             ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
             ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
