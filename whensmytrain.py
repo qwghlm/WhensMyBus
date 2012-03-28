@@ -60,8 +60,8 @@ class WhensMyTrain(WhensMyTransport):
         self.parser = WMTTrainParser()
 
         # Create lookup dict for line names
-        self.line_lookup = dict([(name, name) for (code, name) in LINE_NAMES.keys()])
-        for ((code, name), alternatives) in LINE_NAMES.items():
+        self.line_lookup = dict([(name, name) for (_code, name) in LINE_NAMES.keys()])
+        for ((_code, name), alternatives) in LINE_NAMES.items():
             self.line_lookup.update(dict([(alternative, name) for alternative in alternatives]))
 
     def process_individual_request(self, requested_line, origin, destination, position):
@@ -69,7 +69,6 @@ class WhensMyTrain(WhensMyTransport):
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it
         """
-        # FIXME Need to write unit tests for this bit
         # If no line name given, work out the nearest station first, then the lines
         if not requested_line and self.instance_name == 'whensmytube':
             if position:
@@ -81,7 +80,7 @@ class WhensMyTrain(WhensMyTransport):
                 if not station:
                     raise WhensMyTransportException('rail_station_name_not_found', origin, "Tube")
             # Get the lines serving; if more than one throw an exception due to ambiguity
-            lines = self.geodata.database.get_lines_serving(station.code)
+            lines = self.geodata.get_lines_serving(station.code)
             if len(lines) > 1:
                 raise WhensMyTransportException('no_line_specified', origin)
             line_code = lines[0][0]

@@ -4,8 +4,6 @@
 """
 A set of unit tests for When's My Bus?
 
-TODO: Check that every function in WMT, WMT and WMB is being used
-
 IMPORTANT: These unit tests require Python 2.7, although When's My Bus will happily run in Python 2.6
 """
 import sys
@@ -404,7 +402,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         Unit tests for Data parsers objects
         """
         # Check against our test data and make sure we are correctly parsing & fetching the right objects from the data
-        bus_data = parse_bus_data(self.bot.browser.fetch_json(self.bot.urls.BUS_URL % "53410"), BusStop("LIMEHOUSE"), '15')
+        bus_data = parse_bus_data(self.bot.browser.fetch_json(self.bot.urls.BUS_URL % "53410"), '15')
         self.assertEqual(bus_data[0], Bus("Regent Street", gmt_to_localtime("1831")))
         tube_data = parse_tube_data(self.bot.browser.fetch_xml_tree(self.bot.urls.TUBE_URL % ("D", "ECT")), RailStation("Earl's Court"), "D")
         self.assertEqual(tube_data["Eastbound"][0], TubeTrain("Edgware Road", "Eastbound", "2139", "D", "075"))
@@ -575,14 +573,12 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             ('425 25 205', 'Bow Road Station',  '55489', 51.5272, -0.0247, 'Mile End station', '76239', 'Bow Road Station',  '(Bow Church|Ilford|Stratford)'),
         )
         # Troublesome destinations & data
-        #
-        # Hoxton is mistaken as Brixton
-        # Postcodes should be doable with a geocoder
-        # 103 has more than 2 runs, check we delete the empty one
-        #
         self.nonstandard_test_data = (
+            # Hoxton is mistaken as Brixton
             ('243 from Hoxton',                  ('Hoxton Station / Geffrye Museum'), ('Brixton',)),
+            # Postcodes should be doable with a geocoder
             ('55 from EC1M 4PN',                 ('St John Street',),                 ()),
+            # 103 has more than 2 runs, check we delete the empty one
             ('103 from Romford Station',         ('Romford Station',),                ('None shown',)),
         )
 
@@ -768,10 +764,15 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
            ('DLR',                  'Poplar',        51.5077, -0.0174, 'All Saints',      'Poplar',        'Bank'),
         )
         self.nonstandard_test_data = (
+            # Hainault Loop and Northern Line handled correctly
             ("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
-            ("Northern Line from Camden Town to Kennington",  ("via Bank", "via Charing X"),                               ("High Barnet",)),
+            ("Northern Line from Camden Town to Kennington",  ("via Bank", "via Charing X"),                        ("High Barnet",)),
+            # Directional sussing at a tricky station
             ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
+            # Handle when there are no trains
             ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
+            # Handle when no line is specified
+            ('Arsenal',                                       ('Cockfosters', 'Heathrow'),                          ("Sorry! Please specify what line you need",)),
         )
 
     def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
@@ -853,7 +854,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
     def test_station_line_mismatch(self):
         """
-        Test to confirm stations on the wrong lines are correctly error reported
+        Test to confirm stations on the wrong lines, or not on the system at all, are correctly error reported
         """
         message = 'District Line from Stratford'
         tweet = FakeTweet(self.at_reply + message)
@@ -861,6 +862,9 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         message = 'DLR from Ealing Broadway'
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Ealing Broadway', 'DLR')
+        message = 'Wxitythr Park'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Wxitythr Park', 'Tube')
 
     def test_textparser(self):
         """
@@ -886,6 +890,10 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         message = 'District Victoria'
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'nonexistent_line', 'District Victoria')
+        # Leicester Square has two lines, could be either
+        message = 'Leicester Square'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_line_specified', 'Leicester Square')
 
     def test_standard_messages(self):
         """

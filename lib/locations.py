@@ -109,6 +109,13 @@ class WMTLocations():
         else:
             return None
 
+    def get_lines_serving(self, station_code):
+        """
+        Return an array of line codes that the station described by station_code is served by
+        """
+        rows = self.database.get_rows("SELECT line FROM locations WHERE code=?", (station_code,))
+        return [row[0] for row in rows]
+
     def describe_route(self, origin, destination, line_code='All', via=None):
         """
         Return the shortest route between origin and destination. Returns an list describing the route from start to finish
