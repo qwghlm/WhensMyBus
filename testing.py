@@ -4,6 +4,8 @@
 """
 A set of unit tests for When's My Bus?
 
+TODO: Check that every function in WMT, WMT and WMB is being used
+
 IMPORTANT: These unit tests require Python 2.7, although When's My Bus will happily run in Python 2.6
 """
 import sys

@@ -56,9 +56,10 @@ class WhensMyTrain(WhensMyTransport):
         Constructor
         """
         WhensMyTransport.__init__(self, instance_name, testing)
-        self.allow_blank_tweets = instance_name == 'whensmydlr'
+        self.allow_blank_tweets = True
         self.parser = WMTTrainParser()
 
+        # Create lookup dict for line names
         self.line_lookup = dict([(name, name) for (code, name) in LINE_NAMES.keys()])
         for ((code, name), alternatives) in LINE_NAMES.items():
             self.line_lookup.update(dict([(alternative, name) for alternative in alternatives]))
@@ -72,8 +73,10 @@ class WhensMyTrain(WhensMyTransport):
         # If no line name given, work out the nearest station first, then the lines
         if not requested_line and self.instance_name == 'whensmytube':
             if position:
+                logging.debug("Attempting to get closest to position: %s", position)
                 station = self.get_station_by_geolocation(self, position)
             elif origin:
+                logging.debug("Attempting to get a fuzzy match on placename %s", origin)
                 station = self.get_station_by_station_name(self, origin)
                 if not station:
                     raise WhensMyTransportException('rail_station_name_not_found', origin, "Tube")
@@ -83,6 +86,7 @@ class WhensMyTrain(WhensMyTransport):
                 raise WhensMyTransportException('no_line_specified', origin)
             line_code = lines[0][0]
             line_name = get_line_name(line_code)
+            logging.debug("Have deduced that this station only has one line %s, using", line_name)
 
         # Else, work out the line first and then the station
         else:
@@ -95,11 +99,11 @@ class WhensMyTrain(WhensMyTransport):
 
             # Dig out relevant departure station for this line from the geotag, if provided, or else the station name
             if position:
-                logging.debug("Attempting to get closest to position: %s", position)
+                logging.debug("Attempting to get closest to position: %s on line %s", position, line_code)
                 station = self.get_station_by_geolocation(position, line_code)
                 # There will always be a nearest station so no need to check for non-existence
             else:
-                logging.debug("Attempting to get a fuzzy match on placename %s", origin)
+                logging.debug("Attempting to get a fuzzy match on placename %s on line %s", origin, line_code)
                 station = self.get_station_by_station_name(origin, line_code)
                 if not station:
                     raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
@@ -109,7 +113,7 @@ class WhensMyTrain(WhensMyTransport):
 
         # If user has specified a destination, work out what it is, and check a direct route to it exists
         if destination:
-            destination_name = self.get_canonical_station_name(line_code, destination) or None
+            destination_name = self.get_canonical_station_name(destination, line_code) or None
         else:
             destination_name = None
         if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line_code):
@@ -143,7 +147,7 @@ class WhensMyTrain(WhensMyTransport):
             params['line'] = line_code
         return self.geodata.find_fuzzy_match(station_name, params, RailStation)
 
-    def get_canonical_station_name(self, line_code, station_name):
+    def get_canonical_station_name(self, station_name, line_code):
         """
         Return just the string matching for a line code and station name, or blank if none exists
         """
@@ -162,6 +166,7 @@ class WhensMyTrain(WhensMyTransport):
         # Circle line these days is coded H as it shares with the Hammersmith & City
         if line_code == 'O':
             line_code = 'H'
+        # DLR and Tube have different APIs
         if line_code == 'DLR':
             dlr_data = self.browser.fetch_xml_tree(self.urls.DLR_URL % station.code)
             departures = parse_dlr_data(dlr_data, station.code)
@@ -175,9 +180,9 @@ class WhensMyTrain(WhensMyTransport):
         for slot in departures:
             for train in departures[slot]:
                 if train.destination != "Unknown":
-                    train.destination = self.get_canonical_station_name(line_code, train.destination)
+                    train.destination = self.get_canonical_station_name(train.destination, line_code)
                 if train.via:
-                    train.via = self.get_canonical_station_name(line_code, train.via)
+                    train.via = self.get_canonical_station_name(train.via, line_code)
 
         # Deal with any departures filed under "Unknown", slotting them into Eastbound/Westbound if their direction is not known
         # (By a stroke of luck, all the stations this applies to - North Acton, Edgware Road, Loughton, White City - are on an east/west line)
@@ -194,6 +199,7 @@ class WhensMyTrain(WhensMyTransport):
 
         # For any non-empty list of departures, filter out any that terminate here. Note that existing empty lists remain empty and are not deleted
         departures.filter(lambda train: train.destination != station.name, delete_existing_empty_slots=False)
+
         # If we've specified a station to stop at, filter out any that do not stop at that station or are not in its direction
         # Note that unlike the above, this will turn all existing empty lists into Nones (and thus deletable) as well
         if must_stop_at:
@@ -205,11 +211,12 @@ class WhensMyTrain(WhensMyTransport):
         """
         Check to see if a station is open, return True if so, throw an exception if not
         """
+        # If we get an exception with fetching this data, don't worry about it
         try:
             status_data = self.browser.fetch_xml_tree(self.urls.STATUS_URL)
-        # If we get an exception with fetching this data, don't worry about it
         except WhensMyTransportException:
             return True
+        # Find every station status, and if it matches our station and it is closed, throw an exception to alert the user
         for station_status in status_data.findall('StationStatus'):
             station_node = station_status.find('Station')
             status_node = station_status.find('Status')
