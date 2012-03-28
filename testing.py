@@ -418,12 +418,6 @@ class WhensMyTransportTestCase(unittest.TestCase):
                 self.assertAlmostEqual(points[0][0], value[0], places=3)
                 self.assertAlmostEqual(points[0][1], value[1], places=3)
 
-    def test_location(self):
-        """
-        Unit tests for WMTLocation objects
-        """
-        pass  # FIXME Might be entirely redundant?
-
     def test_logger(self):
         """
         Unit tests for system logging
@@ -620,7 +614,6 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         Unit tests for WMTLocation object and the bus database
         """
-        super(WhensMyBusTestCase, self).test_location()
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'run': '1', 'route': '15'}, BusStop).number, "53410")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Limehouse Sta", {'run': '1', 'route': '15'}, BusStop).number, "53410")
         self.assertEqual(self.bot.geodata.find_exact_match({'run': '1', 'route': '15', 'name': 'LIMEHOUSE TOWN HALL'}, BusStop).number, "48264")
@@ -789,7 +782,6 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Unit tests for WMTLocation object and the Tube database
         """
-        super(WhensMyTubeTestCase, self).test_location()
         self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'line': 'M'}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Kings Cross", {'line': 'M'}, RailStation).code, "KXX")
         self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
