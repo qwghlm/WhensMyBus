@@ -53,7 +53,7 @@ class WMTTextParser():
                 routes = ' '.join(routes) or None
                 if routes == 'dlr':
                     routes = [routes.upper()]
-                else:
+                elif routes:
                     routes = [capwords(routes)]
             elif subtree.node == 'BUS_ROUTES':
                 routes = extract_words(subtree, ('ROUTE_NUMBER',))
