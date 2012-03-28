@@ -793,7 +793,9 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Unit tests for WMTLocation object and the Tube database
         """
+        self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'line': 'M'}, RailStation).code, "KXX")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match("Kings Cross", {}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Kings Cross", {'line': 'M'}, RailStation).code, "KXX")
         self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
         self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N"))
@@ -810,8 +812,10 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertFalse(self.bot.geodata.is_correct_direction("Epping", "Wanstead", "Southbound", "C"))
         self.assertFalse(self.bot.geodata.is_correct_direction("Holborn", "Cockfosters", "Southbound", "P"))
 
+        self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'line': 'DLR'}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Limehouse", {}, RailStation).code, "lim")
+        self.assertEqual(self.bot.geodata.find_fuzzy_match("Limehouse", {'line': 'DLR'}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Stratford Int", {}, RailStation).code, "sti")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("W'wich Arsenal", {}, RailStation).code, "woa")
         self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton"))
