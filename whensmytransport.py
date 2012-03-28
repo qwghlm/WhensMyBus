@@ -192,16 +192,22 @@ class WhensMyTransport:
         message = self.sanitize_message(tweet.text)
         logging.debug("Message from user: %s", message)
         (requested_routes, origin, destination) = self.parser.parse_message(message)
-        if requested_routes is None:
-            if self.instance_name == 'whensmydlr' and (origin or self.tweet_has_geolocation(tweet)):
-                logging.debug("No line name detected, falling back on default of DLR")
-                requested_routes = ('DLR',)
-            else:
-                logging.debug("No routes or lines detected on this Tweet, skipping")
-                return []
+
+        # If no routes found, we may be able to deduce from origin or position if we are DLR/Tube
+        if not requested_routes:
+            if origin or self.tweet_has_geolocation(tweet):
+                if self.instance_name == 'whensmytube':
+                    logging.debug("No line name detected, going to try None for now and see if that works")
+                    requested_routes = [None]
+                elif self.instance_name == 'whensmydlr':
+                    logging.debug("No line name detected, falling back on default of DLR")
+                    requested_routes = ('DLR',)
+        if not requested_routes:
+            logging.debug("No routes or lines detected on this Tweet, cannot determine position, skipping")
+            return []
 
         # If no origin specified, let's see if we have co-ordinates on the Tweet
-        if origin is None:
+        if not origin:
             position = self.get_tweet_geolocation(tweet, message)
         else:
             position = None

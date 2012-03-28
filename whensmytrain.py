@@ -71,22 +71,42 @@ class WhensMyTrain(WhensMyTransport):
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it
         """
-        line = self.line_lookup.get(line_name, "") or get_best_fuzzy_match(line_name, self.line_lookup.values())
-        if not line:
-            raise WhensMyTransportException('nonexistent_line', line_name)
-        line_code = get_line_code(line)
-        if line != 'DLR':
-            line_name += " Line"
+        # FIXME Need to write unit tests for this bit
+        # If no line name given, work out the nearest station first, then the lines
+        if not line_name and self.instance_name == 'whensmytube':
+            if position:
+                station = self.get_station_by_geolocation(self, position)
+            elif origin:
+                station = self.get_station_by_station_name(self, origin)
+                if not station:
+                    raise WhensMyTransportException('rail_station_name_not_found', origin, "Tube")
+            # Get the lines serving; if more than one throw an exception due to ambiguity
+            lines = self.geodata.database.get_lines_serving(station.code)
+            if len(lines) > 1:
+                raise WhensMyTransportException('no_line_specified', origin)
+            line_code = lines[0][0]
+            line_name = get_line_name(line_code)
 
-        # Dig out relevant departure station for this line from the geotag, if provided, or else the station name
-        if position:
-            logging.debug("Attempting to get closest to position: %s", position)
-            station = self.get_station_by_geolocation(line_code, position)
+        # Else, work out the line first and then the station
         else:
-            logging.debug("Attempting to get a fuzzy match on placename %s", origin)
-            station = self.get_station_by_station_name(line_code, origin)
-        if not station:
-            raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
+            line = self.line_lookup.get(line_name, "") or get_best_fuzzy_match(line_name, self.line_lookup.values())
+            if not line:
+                raise WhensMyTransportException('nonexistent_line', line_name)
+            line_code = get_line_code(line)
+            if line != 'DLR':
+                line_name += " Line"
+
+            # Dig out relevant departure station for this line from the geotag, if provided, or else the station name
+            if position:
+                logging.debug("Attempting to get closest to position: %s", position)
+                station = self.get_station_by_geolocation(position, line_code)
+                # There will always be a nearest station so no need to check for non-existence
+            else:
+                logging.debug("Attempting to get a fuzzy match on placename %s", origin)
+                station = self.get_station_by_station_name(origin, line_code)
+                if not station:
+                    raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
+
         if station.code == "XXX":  # XXX is the code for a station that does not have TrackerNet data on the API
             raise WhensMyTransportException('rail_station_not_in_system', station.name)
 
@@ -108,23 +128,29 @@ class WhensMyTrain(WhensMyTransport):
             else:
                 raise WhensMyTransportException('no_trains_shown', line_name, station.name)
 
-    def get_station_by_geolocation(self, line_code, position):
+    def get_station_by_geolocation(self, position, line_code=""):
         """
         Take a line and a tuple specifying latitude & longitude, and works out closest station
         """
-        return self.geodata.find_closest(position, {'line': line_code}, RailStation)
+        params = {}
+        if line_code:
+            params['line'] = line_code
+        return self.geodata.find_closest(position, params, RailStation)
 
-    def get_station_by_station_name(self, line_code, station_name):
+    def get_station_by_station_name(self, station_name, line_code=""):
         """
         Take a line and a string specifying station name, and work out matching for that name
         """
-        return self.geodata.find_fuzzy_match(station_name, {'line': line_code}, RailStation)
+        params = {}
+        if line_code:
+            params['line'] = line_code
+        return self.geodata.find_fuzzy_match(station_name, params, RailStation)
 
     def get_canonical_station_name(self, line_code, station_name):
         """
         Return just the string matching for a line code and station name, or blank if none exists
         """
-        station_obj = self.get_station_by_station_name(line_code, station_name)
+        station_obj = self.get_station_by_station_name(station_name, line_code)
         return station_obj and station_obj.name or ""
 
     def get_departure_data(self, station, line_code, must_stop_at=None):
@@ -160,7 +186,7 @@ class WhensMyTrain(WhensMyTransport):
         # (By a stroke of luck, all the stations this applies to - North Acton, Edgware Road, Loughton, White City - are on an east/west line)
         if "Unknown" in departures:
             for train in departures["Unknown"]:
-                destination_station = self.get_station_by_station_name(line_code, train.destination)
+                destination_station = self.get_station_by_station_name(train.destination, line_code)
                 if not destination_station:
                     continue
                 if destination_station.location_easting < station.location_easting:
@@ -205,6 +231,16 @@ def get_line_code(line_name):
         return 'O'
     else:
         return line_name[0]
+
+def get_line_name(line_code):
+    """
+    Return the full official Line name for the line code requested
+    """
+    if line_code == 'DLR':
+        return line_code
+    lookup = dict([(line_name[0], line_name) for line_name in LINE_NAMES if line_name not in ('Circle', 'DLR',)])
+    lookup['O'] = 'Circle'
+    return lookup.get(line_code, '')
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 # Instance name comes from command line, all other config is done in the file config.cfg
