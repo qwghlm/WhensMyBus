@@ -19,8 +19,6 @@ Released under the MIT License
 
 Things to do:
 
- - Add corpus of Tube line & station names so we can better "guess" ambiguous messages
- - Deduces line needed for Tube/DLR if need be
  - Handle inputs based on direction
 
 
