@@ -28,7 +28,7 @@ from pprint import pprint
 try:
     from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
     from whensmybus import WhensMyBus
-    from whensmytrain import WhensMyTrain
+    from whensmytrain import WhensMyTrain, LINE_NAMES, get_line_code, get_line_name
 
     from lib.dataparsers import parse_bus_data, parse_tube_data, parse_dlr_data
     from lib.exceptions import WhensMyTransportException
@@ -201,6 +201,17 @@ class WhensMyTransportTestCase(unittest.TestCase):
             self.assertEqual(gmt_to_localtime("2359"), "0059")
         else:
             self.assertEqual(gmt_to_localtime("2359"), "2359")
+
+    def test_tubeutils(self):
+        """
+        Unit test for helper functions in WhensMyTrain
+        """
+        self.assertEqual(get_line_code('Central'), 'C')
+        self.assertEqual(get_line_code('Circle'), 'O')
+        self.assertEqual(get_line_name('C'), 'Central')
+        self.assertEqual(get_line_name('O'), 'Circle')
+        for line_name in LINE_NAMES:
+            self.assertEqual(line_name, get_line_name(get_line_code(line_name)))
 
     @unittest.skipIf(time.localtime()[3] < 2, "Arbitrary nature of test data fails at midnight")
     def test_models(self):
@@ -943,7 +954,7 @@ def run_tests():
     test_case_name = parser.parse_args().test_case_name
 
     # Init tests (same for all)
-    unit_tests = ('exceptions', 'geo', 'listutils', 'models', 'stringutils',)
+    unit_tests = ('exceptions', 'geo', 'listutils', 'models', 'stringutils', 'tubeutils')
     local_tests = ('init', 'browser', 'database', 'dataparsers', 'location', 'logger', 'settings', 'textparser')
     remote_tests = ('geocoder', 'twitter_client',)
 
