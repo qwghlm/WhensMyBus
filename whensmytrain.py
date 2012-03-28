@@ -26,21 +26,22 @@ from lib.models import RailStation, NullDeparture
 from lib.stringutils import get_best_fuzzy_match
 from lib.textparser import WMTTrainParser
 
-
-LINE_NAMES = (
-    'Bakerloo',
-    'Central',
-    'Circle',
-    'District',
-    'Hammersmith & City',
-    'Jubilee',
-    'Metropolitan',
-    'Northern',
-    'Piccadilly',
-    'Victoria',
-    'Waterloo & City',
-    'DLR',
-)
+# LINE_NAMES is of format:
+#     (code, name): [list of alternative spellings]
+LINE_NAMES = {
+    ('B', 'Bakerloo'):           [],
+    ('C', 'Central'):            [],
+    ('O', 'Circle'):             [],
+    ('D', 'District'):           [],
+    ('H', 'Hammersmith & City'): ['Hammersmith and City', 'H&C'],
+    ('J', 'Jubilee'):            ['Jubillee'],
+    ('M', 'Metropolitan'):       ['Met'],
+    ('N', 'Northern'):           [],
+    ('P', 'Piccadilly'):         ['Picadilly'],
+    ('V', 'Victoria'):           [],
+    ('W', 'Waterloo & City'):    ['Waterloo and City', 'W&C'],
+    ('DLR', 'DLR'):              ['Docklands Light Rail', 'Docklands Light Railway', 'Docklands'],
+}
 
 
 class WhensMyTrain(WhensMyTransport):
@@ -58,22 +59,18 @@ class WhensMyTrain(WhensMyTransport):
         self.allow_blank_tweets = instance_name == 'whensmydlr'
         self.parser = WMTTrainParser()
 
-        # Build internal lookup table of possible line name -> "official" line name
-        # Handle abbreviated three-letter versions and sort out ampersands
-        line_tuples = [(name, name) for name in LINE_NAMES]
-        line_tuples += [(name[:3], name) for name in LINE_NAMES]
-        line_tuples += [(name.replace("&", "and"), name) for name in LINE_NAMES]
-        line_tuples += [('W&C', 'Waterloo & City'), ('H&C', 'Hammersmith & City',), ('Docklands Light Railway', 'DLR')]
-        self.line_lookup = dict(line_tuples)
+        self.line_lookup = dict([(name, name) for (code, name) in LINE_NAMES.keys()])
+        for ((code, name), alternatives) in LINE_NAMES.items():
+            self.line_lookup.update(dict([(alternative, name) for alternative in alternatives]))
 
-    def process_individual_request(self, line_name, origin, destination, position):
+    def process_individual_request(self, requested_line, origin, destination, position):
         """
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it
         """
         # FIXME Need to write unit tests for this bit
         # If no line name given, work out the nearest station first, then the lines
-        if not line_name and self.instance_name == 'whensmytube':
+        if not requested_line and self.instance_name == 'whensmytube':
             if position:
                 station = self.get_station_by_geolocation(self, position)
             elif origin:
@@ -89,11 +86,11 @@ class WhensMyTrain(WhensMyTransport):
 
         # Else, work out the line first and then the station
         else:
-            line = self.line_lookup.get(line_name, "") or get_best_fuzzy_match(line_name, self.line_lookup.values())
-            if not line:
-                raise WhensMyTransportException('nonexistent_line', line_name)
-            line_code = get_line_code(line)
-            if line != 'DLR':
+            line_name = self.line_lookup.get(requested_line, "") or get_best_fuzzy_match(requested_line, self.line_lookup.values())
+            if not line_name:
+                raise WhensMyTransportException('nonexistent_line', requested_line)
+            line_code = get_line_code(line_name)
+            if line_name != 'DLR':
                 line_name += " Line"
 
             # Dig out relevant departure station for this line from the geotag, if provided, or else the station name
@@ -225,22 +222,16 @@ def get_line_code(line_name):
     """
     Return the TfL line code for the line requested
     """
-    if line_name == 'DLR':
-        return line_name
-    elif line_name == 'Circle':
-        return 'O'
-    else:
-        return line_name[0]
+    lookup = dict([(name, code) for (code, name) in LINE_NAMES.keys()])
+    return lookup.get(line_name, None)
+
 
 def get_line_name(line_code):
     """
     Return the full official Line name for the line code requested
     """
-    if line_code == 'DLR':
-        return line_code
-    lookup = dict([(line_name[0], line_name) for line_name in LINE_NAMES if line_name not in ('Circle', 'DLR',)])
-    lookup['O'] = 'Circle'
-    return lookup.get(line_code, '')
+    lookup = dict([(code, name) for (code, name) in LINE_NAMES.keys()])
+    return lookup.get(line_code, None)
 
 # If this script is called directly, check our Tweets and Followers, and reply/follow as appropriate
 # Instance name comes from command line, all other config is done in the file config.cfg
