@@ -146,6 +146,8 @@ class WMTLocations():
         """
         Return whether there is a direct route (i.e. one that does work without changing) between origin and destination on the line
         with code line_code (going via via if specified). If must_stop_at is specified, must also check that it stops at must_stop_at
+
+        via and must_stop_at are basically the same thing, for what it's worth, and are interchangeable
         """
         if not origin or not destination:
             return False
@@ -163,8 +165,7 @@ class WMTLocations():
 
     def is_correct_direction(self, origin, destination, direction, line_code):
         """
-        Return True if a train going in this direction will reach the destination from the origin
-        Whether a direct route exists is assumed to be true, as this is only an estimate
+        Return True if a train going in this direction will directly reach the destination from the origin
         """
         if not direction:
             return False
@@ -172,10 +173,10 @@ class WMTLocations():
             direction = direction[:-len("bound")]
         origin = self.find_fuzzy_match(origin, {'line': line_code}, RailStation)
         destination = self.find_fuzzy_match(destination, {'line': line_code}, RailStation)
+
         # If we can't find a match, or there doesn't exist direct route between the two, then can't be correct direction
         if not origin or not destination or not self.direct_route_exists(origin.name, destination.name, line_code):
             return False
-
         if direction == "East" and origin.location_easting < destination.location_easting or \
            direction == "West" and origin.location_easting > destination.location_easting or \
            direction == "North" and origin.location_northing < destination.location_northing or \

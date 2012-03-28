@@ -141,7 +141,7 @@ class WhensMyTrain(WhensMyTransport):
             line_code = 'H'
         if line_code == 'DLR':
             dlr_data = self.browser.fetch_xml_tree(self.urls.DLR_URL % station.code)
-            departures = parse_dlr_data(dlr_data, station)
+            departures = parse_dlr_data(dlr_data, station.code)
             null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
             tube_data = self.browser.fetch_xml_tree(self.urls.TUBE_URL % (line_code, station.code))

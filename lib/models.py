@@ -114,8 +114,7 @@ class RailStation(Location):
         self.code = code
         self.location_easting = location_easting
         self.location_northing = location_northing
-        self.inner = inner
-        self.outer = outer
+        self.circular_directions = {'inner': inner, 'outer': outer}
 
     def get_abbreviated_name(self):
         """

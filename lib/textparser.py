@@ -113,6 +113,7 @@ class WMTTrainParser(WMTTextParser):
     Parser for train requests
     """
     def __init__(self):
+        # Tagging regexes are stored in dataparser
         grammar = r"""
             TUBE_LINE_NAME: {<TUBE_LINE_WORD><AND><CITY><LINE>?}
                             {<TUBE_LINE_WORD><LINE>?}

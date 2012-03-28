@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Data browser for When's My Transport
+Data browser for When's My Transport, with caching and JSON/XML parsing
 """
 import json
 import logging
@@ -14,7 +14,7 @@ from lib.exceptions import WhensMyTransportException
 
 
 #
-# Live API URLs
+# API URLs - for live APIs and test data we have cached for unit testing
 #
 HOME_DIR = os.path.dirname(os.path.abspath(__file__)) + '/..'
 URL_SETS = {
@@ -31,11 +31,12 @@ URL_SETS = {
         'STATUS_URL': "file://" + HOME_DIR + "/testdata/tube/status.xml",
     }
 }
+CACHE_MAXIMUM_AGE = 30  # 30 seconds maximum cache age
 
 
-class WMTURLProvider():
+class WMTURLProvider:
     """
-    Wrapper class that provides URLs for the TfL APIs
+    Simple wrapper that provides URLs for the TfL APIs, or test data depending on how we have set this up
     """
     #pylint: disable=R0903
     def __init__(self, use_test_data=False):
@@ -53,24 +54,21 @@ class WMTBrowser:
     A simple JSON/XML fetcher with caching. Not designed to be used for many thousands of URLs, or for concurrent access
     """
     def __init__(self):
-        """
-        Start up
-        """
         self.opener = urllib2.build_opener()
         self.opener.addheaders = [('User-agent', 'When\'s My Transport?'),
                                   ('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')]
         logging.debug("Starting up browser")
-
         self.cache = {}
 
-    def fetch_url(self, url, exception_code):
+    def fetch_url(self, url, default_exception_code):
         """
         Fetch a URL and returns the raw data as a string
         """
-        if url in self.cache and (time.time() - self.cache[url]['time']) < 30:
+        # If URL is in cache and still considered fresh, fetch that
+        if url in self.cache and (time.time() - self.cache[url]['time']) < CACHE_MAXIMUM_AGE:
             logging.debug("Using cached URL %s", url)
             url_data = self.cache[url]['data']
-
+        # Else fetch URL and store
         else:
             logging.debug("Fetching URL %s", url)
             try:
@@ -80,20 +78,18 @@ class WMTBrowser:
             # Handle browsing error
             except urllib2.HTTPError, exc:
                 logging.error("HTTP Error %s reading %s, aborting", exc.code, url)
-                raise WhensMyTransportException(exception_code)
+                raise WhensMyTransportException(default_exception_code)
             except Exception, exc:
                 logging.error("%s (%s) encountered for %s, aborting", exc.__class__.__name__, exc, url)
-                raise WhensMyTransportException(exception_code)
+                raise WhensMyTransportException(default_exception_code)
 
         return url_data
 
-    def fetch_json(self, url, exception_code='tfl_server_down'):
+    def fetch_json(self, url, default_exception_code='tfl_server_down'):
         """
         Fetch a JSON URL and returns Python object representation of it
         """
-        json_data = self.fetch_url(url, exception_code)
-
-        # Try to parse this as JSON
+        json_data = self.fetch_url(url, default_exception_code)
         if json_data:
             try:
                 obj = json.loads(json_data)
@@ -102,14 +98,15 @@ class WMTBrowser:
             except ValueError, exc:
                 del self.cache[url]
                 logging.error("%s encountered when parsing %s - likely not JSON!", exc, url)
-                raise WhensMyTransportException(exception_code)
+                raise WhensMyTransportException(default_exception_code)
+        else:
+            return None
 
-    def fetch_xml_tree(self, url, exception_code='tfl_server_down'):
+    def fetch_xml_tree(self, url, default_exception_code='tfl_server_down'):
         """
         Fetch an XML URL and returns Python object representation of it as an ElementTree
         """
-        xml_data = self.fetch_url(url, exception_code)
-        # Try to parse this as XML
+        xml_data = self.fetch_url(url, default_exception_code)
         if xml_data:
             try:
                 tree = fromstring(xml_data)
@@ -120,7 +117,10 @@ class WMTBrowser:
                         if elem.tag.startswith(namespace):
                             elem.tag = elem.tag[len(namespace):]
                 return tree
+            # If the XML parser is choking, probably a 503 Error message in HTML so raise a ValueError
             except Exception, exc:
                 del self.cache[url]
                 logging.error("%s encountered when parsing %s - likely not XML!", exc, url)
-                raise WhensMyTransportException(exception_code)
+                raise WhensMyTransportException(default_exception_code)
+        else:
+            return None

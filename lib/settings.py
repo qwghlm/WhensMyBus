@@ -8,8 +8,7 @@ from lib.database import WMTDatabase
 
 class WMTSettings():
     """
-    Class representing a settings read/write handler (for remembering data between sessions" for When's My Transport
-
+    Class representing a settings read/write handler (for remembering data between sessions) for When's My Transport
     """
     def __init__(self, instance_name):
         self.instance_name = instance_name
@@ -20,7 +19,6 @@ class WMTSettings():
         """
         Fetch value of setting from settings database
         """
-        # Generic Exception handling
         # pylint: disable=W0703
         setting_value = self.settingsdb.get_value("select setting_value from %s_settings where setting_name = ?" % self.instance_name, (setting_name,))
         # Try unpickling, if this doesn't work then return the raw value (to deal with legacy databases)

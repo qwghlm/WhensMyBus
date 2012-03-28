@@ -55,7 +55,7 @@ class WMTDatabase():
 
     def check_existence_of(self, table_name, column, value):
         """
-        Check to see if any row in the table has a value in column; returns True if exists, False if not
+        Check to see if any row in the table has the value in column; returns True if exists, False if not
         """
         (where_statement, where_values) = self.make_where_statement(table_name, {column: value})
         rows = self.get_rows("SELECT * FROM %s WHERE %s" % (table_name, where_statement), where_values)
@@ -70,7 +70,9 @@ class WMTDatabase():
 
     def make_where_statement(self, table_name, params):
         """
-        Convert a dictionary of params, checks it against the table, and return a statement that can go after a WHERE
+        Convert a dictionary of params, checks it against the table, and returns a tuple of those params for use in sqlite
+            First eleemnt of tuple is statement containing statement that can go after a WHERE
+            Second elements of tuple is a tuple, containing the values for sqlite to safely inject into the statement
         """
         if not params:
             return (" 1 ", ())

@@ -11,10 +11,10 @@ from lib.models import TubeTrain, Bus, DLRTrain, DepartureCollection
 from lib.stringutils import capwords, gmt_to_localtime
 
 
-def parse_bus_data(bus_data, stop, route_number):
+def parse_bus_data(bus_data, route_number):
     """
-    Take a parsed json object bus_data from a single stop, BusStop object and strings representing the route and run
-    Returns a list of Bus objects
+    Take a parsed JSON object bus_data from a single bus stop and a specified route_number
+    Returns a list of Bus objects for that bus stop and route
     """
     arrivals = bus_data.get('arrivals', [])
 
@@ -30,18 +30,13 @@ def parse_bus_data(bus_data, stop, route_number):
         for arrival in relevant_arrivals[:3]:
             scheduled_time = gmt_to_localtime(arrival['scheduledTime'])
             relevant_buses.append(Bus(arrival['destination'], scheduled_time))
-        logging.debug("Stop %s produced buses: %s", stop.get_clean_name(), ', '.join([str(bus) for bus in relevant_buses]))
-
-    else:
-        logging.debug("Stop %s produced no buses", stop.get_clean_name())
-
     return relevant_buses
 
 
 def parse_dlr_data(dlr_data, station):
     """
-    Take a parsed elementTree dlr_data, RailStation object and string representing a line code
-    Returns a DepartureCollection object
+    Takes a parsed XML elementTree dlr_data and the RailStation object for the station whose departures we are querying
+    Returns a DepartureCollection object of all departures from the station in question, classified by platform
     """
     train_info_regex = re.compile(r"[1-4] (\D+)(([0-9]+) mins?)?", flags=re.I)
     platforms_to_ignore = [('tog', 'P1'),
@@ -95,9 +90,10 @@ def parse_dlr_data(dlr_data, station):
 
 def parse_tube_data(tube_data, station, line_code):
     """
-    Take a parsed elementTree tube_data, RailStation object, string representing a line code, and a reference
-    to a get_station_by_station_name() function
-    Returns a dictionary; keys are platform names, values lists of TubeTrain objects
+    Takes a parsed XML elementTree tube_data, the RailStation object for the station whose departures we are querying,
+    and a string representing the one-character code for the line we want trains for
+
+    Returns a DepartureCollection object of all departures from the station in question, classified by direction
     """
     # Go through each platform and get data about every train arriving, including which direction it's headed
     trains_by_direction = DepartureCollection()
@@ -112,9 +108,10 @@ def parse_tube_data(tube_data, station, line_code):
         if direction:
             direction = capwords(direction.group(0))
         # Some Circle/Central Line platforms called "Inner" and "Outer" Rail, which make no sense to customers, so I've manually
-        # entered Inner and Outer attributes in the object (taken from the database) which translate from these into North/South/East/West
+        # entered Inner and Outer attributes in the object (taken from the database) in the attribute circular_directions,
+        # which translate from these into North/South/East/West
         elif rail:
-            direction = station.__dict__[rail.group(1).lower()] + 'bound'
+            direction = station.circular_directions[rail.group(1).lower()] + 'bound'
         else:
             # Some odd cases. Chesham and Chalfont & Latimer don't say anything at all for the platforms on the Chesham branch of the Met Line
             if station.code == "CHM":
@@ -129,9 +126,8 @@ def parse_tube_data(tube_data, station, line_code):
 
         # Use the filter function to filter out trains that are out of service, specials or National Rail first
         platform_trains = platform.findall("T[@LN='%s']" % line_code)
-        platform_trains = [t for t in platform_trains if filter_tube_train(t.attrib['Destination'], t.attrib['DestCode'], t.attrib.get('Location', ''))]
+        platform_trains = [train for train in platform_trains if filter_tube_train(train)]
         for train in platform_trains:
-
             # Create a TubeTrain object
             destination = train.attrib['Destination']
             departure_delta = timedelta(seconds=int(train.attrib['SecondsTo']))
@@ -143,10 +139,13 @@ def parse_tube_data(tube_data, station, line_code):
     return trains_by_direction
 
 
-def filter_tube_train(destination, destination_code, location=""):
+def filter_tube_train(train_tag):
     """
-    Filter function for whether to include trains, to get rid of misleading, out of service or downright bogus trains
+    XML tag filter function for whether to include trains, to get rid of misleading, out of service or downright bogus trains
     """
+    destination = train_tag.attrib['Destination']
+    destination_code = train_tag.attrib['DestCode']
+    location = train_tag.attrib.get('Location', '')
     # 546 and 749 appear to be codes for Out of Service http://wiki.opentfl.co.uk/TrackerNet_predictions_detailed
     # 433 is code for Triangle sidings depot (only used at night?)
     if destination_code in ('546', '749', '433'):
