@@ -654,18 +654,17 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         """
         Tests for the natural language parser
         """
-        (route, origin, destination) = ('A1', 'Heathrow Airport', '47000')
+        (route, origin, destination, direction) = ('A1', 'Heathrow Airport', '47000')
         routes = [route]
-        self.assertEqual(self.bot.parser.parse_message(""),                                                 (None, None, None))
-        self.assertEqual(self.bot.parser.parse_message("from %s to %s %s" % (origin, destination, route)),  (None, None, None))
-        self.assertEqual(self.bot.parser.parse_message("%s" % route),                                       (routes, None, None))
-        self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None))
-        self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination))
-        self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None))
-        self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination))
-        self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination))
-        self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination))
-
+        self.assertEqual(self.bot.parser.parse_message(""),                                                 (None, None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("from %s to %s %s" % (origin, destination, route)),  (None, None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("%s" % route),                                       (routes, None, None, None))
+        self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None, None))
+        self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination, None))
+        self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None, None))
+        self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
+        self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
+        self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
     #
     # Stop-related errors
     #
@@ -870,17 +869,22 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Tests for the natural language parser
         """
-        (route, origin, destination) = ('Victoria', 'Sloane Square', 'Upminster')
-        routes = [route]
-        self.assertEqual(self.bot.parser.parse_message(""),                                                             (None, None, None))
-        for line in (' Line', ''):
-            self.assertEqual(self.bot.parser.parse_message("%s%s" % (route, line)),                                     (routes, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s%s %s" % (route, line, origin)),                          (routes, origin, None))
-            self.assertEqual(self.bot.parser.parse_message("%s%s %s to %s" % (route, line, origin, destination)),       (routes, origin, destination))
-            self.assertEqual(self.bot.parser.parse_message("%s%s from %s" % (route, line, origin)),                     (routes, origin, None))
-            self.assertEqual(self.bot.parser.parse_message("%s%s from %s to %s" % (route, line, origin, destination)),  (routes, origin, destination))
-            self.assertEqual(self.bot.parser.parse_message("%s%s to %s" % (route, line, destination)),                  (routes, None, destination))
-            self.assertEqual(self.bot.parser.parse_message("%s%s to %s from %s" % (route, line, destination, origin)),  (routes, origin, destination))
+        (line_name, origin, destination, direction) = ('Victoria', 'Sloane Square', 'Upminster', 'Eastbound')
+        routes = [line_name]
+        self.assertEqual(self.bot.parser.parse_message(""),                                                     (None, None, None, None))
+        for route in (line_name, '%s Line' % line_name):
+            self.assertEqual(self.bot.parser.parse_message("%s" % (route,)),                                    (routes, None, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, direction)),                       (routes, None, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, origin, direction)),            (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s %s" % (route, origin, direction)),       (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, direction, origin)),            (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s from %s" % (route, direction, origin)),       (routes, origin, None, direction))
 
     def test_known_problems(self):
         """
@@ -942,16 +946,21 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
         Tests for the natural language parser
         """
         for route in ('', 'DLR'):
-            (origin, destination) = ('Westferry', 'All Saints')
+            (origin, destination, direction) = ('Westferry', 'All Saints', "Northbound")
             routes = route and [route] or None
-            self.assertEqual(self.bot.parser.parse_message(""),                                                 (None, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s" % route),                                       (routes, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None))
-            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination))
-            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None))
-            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination))
-            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination))
-            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination))
+            self.assertEqual(self.bot.parser.parse_message(""),                                                 (None, None, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s" % route),                                       (routes, None, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, direction)),                       (routes, None, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, origin, direction)),            (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s %s" % (route, origin, direction)),       (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, direction, origin)),            (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s from %s" % (route, direction, origin)),       (routes, origin, None, direction))
 
 
 def run_tests():
