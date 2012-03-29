@@ -489,6 +489,7 @@ def import_tube_xml_to_text_corpus():
         (r'^(and|&)$', 'AND'),
         (r'^city$', 'CITY'),
         (r'^line$', 'LINE'),
+        (r'.*bound$', 'DIRECTION'),
         (r'^(please|thanks|thank|you)$', None),
         (r'^docklands (light rail(way)?)?$', 'DLR_LINE_NAME'),
         (r'.*', 'UNKNOWN'),

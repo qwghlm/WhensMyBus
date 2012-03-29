@@ -189,7 +189,7 @@ class WhensMyTransport:
         # Get route number, from and to from the message
         message = self.sanitize_message(tweet.text)
         logging.debug("Message from user: %s", message)
-        (requested_routes, origin, destination) = self.parser.parse_message(message)
+        (requested_routes, origin, destination, direction) = self.parser.parse_message(message)
 
         # If no routes found, we may be able to deduce from origin or position if we are DLR/Tube
         if not requested_routes:
@@ -213,7 +213,7 @@ class WhensMyTransport:
         replies = []
         for requested_route in requested_routes:
             try:
-                replies.append(self.process_individual_request(requested_route, origin, destination, position))
+                replies.append(self.process_individual_request(requested_route, origin, destination, direction, position))
             # Exceptions produced for an individual request are particular to a route/stop combination - e.g. the bus
             # given does not stop at the stop given, so we just provide an error message for that circumstance, treat as
             # a non-fatal error, and process the next one. The one case where there is a fatal error (TfL's servers are

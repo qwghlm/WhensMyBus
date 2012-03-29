@@ -31,7 +31,7 @@ class WMTTextParser():
         logging.debug("Parsing message: '%s'", text)
         if not text:
             logging.debug("Message is empty, returning nothing")
-            return (None, None, None)
+            return (None, None, None, None)
         tokenizer = nltk.tokenize.regexp.WhitespaceTokenizer()
         tokens = tokenizer.tokenize(text.lower())
         tagged_tokens = [(word, tag) for (word, tag) in self.tagger.tag(tokens) if tag]
@@ -43,10 +43,10 @@ class WMTTextParser():
         parsed_tokens = self.parser.parse(tagged_tokens)
         if not subtree_exists(parsed_tokens, 'REQUEST'):
             logging.debug("Message did not conform to message format, returning nothing")
-            return (None, None, None)
+            return (None, None, None, None)
 
         # Else extract the right tagged words from the parsed tree, applying capitalisation appropriately
-        routes, origin, destination = (None, None, None)
+        routes, origin, destination, direction = (None, None, None, None)
         for subtree in parsed_tokens.subtrees():
             if subtree.node == 'LINE_NAME':
                 routes = extract_words(subtree, ('TUBE_LINE_WORD', 'DLR_LINE_NAME', 'AND', 'CITY'))
@@ -62,11 +62,13 @@ class WMTTextParser():
                 origin = extract_words(subtree, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))
             elif subtree.node == 'DESTINATION':
                 destination = extract_words(subtree, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))
+            elif subtree.node == 'DIRECTION':
+                direction = extract_words(subtree, ('DIRECTION',))
 
         origin = origin and capwords(' '.join(origin)) or None
         destination = destination and capwords(' '.join(destination)) or None
         logging.debug("Found routes %s from origin '%s' to destination '%s'", routes, origin, destination)
-        return (routes, origin, destination)
+        return (routes, origin, destination, direction)
 
     def fix_unknown_tokens(self, tagged_tokens):
         """
@@ -134,8 +136,10 @@ class WMTTrainParser(WMTTextParser):
             STATION: {<STATION_WORD|CITY|AND>+}
             DESTINATION: {<TO><STATION>}
             ORIGIN: {<FROM>?<STATION>}
-            REQUEST: {^<LINE_NAME>?<ORIGIN>?<DESTINATION>?$}
-                     {^<LINE_NAME>?<DESTINATION><ORIGIN>$}
+            REQUEST: {^<LINE_NAME>?<ORIGIN>?<DESTINATION>?}
+                     {^<LINE_NAME>?<DESTINATION><ORIGIN>}
+                     {^<LINE_NAME>?<ORIGIN>?<DIRECTION>}
+                     {^<LINE_NAME>?<DIRECTION><ORIGIN>?}
         """
         self.parser = nltk.RegexpParser(grammar)
 

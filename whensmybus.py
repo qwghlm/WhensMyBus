@@ -40,10 +40,12 @@ class WhensMyBus(WhensMyTransport):
         WhensMyTransport.__init__(self, 'whensmybus', testing)
         self.parser = WMTBusParser()
 
-    def process_individual_request(self, route_number, origin, destination, position=None):
+    def process_individual_request(self, route_number, origin, destination, direction, position=None):
         """
         Take an individual route number, with either origin or position, and optional destination, and work out
         the stops and thus the appropriate times for the user, and return an appropriate reply to that user
+
+        NB direction is not used for this class
         """
         # Not all valid-looking bus numbers are real bus numbers (e.g. 214, RV11) so we check database to make sure
         route_number = route_number.upper()

@@ -64,10 +64,10 @@ class WhensMyTrain(WhensMyTransport):
         for ((_code, name), alternatives) in LINE_NAMES.items():
             self.line_lookup.update(dict([(alternative, name) for alternative in alternatives]))
 
-    def process_individual_request(self, requested_line, origin, destination, position):
+    def process_individual_request(self, requested_line, origin, destination, direction, position):
         """
         Take an individual line, with either origin or position, and work out which station the user is
-        referring to, and then get times for it
+        referring to, and then get times for it. Filter trains by destination, or direction
         """
         # If no line name given, work out the nearest station first, then the lines
         if not requested_line and self.instance_name == 'whensmytube':
@@ -111,15 +111,17 @@ class WhensMyTrain(WhensMyTransport):
             raise WhensMyTransportException('rail_station_not_in_system', station.name)
 
         # If user has specified a destination, work out what it is, and check a direct route to it exists
+        destination_name = None
         if destination:
             destination_name = self.get_canonical_station_name(destination, line_code) or None
-        else:
-            destination_name = None
         if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line_code):
             raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
+        if not destination_name and direction:
+            direction = "Northbound"  # FIXME :)
+
         # All being well, we can now get the departure data for this station and return it
-        departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name)
+        departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name, direction=direction)
         if departure_data:
             return "%s to %s" % (station.get_abbreviated_name(), str(departure_data))
         else:
@@ -153,7 +155,7 @@ class WhensMyTrain(WhensMyTransport):
         station_obj = self.get_station_by_station_name(station_name, line_code)
         return station_obj and station_obj.name or ""
 
-    def get_departure_data(self, station, line_code, must_stop_at=None):
+    def get_departure_data(self, station, line_code, must_stop_at=None, direction=None):
         """
         Take a station object and a line ID, and get departure data for that station
         Returns a dictionary; keys are slot names (platform for DLR, direction for Tube), values lists of Train objects
@@ -203,6 +205,14 @@ class WhensMyTrain(WhensMyTransport):
         # Note that unlike the above, this will turn all existing empty lists into Nones (and thus deletable) as well
         if must_stop_at:
             departures.filter(lambda train: self.geodata.does_train_stop_at(station.name, must_stop_at, train), delete_existing_empty_slots=True)
+        # Else filter by direction
+        elif direction:
+            if self.instance_name == 'whensmytube':
+                for slot in departures.keys():
+                    if slot != direction:
+                        del departures[slot]
+            else:
+                departures.filter(lambda train: self.geodata.is_correct_direction(station.name, train.destination, direction, line_code), delete_existing_empty_slots=True)
         departures.cleanup(null_constructor)
         return departures
 
