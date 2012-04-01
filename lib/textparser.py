@@ -47,26 +47,28 @@ class WMTTextParser():
 
         # Else extract the right tagged words from the parsed tree, applying capitalisation appropriately
         routes, origin, destination, direction = (None, None, None, None)
-        for subtree in parsed_tokens.subtrees():
-            if subtree.node == 'LINE_NAME':
-                routes = extract_words(subtree, ('TUBE_LINE_WORD', 'DLR_LINE_NAME', 'AND', 'CITY'))
+        for child in parsed_tokens.subtrees():
+            if child.node == 'LINE_NAME':
+                routes = extract_words(child, ('TUBE_LINE_WORD', 'DLR_LINE_NAME', 'AND', 'CITY'))
                 routes = ' '.join(routes) or None
                 if routes == 'dlr':
                     routes = [routes.upper()]
                 elif routes:
                     routes = [capwords(routes)]
-            elif subtree.node == 'BUS_ROUTES':
-                routes = extract_words(subtree, ('ROUTE_NUMBER',))
+            elif child.node == 'BUS_ROUTES':
+                routes = extract_words(child, ('ROUTE_NUMBER',))
                 routes = routes and [route.upper() for route in routes] or None
-            elif subtree.node == 'ORIGIN':
-                origin = extract_words(subtree, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))
-            elif subtree.node == 'DESTINATION':
-                destination = extract_words(subtree, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))
-            elif subtree.node == 'DIRECTION':
-                direction = extract_words(subtree, ('DIRECTION',))
+            elif child.node == 'ORIGIN':
+                origin = extract_words(child, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))
+            elif child.node == 'DESTINATION':
+                destination = extract_words(child, ('STATION_WORD', 'BUS_STOP_WORD', 'BUS_STOP_NUMBER'))
+            # This one's a bit odd, but DIRECTION is always a leaf node of REQUEST
+            elif child.node == 'REQUEST':
+                direction = extract_words(child, ('DIRECTION',))
 
         origin = origin and capwords(' '.join(origin)) or None
         destination = destination and capwords(' '.join(destination)) or None
+        direction = direction and capwords(' '.join(direction)) or None
         logging.debug("Found routes %s from origin '%s' to destination '%s'", routes, origin, destination)
         return (routes, origin, destination, direction)
 
@@ -136,10 +138,10 @@ class WMTTrainParser(WMTTextParser):
             STATION: {<STATION_WORD|CITY|AND>+}
             DESTINATION: {<TO><STATION>}
             ORIGIN: {<FROM>?<STATION>}
-            REQUEST: {^<LINE_NAME>?<ORIGIN>?<DESTINATION>?}
-                     {^<LINE_NAME>?<DESTINATION><ORIGIN>}
-                     {^<LINE_NAME>?<ORIGIN>?<DIRECTION>}
-                     {^<LINE_NAME>?<DIRECTION><ORIGIN>?}
+            REQUEST: {^<LINE_NAME>?<ORIGIN>?<DIRECTION>$}
+                     {^<LINE_NAME>?<DIRECTION><ORIGIN>?$}
+                     {^<LINE_NAME>?<ORIGIN>?<DESTINATION>?$}
+                     {^<LINE_NAME>?<DESTINATION><ORIGIN>$}
         """
         self.parser = nltk.RegexpParser(grammar)
 

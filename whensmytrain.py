@@ -73,10 +73,10 @@ class WhensMyTrain(WhensMyTransport):
         if not requested_line and self.instance_name == 'whensmytube':
             if position:
                 logging.debug("Attempting to get closest to position: %s", position)
-                station = self.get_station_by_geolocation(self, position)
+                station = self.get_station_by_geolocation(position)
             elif origin:
                 logging.debug("Attempting to get a fuzzy match on placename %s", origin)
-                station = self.get_station_by_station_name(self, origin)
+                station = self.get_station_by_station_name(origin)
                 if not station:
                     raise WhensMyTransportException('rail_station_name_not_found', origin, "Tube")
             # Get the lines serving; if more than one throw an exception due to ambiguity
@@ -170,7 +170,7 @@ class WhensMyTrain(WhensMyTransport):
         # DLR and Tube have different APIs
         if line_code == 'DLR':
             dlr_data = self.browser.fetch_xml_tree(self.urls.DLR_URL % station.code)
-            departures = parse_dlr_data(dlr_data, station.code)
+            departures = parse_dlr_data(dlr_data, station)
             null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
             tube_data = self.browser.fetch_xml_tree(self.urls.TUBE_URL % (line_code, station.code))

@@ -463,7 +463,7 @@ def import_tube_xml_to_text_corpus():
     Creates a corpus of text data for our parser to understand requests with
     """
     tokenizer = nltk.tokenize.regexp.WhitespaceTokenizer()
-    line_phrases = [tokenizer.tokenize(line_name.lower()) for line_name in LINE_NAMES]
+    line_phrases = [tokenizer.tokenize(line_name.lower()) for (_line_code, line_name) in LINE_NAMES.keys()]
     line_phrases = [[token for token in phrase if token not in ('&', 'city')] for phrase in line_phrases]
     station_phrases = []
     for filename in ('tube-references.csv', 'dlr-references.csv'):
