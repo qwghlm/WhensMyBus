@@ -538,13 +538,24 @@ class WhensMyTransportTestCase(unittest.TestCase):
         """
         for (request, mandatory_items, forbidden_items) in self.nonstandard_test_data:
             message = self.at_reply + request
+            print message
             tweet = FakeTweet(message)
+            t1 = time.time()
             results = self.bot.process_tweet(tweet)
+            t2 = time.time()
+            self.assertTrue(results)
             for result in results:
+                print result
+                # Result exists, no TfL garbag  e please, and no all-caps either
+                self.assertTrue(result)
+                for unwanted in ('<>', '#', '\[DLR\]', '>T<'):
+                    self.assertNotRegexpMatches(result, unwanted)
+                self.assertNotEqual(result, result.upper())
                 for mandatory_item in mandatory_items:
                     self.assertRegexpMatches(result, mandatory_item)
                 for forbidden_item in forbidden_items:
                     self.assertNotRegexpMatches(result, forbidden_item)
+            print 'Processing of Tweet took %0.3f ms\r\n' % ((t2 - t1) * 1000.0,)
 
 
 class WhensMyBusTestCase(WhensMyTransportTestCase):
@@ -585,20 +596,26 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             ('103 from Romford Station',
                 ('Romford Station',),
                 ('None shown',)),
+            # Dodgy
+            ('the 15 from st pauls churchyard',
+                ("St Paul's Churchyard",),
+                ('None shown',)),
         )
 
     def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
         """
-        Generic test to confirm Tweet is being processed correctly
+        Generic test to confirm a Bus Tweet is being processed correctly
         """
         print tweet.text
         t1 = time.time()
         results = self.bot.process_tweet(tweet)
         self.assertTrue(results)
         t2 = time.time()
+        self.assertTrue(results)
         for result in results:
             print result
-            # No TfL garbage please, and no all-caps either
+            # Result exists, no TfL garbage please, and no all-caps either
+            self.assertTrue(result)
             for unwanted in ('<>', '#', '\[DLR\]', '>T<'):
                 self.assertNotRegexpMatches(result, unwanted)
             self.assertNotEqual(result, result.upper())
@@ -618,7 +635,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             else:
                 self.assertRegexpMatches(result, ";")
 
-        print 'Took %0.3f ms' % ((t2 - t1) * 1000.0,)
+        print 'Processing of Tweet took %0.3f ms\r\n' % ((t2 - t1) * 1000.0,)
 
     #
     # Bus-specific tests
@@ -799,20 +816,22 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
     def _test_correct_successes(self, tweet, _routes_specified, expected_origin, destination_to_avoid=''):
         """
-        Generic test to confirm Tweet is being processed correctly
+        Generic test to confirm Tube Tweet is being processed correctly
         """
         print tweet.text
         t1 = time.time()
         results = self.bot.process_tweet(tweet)
         self.assertTrue(results)
         t2 = time.time()
+        self.assertTrue(results)
         for result in results:
             print result
+            self.assertTrue(result)
             self.assertNotEqual(result, result.upper())
             self.assertRegexpMatches(result, r"%s to .* [0-9]{4}" % expected_origin)
             if destination_to_avoid:
                 self.assertNotRegexpMatches(result, destination_to_avoid)
-        print 'Processing of Tweet took %0.3f ms' % ((t2 - t1) * 1000.0,)
+        print 'Processing of Tweet took %0.3f ms\r\n' % ((t2 - t1) * 1000.0,)
 
     def test_location(self):
         """
@@ -969,7 +988,9 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
         self.at_reply = '@%s ' % self.bot.username
         self.nonstandard_test_data = (
             # Handle when there are no trains
-            ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
+            ('DLR from Lewisham to Poplar',
+                ('Sorry! There are no DLR trains',),
+                ("Lewisham [0-9]{4}",)),
         )
 
     def test_known_problems(self):
@@ -1026,7 +1047,7 @@ def run_tests():
         bus_errors = ('no_bus_number', 'nonexistent_bus',)
         stop_errors = ('bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',)
         failures = format_errors + geotag_errors + bus_errors + stop_errors
-        successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
+        successes = ('nonstandard_messages',) # 'standard_messages', 'multiple_routes',)
     elif test_case_name == "WhensMyTube" or test_case_name == "WhensMyDLR":
         tube_errors = ('bad_line_name',)
         station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch', 'known_problems')

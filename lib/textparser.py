@@ -92,6 +92,7 @@ class WMTBusParser(WMTTextParser):
             (r'^from$', 'FROM'),
             (r'^to(wards)?$', 'TO'),
             (r'^(please|thanks|thank|you)$', None),
+            (r'^the$', None),
             (r'.*', 'UNKNOWN'),
         ]
         self.tagger = nltk.RegexpTagger(tagging_regexes)
