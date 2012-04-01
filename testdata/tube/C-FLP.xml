@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ROOT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://trackernet.lul.co.uk">
+  <Disclaimer>This system is an INFORMATION ONLY system, relying entirely on 
+				information received from the relevant Operational Railway Control System(s). It is NOT 
+				considered a safety related system in the Railway Engineering sense. However, 
+				the information reported may trigger user intervention by staff regarding possible 
+				incidents on the railway, and confirmation of the situation observed should be obtained prior 
+				to any corrective action being taken.</Disclaimer>
+  <WhenCreated>1 Apr 2012 20:57:59</WhenCreated>
+  <Line>C</Line>
+  <LineName>Central Line</LineName>
+  <S Code="FLP" Mess="" N="Fairlop." CurTime="20:57:59">
+    <P N="Outer Rail - Platform 1" Num="1" TrackCode="TC6604" />
+    <P N="Inner Rail - Platform 2" Num="2" TrackCode="TC6607">
+      <T LCID="1120051" SetNo="045" TripNo="14" SecondsTo="126" TimeTo="2:30" Location="Approaching Barkingside" Destination="Woodford via Hainault" DestCode="531" Order="0" DepartTime="19:57:50" DepartInterval="126" Departed="0" Direction="0" IsStalled="0" TrackCode="TC6501" LN="C" />
+      <T LCID="1124771" SetNo="104" TripNo="14" SecondsTo="271" TimeTo="5:00" Location="Between Gants Hill and Newbury Park" Destination="Hainault via Newbury Park" DestCode="532" Order="0" DepartTime="19:57:54" DepartInterval="271" Departed="0" Direction="0" IsStalled="0" TrackCode="TC6305" LN="C" />
+      <T LCID="1131516" SetNo="055" TripNo="13" SecondsTo="616" TimeTo="10:00" Location="At Wanstead" Destination="Hainault via Newbury Park" DestCode="532" Order="0" DepartTime="19:57:46" DepartInterval="616" Departed="0" Direction="0" IsStalled="0" TrackCode="TC6009" LN="C" />
+      <T LCID="1127907" SetNo="076" TripNo="6" SecondsTo="954" TimeTo="16:00" Location="At Leyton" Destination="Hainault via Newbury Park" DestCode="532" Order="0" DepartTime="19:57:50" DepartInterval="954" Departed="0" Direction="0" IsStalled="0" TrackCode="TC5613" LN="C" />
+      <T LCID="1120511" SetNo="046" TripNo="14" SecondsTo="1520" TimeTo="25:00" Location="Left Bethnal Green" Destination="Woodford via Hainault" DestCode="531" Order="0" DepartTime="19:57:55" DepartInterval="1520" Departed="0" Direction="0" IsStalled="0" TrackCode="TC5223" LN="C" />
+    </P>
+  </S>
+</ROOT>

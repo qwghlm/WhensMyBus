@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ROOT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://trackernet.lul.co.uk">
+  <Disclaimer>This system is an INFORMATION ONLY system, relying entirely on 
+				information received from the relevant Operational Railway Control System(s). It is NOT 
+				considered a safety related system in the Railway Engineering sense. However, 
+				the information reported may trigger user intervention by staff regarding possible 
+				incidents on the railway, and confirmation of the situation observed should be obtained prior 
+				to any corrective action being taken.</Disclaimer>
+  <WhenCreated>1 Apr 2012 20:49:01</WhenCreated>
+  <Line>W</Line>
+  <LineName>Waterloo &amp; City Line</LineName>
+  <S Code="BNK" Mess="" N="Bank." CurTime="20:49:01">
+    <P N="Westbound - Platform 7" Num="7" TrackCode="TWAABNK" />
+    <P N="Eastbound - Platform 8" Num="8" TrackCode="TWBAWLO" />
+  </S>
+</ROOT>

@@ -574,11 +574,17 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         # Troublesome destinations & data
         self.nonstandard_test_data = (
             # Hoxton is mistaken as Brixton
-            ('243 from Hoxton',                  ('Hoxton Station / Geffrye Museum'), ('Brixton',)),
+            ('243 from Hoxton',
+                ('Hoxton Station / Geffrye Museum',),
+                ('Brixton',)),
             # Postcodes should be doable with a geocoder
-            ('55 from EC1M 4PN',                 ('St John Street',),                 ()),
+            ('55 from EC1M 4PN',
+                ('St John Street',),
+                ()),
             # 103 has more than 2 runs, check we delete the empty one
-            ('103 from Romford Station',         ('Romford Station',),                ('None shown',)),
+            ('103 from Romford Station',
+                ('Romford Station',),
+                ('None shown',)),
         )
 
     def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
@@ -763,15 +769,32 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         )
         self.nonstandard_test_data = (
             # Hainault Loop and Northern Line handled correctly
-            ("Central Line from White City to Redbridge",     ("Hainault via Newbury Pk", "Woodford via Hainault"), ("Epping",)),
-            ("Northern Line from Camden Town to Kennington",  ("via Bank", "via Charing X"),                        ("High Barnet",)),
+            ("Central Line from White City to Redbridge",
+                ("Hainault via Newbury Pk", "Woodford via Hainault"),
+                ("Epping [0-9]{4}",)),
+            ("Northern Line from Camden Town to Kennington",
+                ("via Bank", "via Charing X"),
+                ("High Barnet [0-9]{4}",)),
             # Directional sussing at a tricky station
-            ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
-            # Handle when there are no trains
-            ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
-            # TODO Exceptions for specific directions and destinations???
-            # Handle when no line is specified
-            ('Arsenal',                                       ('Cockfosters', 'Heathrow'),                          ("Sorry! Please specify what line you need",)),
+            ("Circle Line from Edgware Road to Moorgate",
+                ("Eastbound Train",),
+                ("Hammersmith [0-9]{4}",)),
+            # Handle when there are no trains from a station
+            ('Waterloo & City Line from Bank',
+                (str(WhensMyTransportException('no_trains_shown', 'Waterloo & City Line', 'Bank')),),
+                ("Waterloo [0-9]{4}",)),
+            # Handle when there are no trains to a particular destination 
+            ('DLR from Lewisham to Poplar',
+                (str(WhensMyTransportException('no_trains_shown_to', 'DLR', 'Lewisham', 'Poplar')),),
+                ("Stratford [0-9]{4}",)),
+            # Handle when there are no trains in a particular direction 
+            ('Central Line from Fairlop Westbound',
+                (str(WhensMyTransportException('no_trains_shown_in_direction', 'Westbound', 'Central Line', 'Fairlop',)),),
+                ("West Ruislip [0-9]{4}",)),
+            # Handle ably when no line is specified
+            ('Arsenal',
+                ('Cockfosters', 'Heathrow'),
+                (str(WhensMyTransportException('no_line_specified', 'Arsenal')),)),
         )
 
     def _test_correct_successes(self, tweet, _routes_specified, expected_origin, destination_to_avoid=''):
