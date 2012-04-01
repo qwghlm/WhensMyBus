@@ -36,6 +36,7 @@ try:
     from lib.listutils import unique_values
     from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables, gmt_to_localtime
     from lib.models import Location, RailStation, BusStop, Departure, NullDeparture, Train, TubeTrain, DLRTrain, Bus, DepartureCollection
+    from lib.twitterclient import split_message_for_twitter
 except ImportError as err:
     print """
 Sorry, testing failed because a package that WhensMyTransport depends on is not installed. Reported error:
@@ -444,6 +445,13 @@ class WhensMyTransportTestCase(unittest.TestCase):
         test_time = int(time.time())
         self.bot.twitter_client.settings.update_setting("_test_time", test_time)
         self.assertEqual(test_time, self.bot.twitter_client.settings.get_setting("_test_time"))
+
+    def test_twitter_tools(self):
+        (message1, message2) = ("486 Charlton Stn / Charlton Church Lane to Bexleyheath Ctr 1935",
+                                "Charlton Stn / Charlton Church Lane to North Greenwich 1934")
+        message = "%s; %s" % (message1, message2)
+        split_messages = [u"%s…" % message1, u"…%s" % message2]
+        self.assertEqual(split_message_for_twitter(message, '@test_username'), split_messages)
 
     def test_twitter_client(self):
         """
@@ -1036,7 +1044,7 @@ def run_tests():
 
     # Init tests (same for all)
     unit_tests = ('exceptions', 'geo', 'listutils', 'models', 'stringutils', 'tubeutils')
-    local_tests = ('init', 'browser', 'database', 'dataparsers', 'location', 'logger', 'settings', 'textparser')
+    local_tests = ('init', 'browser', 'database', 'dataparsers', 'location', 'logger', 'settings', 'textparser', 'twitter_tools')
     remote_tests = ('geocoder', 'twitter_client',)
 
     # Common errors for all
