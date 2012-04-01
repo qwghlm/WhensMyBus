@@ -16,12 +16,6 @@ data using the respective services' APIs
 
 (c) 2011-12 Chris Applegate (chris AT qwghlm DOT co DOT uk)
 Released under the MIT License
-
-Things to do:
-
- - Handle inputs based on direction
-
-
 """
 # Standard libraries of Python 2.6
 from abc import abstractmethod, ABCMeta
@@ -40,7 +34,7 @@ from lib.logger import setup_logging
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
 # Some constants we use
-VERSION_NUMBER = 0.60
+VERSION_NUMBER = 0.90
 HOME_DIR = os.path.dirname(os.path.abspath(__file__))
 
 TESTING_NONE = 0
