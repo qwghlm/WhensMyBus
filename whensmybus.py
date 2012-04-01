@@ -179,12 +179,12 @@ class WhensMyBus(WhensMyTransport):
 
         return relevant_stops
 
-    def get_departure_data(self, relevant_stops, route_number, must_stop_at=None):
+    def get_departure_data(self, relevant_stops, route_number, must_stop_at=None, direction=None):
         """
         Fetch the JSON data from the TfL website, for a dictionary of relevant_stops (each a BusStop object)
         and a particular route_number, and returns a DepartureCollection containing Bus objects
 
-        must_stop_at is ignored; filtering by direction has already been done by process_individual_request()
+        must_stop_at and direction are ignored; filtering by direction has already been done by process_individual_request()
         """
         stop_directions = dict([(run, heading_to_direction(stop.heading)) for (run, stop) in relevant_stops.items()])
         departures = DepartureCollection()
