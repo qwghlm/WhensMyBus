@@ -184,10 +184,18 @@ class WMTLocations():
         # If we can't find a match, or there doesn't exist direct route between the two, then can't be correct direction
         if not origin or not destination or not self.direct_route_exists(origin.name, destination.name, line_code):
             return False
-        if direction == "East" and origin.location_easting < destination.location_easting or \
-           direction == "West" and origin.location_easting > destination.location_easting or \
-           direction == "North" and origin.location_northing < destination.location_northing or \
-           direction == "South" and origin.location_northing > destination.location_northing:
+
+        # Work out what direction we are going in via difference in east and west, and whether the
+        # change in easting or northing is significant (in this case, it has to be at least half the change
+        # in the other)
+        east_diff = destination.location_easting - origin.location_easting
+        north_diff = destination.location_northing - origin.location_northing 
+        east_diff_significant = abs(east_diff) > abs(0.5 * north_diff)
+        north_diff_significant = abs(north_diff) > abs(0.5 * east_diff)
+        if (direction == "East" and east_diff > 0 and east_diff_significant) or \
+           (direction == "West" and east_diff < 0 and east_diff_significant) or \
+           (direction == "North" and north_diff > 0 and north_diff_significant) or \
+           (direction == "South" and north_diff < 0 and north_diff_significant):
             return True
         else:
             return False
