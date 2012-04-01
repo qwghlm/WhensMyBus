@@ -787,10 +787,11 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         #
         # Line, requested stop, latitude, longitude, destination, direction, correct stop name, unwanted destination (if destination or direction specified)
         self.standard_test_data = (
-           ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road", "Eastbound",   "Earls Ct",      'Wimbledon'),
-           ('Victoria Line',        "Victoria",      51.4966, -0.1448, "Walthamstow",  "Northbound",  "Victoria",      'Brixton'),
-           ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",         "Eastbound",   "Waterloo",      'Moorgate'),
+           ('District',             "Earl's Court",  51.4913, -0.1947, "Edgware Road", "Eastbound",   "Earls Ct",      'Wimbledon'),
+           ('Victoria',             "Victoria",      51.4966, -0.1448, "Walthamstow",  "Northbound",  "Victoria",      'Brixton'),
+           ('Waterloo & City',      "Waterloo",      51.5031, -0.1132, "Bank",         "Eastbound",   "Waterloo",      'Moorgate'),
            ('DLR',                  'Poplar',        51.5077, -0.0174, 'All Saints',   "Northbound",  'Poplar',        'Lewisham'),
+           ('Hammersmith and City', "Liverpool St",  51.5186, -0.0813, "Plaistow",     "Eastbound",   "Liverpool St",  'Hammersmith'),
         )
         self.nonstandard_test_data = (
             # Hainault Loop and Northern Line handled correctly
@@ -966,13 +967,19 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             # DLR allows blank Tweets as standard
             if self.bot.username == 'whensmydlr' and line == 'DLR':
                 line_fragments = [value % test_variables for value in ("%(line)s", "")]
+            elif line != 'DLR':
+                line_fragments = [value % test_variables for value in ("%(line)s", ("%(line)s Line"))]
             else:
                 line_fragments = [value % test_variables for value in ("%(line)s",)]
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
                     for line_fragment in line_fragments:
+                        # There are some cases which cannot be used, e.g. "Victoria Victoria"
+                        if line_fragment == from_fragment[1:]:
+                            continue
                         messages = [(self.at_reply + line_fragment + from_fragment + to_fragment)]
+                        # If we have a from in this, we can also put to first. from second
                         if from_fragment.startswith(" from"):
                             messages.append((self.at_reply + line_fragment + to_fragment + from_fragment))
                         for message in messages:

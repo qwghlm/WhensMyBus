@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ROOT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://trackernet.lul.co.uk">
+  <Disclaimer>This system is an INFORMATION ONLY system, relying entirely on 
+				information received from the relevant Operational Railway Control System(s). It is NOT 
+				considered a safety related system in the Railway Engineering sense. However, 
+				the information reported may trigger user intervention by staff regarding possible 
+				incidents on the railway, and confirmation of the situation observed should be obtained prior 
+				to any corrective action being taken.</Disclaimer>
+  <WhenCreated>1 Apr 2012 23:08:38</WhenCreated>
+  <Line>H</Line>
+  <LineName>Circle, Hammersmith &amp; City Line</LineName>
+  <S Code="LST" Mess="" N="Liverpool Street." CurTime="23:08:38">
+    <P N="Outer Rail - Platform 1" Num="1" TrackCode="TJS:T">
+      <T LCID="2004186" SetNo="231" TripNo="16" SecondsTo="0" TimeTo="-" Location="At Platform" Destination="Plaistow (via King's Cross)" DestCode="364" Order="0" DepartTime="22:08:35" DepartInterval="0" Departed="0" Direction="0" IsStalled="0" TrackCode="TJS:T" LN="H" />
+      <T LCID="1137688" SetNo="426" TripNo="16" SecondsTo="326" TimeTo="5:00" Location="Approaching Farringdon" Destination="Aldgate" DestCode="12" Order="0" DepartTime="22:08:30" DepartInterval="326" Departed="0" Direction="0" IsStalled="0" TrackCode="TJ215B" LN="M" />
+      <T LCID="2004188" SetNo="216" TripNo="28" SecondsTo="541" TimeTo="9:00" Location="At King's Cross Platform 2" Destination="Circle Line Outer Rail" DestCode="103" Order="0" DepartTime="22:08:11" DepartInterval="541" Departed="0" Direction="0" IsStalled="0" TrackCode="TJ205.SC" LN="H" />
+      <T LCID="1137042" SetNo="232" TripNo="14" SecondsTo="716" TimeTo="12:00" Location="Left Great Portland Street" Destination="Barking Sidings (via King's Cross)" DestCode="80" Order="0" DepartTime="22:08:33" DepartInterval="716" Departed="0" Direction="0" IsStalled="0" TrackCode="TJ191A(2)" LN="H" />
+      <T LCID="2004194" SetNo="217" TripNo="25" SecondsTo="948" TimeTo="16:00" Location="Approaching Baker Street" Destination="Circle Line Outer Rail" DestCode="103" Order="0" DepartTime="22:08:36" DepartInterval="948" Departed="0" Direction="0" IsStalled="0" TrackCode="TJ145AA" LN="H" />
+      <T LCID="1121934" SetNo="427" TripNo="15" SecondsTo="984" TimeTo="16:00" Location="Approaching Baker Street" Destination="Aldgate" DestCode="12" Order="0" DepartTime="22:08:30" DepartInterval="984" Departed="0" Direction="0" IsStalled="0" TrackCode="TJWGBKM_1" LN="M" />
+      <T LCID="2004196" SetNo="233" TripNo="0" SecondsTo="1265" TimeTo="21:00" Location="Just left Paddington platform 16" Destination="Circle and Hammersmith &amp; City" DestCode="518" Order="0" DepartTime="22:08:25" DepartInterval="1265" Departed="0" Direction="0" IsStalled="0" TrackCode="TJ129B:131A" LN="H" />
+      <T LCID="1137229" SetNo="000" TripNo="0" SecondsTo="1475" TimeTo="25:00" Location="Between Latimer Road and Westbourne Park" Destination="Circle and Hammersmith &amp; City" DestCode="518" Order="0" DepartTime="22:07:13" DepartInterval="1475" Departed="0" Direction="0" IsStalled="0" TrackCode="TBHTHLGRO" LN="H" />
+      <T LCID="1120454" SetNo="430" TripNo="15" SecondsTo="1526" TimeTo="25:00" Location="Between Neasden and Willesden Green" Destination="Aldgate" DestCode="12" Order="0" DepartTime="22:08:29" DepartInterval="1526" Departed="0" Direction="0" IsStalled="0" TrackCode="TJDTNEA" LN="M" />
+      <T LCID="2004201" SetNo="255" TripNo="0" SecondsTo="1745" TimeTo="29:00" Location="Between Goldhawk Road and Wood Lane" Destination="Unknown" DestCode="0" Order="0" DepartTime="22:08:29" DepartInterval="1745" Departed="0" Direction="0" IsStalled="0" TrackCode="TBHTHSBMO" LN="H" />
+      <T LCID="2004170" SetNo="213" TripNo="25" SecondsTo="1776" TimeTo="30:00" Location="At South Kensington Platform 1" Destination="Circle Line Outer Rail" DestCode="103" Order="0" DepartTime="22:08:01" DepartInterval="1776" Departed="0" Direction="0" IsStalled="0" TrackCode="TDHSSOK" LN="H" />
+    </P>
+    <P N="Inner Rail - Platform 2" Num="2" TrackCode="TJ246A.B">
+      <T LCID="1121189" SetNo="424" TripNo="16" SecondsTo="8" TimeTo="0:30" Location="Approaching Liverpool Street" Destination="Uxbridge" DestCode="445" Order="0" DepartTime="22:08:30" DepartInterval="8" Departed="0" Direction="0" IsStalled="0" TrackCode="TJ244" LN="M" />
+      <T LCID="1134294" SetNo="425" TripNo="17" SecondsTo="204" TimeTo="3:30" Location="At Aldgate Platform 3" Destination="Uxbridge" DestCode="445" Order="0" DepartTime="22:05:55" DepartInterval="204" Departed="0" Direction="0" IsStalled="0" TrackCode="TJSB/SCALD" LN="M" />
+      <T LCID="1137321" SetNo="000" TripNo="0" SecondsTo="297" TimeTo="5:00" Location="Between Whitechapel and Aldgate East" Destination="Unknown" DestCode="0" Order="0" DepartTime="22:08:31" DepartInterval="297" Departed="0" Direction="0" IsStalled="0" TrackCode="TDCTALD" LN="H" />
+      <T LCID="2004189" SetNo="206" TripNo="0" SecondsTo="532" TimeTo="9:00" Location="Left Mansion House" Destination="Hammersmith" DestCode="196" Order="0" DepartTime="22:08:14" DepartInterval="532" Departed="0" Direction="0" IsStalled="0" TrackCode="TD835A" LN="H" />
+      <T LCID="2004193" SetNo="207" TripNo="0" SecondsTo="972" TimeTo="16:00" Location="At Westminster Platform 2" Destination="Hammersmith" DestCode="196" Order="0" DepartTime="22:08:23" DepartInterval="972" Departed="0" Direction="0" IsStalled="0" TrackCode="TD795" LN="H" />
+      <T LCID="2004148" SetNo="243" TripNo="16" SecondsTo="1031" TimeTo="17:00" Location="Between East Ham and Upton Park" Destination="Unknown" DestCode="0" Order="0" DepartTime="22:08:14" DepartInterval="1031" Departed="0" Direction="0" IsStalled="0" TrackCode="TDBT.BR.BPUPP" LN="H" />
+      <T LCID="2004199" SetNo="210" TripNo="0" SecondsTo="1683" TimeTo="28:00" Location="Between High Street Kensington and Gloucester Road" Destination="Hammersmith" DestCode="196" Order="0" DepartTime="22:08:25" DepartInterval="1683" Departed="0" Direction="0" IsStalled="0" TrackCode="TDGC-KC-KBHSK" LN="H" />
+    </P>
+  </S>
+</ROOT>
