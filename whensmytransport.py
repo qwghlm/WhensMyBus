@@ -64,7 +64,8 @@ class WhensMyTransport:
             config.read(HOME_DIR + '/' + config_file)
             config.get(self.instance_name, 'debug_level')
         except (ConfigParser.Error, IOError):
-            error_string = "Fatal error: can't find a valid config file for %s. Please make sure there is a %s file in this directory" % (self.instance_name, config_file)
+            error_string = "Fatal error: can't find a valid config file for %s." % self.instance_name
+            error_string += " Please make sure there is a %s file in this directory" % config_file
             raise RuntimeError(error_string)
 
         # Setup debugging
@@ -280,17 +281,17 @@ class WhensMyTransport:
                 raise WhensMyTransportException('dms_not_taggable', user_request)
 
     @abstractmethod
-    def process_individual_request(self, code, origin, destination, position):
+    def process_individual_request(self, code, origin, destination, direction, position):
         """
         Abstract method. This must be overridden by a child class to do anything useful
-        Takes a code (e.g. a bus route or line name), origin, destination and (latitude, longitude) tuple
+        Takes a code (e.g. a bus route or line name), origin, destination, direction and (latitude, longitude) tuple
         Returns a string repesenting the message sent back to the user. This can be more than 140 characters
         """
         #pylint: disable=W0613,R0201
         return ""
 
     @abstractmethod
-    def get_departure_data(self, station_or_stops, line_or_route, must_stop_at):
+    def get_departure_data(self, station_or_stops, line_or_route, must_stop_at, direction):
         """
         Abstract method. This must be overridden by a child class to do anything useful
 
