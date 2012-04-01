@@ -60,7 +60,9 @@ class WhensMyTransportException(Exception):
         String formatting params optional, only needed if there is C string formatting in the error message
         e.g. WhensMyTransportException('nonexistent_bus', '214')
         """
-        value = WhensMyTransportException.exception_values.get(msgid, '') % string_params
+        if msgid not in WhensMyTransportException.exception_values:
+            raise KeyError("Exception ID provided: '%s' is not a valid exception ID" % msgid)
+        value = WhensMyTransportException.exception_values[msgid] % string_params
         super(WhensMyTransportException, self).__init__(value)
         logging.debug("Application exception encountered: %s", value)
         self.msgid = msgid
