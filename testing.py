@@ -754,12 +754,12 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
         # Regular test data
         #
-        # Line, requested stop, latitude, longitude, destination, correct stop name, unwanted destination (if destination specified)
+        # Line, requested stop, latitude, longitude, destination, direction, correct stop name, unwanted destination (if destination or direction specified)
         self.standard_test_data = (
-           ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road",    "Earls Ct",      'Upminster'),
-           ('Victoria Line',        "Victoria",      51.4966, -0.1448, "Walthamstow",     "Victoria",      'Brixton'),
-           ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",            "Waterloo",      'Moorgate'),
-           ('DLR',                  'Poplar',        51.5077, -0.0174, 'All Saints',      'Poplar',        'Bank'),
+           ('District Line',        "Earl's Court",  51.4913, -0.1947, "Edgware Road", "Eastbound",   "Earls Ct",      'Wimbledon'),
+           ('Victoria Line',        "Victoria",      51.4966, -0.1448, "Walthamstow",  "Northbound",  "Victoria",      'Brixton'),
+           ('Waterloo & City Line', "Waterloo",      51.5031, -0.1132, "Bank",         "Eastbound",   "Waterloo",      'Moorgate'),
+           ('DLR',                  'Poplar',        51.5077, -0.0174, 'All Saints',   "Northbound",  'Poplar',        'Lewisham'),
         )
         self.nonstandard_test_data = (
             # Hainault Loop and Northern Line handled correctly
@@ -769,11 +769,12 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             ("Circle Line from Edgware Road to Moorgate",     ("Eastbound Train",),                                 ("Hammersmith",)),
             # Handle when there are no trains
             ('DLR from Lewisham to Poplar',                   ('Sorry! There are no DLR trains',),                  ("Lewisham [0-9]{4}",)),
+            # TODO Exceptions for specific directions and destinations???
             # Handle when no line is specified
             ('Arsenal',                                       ('Cockfosters', 'Heathrow'),                          ("Sorry! Please specify what line you need",)),
         )
 
-    def _test_correct_successes(self, tweet, routes_specified, expected_origin, destination_to_avoid=''):
+    def _test_correct_successes(self, tweet, _routes_specified, expected_origin, destination_to_avoid=''):
         """
         Generic test to confirm Tweet is being processed correctly
         """
@@ -785,7 +786,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         for result in results:
             print result
             self.assertNotEqual(result, result.upper())
-            self.assertRegexpMatches(result, r"(%s to .* [0-9]{4}|There are no %s (Line )?trains)" % (expected_origin, routes_specified))
+            self.assertRegexpMatches(result, r"%s to .* [0-9]{4}" % expected_origin)
             if destination_to_avoid:
                 self.assertNotRegexpMatches(result, destination_to_avoid)
         print 'Processing of Tweet took %0.3f ms' % ((t2 - t1) * 1000.0,)
@@ -862,10 +863,8 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Ealing Broadway', 'DLR')
         message = 'Wxitythr Park'
         tweet = FakeTweet(self.at_reply + message)
-        if self.bot.instance_name == "whensmytube":  # FIXME
-            self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Wxitythr Park', 'Tube')
-        else:
-            self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Wxitythr Park', 'DLR')
+        network_name = self.bot.instance_name == "whensmytube" and "Tube" or "DLR"
+        self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Wxitythr Park', network_name)
 
     def test_textparser(self):
         """
@@ -906,15 +905,15 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         Generic test for standard-issue messages
         """
         #pylint: disable=W0612
-        for (line, origin_name, lat, lon, destination_name, expected_origin, destination_to_avoid) in self.standard_test_data:
+        for (line, origin_name, lat, lon, destination_name, direction, expected_origin, destination_to_avoid) in self.standard_test_data:
 
             # C-string format helper
-            test_variables = dict([(name, eval(name)) for name in ('line', 'origin_name', 'destination_name', 'line')])
+            test_variables = dict([(name, eval(name)) for name in ('line', 'origin_name', 'destination_name', 'line', 'direction')])
 
-            # 3 types of origin (geotag, name, name without 'from') and 2 types of destination (none, name)
-            from_fragments = [value % test_variables for value in ("", " from %(origin_name)s", " %(origin_name)s")]
-            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s")]
-            # DLR allows blank Tweets
+            # 2 types of origin (geotag, name) and 3 types of destination (none, name)
+            from_fragments = [value % test_variables for value in ("", " %(origin_name)s", " from %(origin_name)s")]
+            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s", " %(direction)s")] 
+            # DLR allows blank Tweets as standard
             if self.bot.username == 'whensmydlr' and line == 'DLR':
                 line_fragments = [value % test_variables for value in ("%(line)s", "")]
             else:
@@ -923,12 +922,15 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
                     for line_fragment in line_fragments:
-                        message = (self.at_reply + line_fragment + from_fragment + to_fragment)
-                        if not from_fragment:
-                            tweet = FakeTweet(message, (lat, lon))
-                        else:
-                            tweet = FakeTweet(message)
-                        self._test_correct_successes(tweet, line, expected_origin, to_fragment and destination_to_avoid)
+                        messages = [(self.at_reply + line_fragment + from_fragment + to_fragment)]
+                        if from_fragment.startswith(" from"):
+                            messages.append((self.at_reply + line_fragment + to_fragment + from_fragment))
+                        for message in messages:
+                            if not from_fragment:
+                                tweet = FakeTweet(message, (lat, lon))
+                            else:
+                                tweet = FakeTweet(message)
+                            self._test_correct_successes(tweet, line, expected_origin, to_fragment and destination_to_avoid)
 
 
 class WhensMyDLRTestCase(WhensMyTubeTestCase):
@@ -1019,15 +1021,19 @@ def run_tests():
         test_names = unit_tests + local_tests + failures + successes
 
     # Sort out appropriate test level. Global variables are evil, but a necessary evil here
+    # We also fail fast if using local test data, but do not if using live data (tests may just
+    # fail on the fact no trains are scheduled for a stop in the test standard data)
     global TEST_LEVEL
     TEST_LEVEL = parser.parse_args().test_level
     if TEST_LEVEL == TESTING_TEST_LIVE_DATA:
         print "Testing with live TfL data"
+        failfast_level = 0
     else:
         print "Testing with local test data"
+        failfast_level = 1
 
     suite = unittest.TestSuite(map(eval(test_case_name + 'TestCase'), ['test_%s' % t for t in test_names]))
-    runner = unittest.TextTestRunner(verbosity=2, failfast=1, buffer=True)
+    runner = unittest.TextTestRunner(verbosity=2, failfast=failfast_level, buffer=True)
     result = runner.run(suite)
     return result.wasSuccessful()
 

@@ -117,16 +117,22 @@ class WhensMyTrain(WhensMyTransport):
         if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line_code):
             raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
+        direction_name = None
         if not destination_name and direction:
-            direction = "Northbound"  # FIXME :)
+            directions_lookup = {'n': 'Northbound', 'e': 'Eastbound', 'w': 'Westbound', 's': 'Southbound'}
+            direction_name = directions_lookup.get(direction.lower()[0], None)
+            if not direction_name:
+                raise WhensMyTransportException('invalid_direction', direction)
 
         # All being well, we can now get the departure data for this station and return it
-        departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name, direction=direction)
+        departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name, direction=direction_name)
         if departure_data:
             return "%s to %s" % (station.get_abbreviated_name(), str(departure_data))
         else:
             if destination_name:
                 raise WhensMyTransportException('no_trains_shown_to', line_name, station.name, destination_name)
+            elif direction:
+                raise WhensMyTransportException('no_trains_shown_in_direction', direction, line_name, station.name)
             else:
                 raise WhensMyTransportException('no_trains_shown', line_name, station.name)
 
@@ -199,20 +205,22 @@ class WhensMyTrain(WhensMyTransport):
             del departures["Unknown"]
 
         # For any non-empty list of departures, filter out any that terminate here. Note that existing empty lists remain empty and are not deleted
-        departures.filter(lambda train: train.destination != station.name, delete_existing_empty_slots=False)
-
+        does_not_terminate_here = lambda train: train.destination != station.name
+        departures.filter(does_not_terminate_here, delete_existing_empty_slots=False)
         # If we've specified a station to stop at, filter out any that do not stop at that station or are not in its direction
         # Note that unlike the above, this will turn all existing empty lists into Nones (and thus deletable) as well
         if must_stop_at:
-            departures.filter(lambda train: self.geodata.does_train_stop_at(station.name, must_stop_at, train), delete_existing_empty_slots=True)
-        # Else filter by direction
+            filter_by_stop_at = lambda train: self.geodata.does_train_stop_at(station.name, must_stop_at, train)
+            departures.filter(filter_by_stop_at, delete_existing_empty_slots=True)
+        # Else filter by direction - Tubs is already classified by direction, DLR is not direction-aware so must calculate manually
         elif direction:
-            if self.instance_name == 'whensmytube':
-                for slot in departures.keys():
+            if line_code == 'DLR':
+                filter_by_direction = lambda train: self.geodata.is_correct_direction(station.name, train.destination, direction, line_code)
+                departures.filter(filter_by_direction, delete_existing_empty_slots=True)
+            else:
+                for slot in list(departures):
                     if slot != direction:
                         del departures[slot]
-            else:
-                departures.filter(lambda train: self.geodata.is_correct_direction(station.name, train.destination, direction, line_code), delete_existing_empty_slots=True)
         departures.cleanup(null_constructor)
         return departures
 
