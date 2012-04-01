@@ -16,6 +16,7 @@ from lib.stringutils import cleanup_name_from_undesirables, get_name_similarity
 #
 
 class Location():
+    #pylint: disable=R0903
     """
     Class representing any kind of location (bus stop or station)
     """
