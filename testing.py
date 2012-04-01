@@ -34,8 +34,8 @@ try:
     from lib.exceptions import WhensMyTransportException
     from lib.geo import heading_to_direction, gridrefNumToLet, convertWGS84toOSEastingNorthing, LatLongToOSGrid, convertWGS84toOSGB36
     from lib.listutils import unique_values
-    from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables, gmt_to_localtime
     from lib.models import Location, RailStation, BusStop, Departure, NullDeparture, Train, TubeTrain, DLRTrain, Bus, DepartureCollection
+    from lib.stringutils import capwords, get_name_similarity, get_best_fuzzy_match, cleanup_name_from_undesirables, gmt_to_localtime
     from lib.twitterclient import split_message_for_twitter
 except ImportError as err:
     print """

@@ -8,6 +8,7 @@ import logging
 import os.path
 import cPickle as pickle
 
+# http://code.google.com/p/python-graph/
 from pygraph.algorithms.minmax import shortest_path
 
 from lib.stringutils import get_best_fuzzy_match

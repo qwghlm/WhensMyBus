@@ -5,10 +5,13 @@ Text parsing class for When's My Transport?
 """
 import cPickle as pickle
 import logging
-import nltk
 import os
 
 from lib.stringutils import capwords
+
+# http://www.nltk.org/download
+import nltk
+
 
 DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/')
 
