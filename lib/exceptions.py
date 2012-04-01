@@ -39,10 +39,12 @@ class WhensMyTransportException(Exception):
         'no_buses_shown_to':   "There are no %s buses currently shown from your stop to %s",
 
         # WhensMyTube & WhensMyDLR errors
-        'rail_station_name_not_found': "I couldn't recognise that station (%s) as being on the %s",
-        'no_trains_shown':           "There are no %s trains currently shown going from %s",
-        'no_trains_shown_to':        "There are no %s trains currently shown going from %s to %s",
-        'no_direct_route':           "There is no direct route between %s and %s on the %s",
+        'rail_station_name_not_found':  "I couldn't recognise that station (%s) as being on the %s",
+        'invalid_direction':            "I couldn't recognise that direction (%s)",
+        'no_direct_route':              "There is no direct route between %s and %s on the %s",
+        'no_trains_shown':              "There are no %s trains currently shown going from %s",
+        'no_trains_shown_to':           "There are no %s trains currently shown going from %s to %s",
+        'no_trains_shown_in_direction': "There are no %s %s trains currently shown going from %s",
 
         # WhensMyTube-only errors
         'blank_tube_tweet':           "I need to have a Tube line in order to find the times for it",
