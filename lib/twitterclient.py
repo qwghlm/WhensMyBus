@@ -108,25 +108,7 @@ class WMTTwitterClient():
         """
         Send back a reply to username; this might be a DM or might be a public reply
         """
-        # Take care of over-long messages. 136 allows us breathing room for a letter D and spaces for
-        # a direct message & three dots at the end, so split this kind of reply
-        max_message_length = 136 - len(username)
-        if len(reply) > max_message_length:
-            words = reply.split(';')
-            messages = [u""]
-            for word in words:
-                if len(word) > max_message_length:
-                    continue
-                if len(messages[-1]) + len(word) < max_message_length:
-                    messages[-1] = messages[-1] + word + ';'
-                else:
-                    messages[-1] = messages[-1].strip() + u"…"
-                    messages.append(u"…" + word)
-            messages[-1] = messages[-1][:-1]
-
-        else:
-            messages = [reply]
-
+        messages = split_message_for_twitter(reply, username)
         # Send the reply/replies we have generated to the user
         for message in messages:
             try:
@@ -149,6 +131,29 @@ class WMTTwitterClient():
             # In which case, not much we can do about it, so we just ignore
             except tweepy.error.TweepError:
                 continue
+
+
+def split_message_for_twitter(message, username):
+    """
+    Takes a message and returns a list of messages, split appropriately to fit on Twitter
+    If message is short enough then we just return a list with one element into 
+    """
+    # 136 allows us breathing room for a letter D and spaces for a direct message & three dots at the end, so split this kind of reply
+    max_message_length = 136 - len(username)
+    if len(message) > max_message_length:
+        clauses = message.split(';')
+        messages = [u""]
+        for clause in clauses:
+            if len(clause) > max_message_length:
+                continue
+            if len(messages[-1]) + len(clause) < max_message_length:
+                messages[-1] = messages[-1] + clause + ';'
+            else:
+                messages[-1] = messages[-1].strip()[:-1] + u"…"
+                messages.append(u"…" + clause.lstrip())
+    else:
+        messages = [message]
+    return messages
 
 
 def is_direct_message(tweet):
