@@ -69,7 +69,7 @@ class WMTTextParser():
         origin = origin and capwords(' '.join(origin)) or None
         destination = destination and capwords(' '.join(destination)) or None
         direction = direction and capwords(' '.join(direction)) or None
-        logging.debug("Found routes %s from origin '%s' to destination '%s'", routes, origin, destination)
+        logging.debug("Found routes %s from origin '%s' to destination '%s' in %s direction", routes, origin, destination, direction)
         return (routes, origin, destination, direction)
 
     def fix_unknown_tokens(self, tagged_tokens):
@@ -138,8 +138,8 @@ class WMTTrainParser(WMTTextParser):
             STATION: {<STATION_WORD|CITY|AND>+}
             DESTINATION: {<TO><STATION>}
             ORIGIN: {<FROM>?<STATION>}
-            REQUEST: {^<LINE_NAME>?<ORIGIN>?<DIRECTION>$}
-                     {^<LINE_NAME>?<DIRECTION><ORIGIN>?$}
+            REQUEST: {^<LINE_NAME>?<ORIGIN>?<DIRECTION><DESTINATION>?$}
+                     {^<LINE_NAME>?<DIRECTION><ORIGIN>?<DESTINATION>?$}
                      {^<LINE_NAME>?<ORIGIN>?<DESTINATION>?$}
                      {^<LINE_NAME>?<DESTINATION><ORIGIN>$}
         """
