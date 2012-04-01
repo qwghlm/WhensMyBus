@@ -1007,6 +1007,12 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
         """
         return
 
+    def test_blank_tweet(self):
+        """
+        Override blank Tweet test as this is not needed
+        """
+        return
+
     def test_textparser(self):
         """
         Tests for the natural language parser
@@ -1055,7 +1061,7 @@ def run_tests():
         bus_errors = ('no_bus_number', 'nonexistent_bus',)
         stop_errors = ('bad_stop_id', 'stop_id_mismatch', 'stop_name_nonsense',)
         failures = format_errors + geotag_errors + bus_errors + stop_errors
-        successes = ('nonstandard_messages',) # 'standard_messages', 'multiple_routes',)
+        successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
     elif test_case_name == "WhensMyTube" or test_case_name == "WhensMyDLR":
         tube_errors = ('bad_line_name',)
         station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch', 'known_problems')
