@@ -809,9 +809,9 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                 ('Cockfosters', 'Heathrow'),
                 (str(WhensMyTransportException('no_line_specified', 'Arsenal')),)),
             # Handle ably when no line is specified but only one line serves both origin and destination
-            ('Waterloo to Bank',
-                ('Bank',),
-                (str(WhensMyTransportException('no_line_specified_to', 'Waterloo', 'Bank')),)),
+            ("Earl's Court to Plaistow",
+                ('Upminster',),
+                (str(WhensMyTransportException('no_line_specified_to', "Earl's Court", "Plaistow")),)),
         )
 
     def _test_correct_successes(self, tweet, _routes_specified, expected_origin, destination_to_avoid=''):
@@ -837,18 +837,28 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Unit tests for WMTLocation object and the Tube database
         """
+        # Test station-finding works
         self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'line': 'M'}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Kings Cross", {}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Kings Cross", {'line': 'M'}, RailStation).code, "KXX")
+
+        # Test route-tracing works as expected
         self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
         self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N"))
         self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N", "Bank"))
+
+        # Test route-testing works as expected
+        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "West Ruislip", "C"))
         self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Epping", "C"))
         self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault"))
         self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault", must_stop_at="Newbury Park"))
         self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Wanstead", "C"))
         self.assertFalse(self.bot.geodata.direct_route_exists("Heathrow Terminals 1, 2, 3", "Heathrow Terminal 4", "P"))
+        self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Whitechapel", "All"))
+        self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Whitechapel", "C"))
+
+        # Test direction-finding works as expected
         self.assertTrue(self.bot.geodata.is_correct_direction("Oxford Circus", "Epping", "Eastbound", "C"))
         self.assertTrue(self.bot.geodata.is_correct_direction("Epping", "Oxford Circus", "Westbound", "C"))
         self.assertTrue(self.bot.geodata.is_correct_direction("Morden", "High Barnet", "Northbound", "N"))
@@ -968,10 +978,15 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         """
         Test known problematic inputs
         """
+        # TODO Ideally, this function should be blank
         # District line from Victoria, or District & Victoria lines?
         message = 'District Victoria'
         tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'nonexistent_line', 'District Victoria')
+        self._test_correct_exception_produced(tweet, 'nonexistent_line', message)
+        # Not sure if "Waterloo to Bank" or "Waterloo & City Line to Bank"
+        message = 'Waterloo to Bank'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_geotag', message)
 
     def test_standard_messages(self):
         """
@@ -1033,6 +1048,12 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
     def test_blank_tweet(self):
         """
         Override blank Tweet test as this is not needed
+        """
+        return
+
+    def test_no_line_specified(self):
+        """
+        Override No Line Specified as this is not needed for DLR
         """
         return
 
