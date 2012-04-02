@@ -44,8 +44,8 @@ def check_tfl_destination_codes():
     rows = database.get_rows("SELECT destination_name, destination_code, line_code FROM destination_codes")
     for (destination_name, destination_code, line_code) in rows:
         # Hack: Fake a ElementTree object to use the XML parser's tube train filter function
-        fake_tag = lambda x: x
-        fake_tag.attribs = {'Destination': destination_name, 'DestCode': destination_code}
+        fake_tag = lambda x: 1
+        fake_tag.attrib = {'Destination': destination_name, 'DestCode': destination_code}
         if not filter_tube_train(fake_tag):
             continue
         train = TubeTrain(destination_name, "Northbound", "1200", "C", "001")
