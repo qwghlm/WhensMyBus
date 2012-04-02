@@ -447,6 +447,9 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertEqual(test_time, self.bot.twitter_client.settings.get_setting("_test_time"))
 
     def test_twitter_tools(self):
+        """
+        Test to see if Twitter helper functions such as message splitting work properly
+        """
         (message1, message2) = ("486 Charlton Stn / Charlton Church Lane to Bexleyheath Ctr 1935",
                                 "Charlton Stn / Charlton Church Lane to North Greenwich 1934")
         message = "%s; %s" % (message1, message2)
@@ -646,7 +649,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         print 'Processing of Tweet took %0.3f ms\r\n' % ((t2 - t1) * 1000.0,)
 
     #
-    # Bus-specific tests
+    # Core functionality tests
     #
 
     def test_location(self):
@@ -695,8 +698,9 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
         self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
         self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
+
     #
-    # Stop-related errors
+    # Request-based tests
     #
 
     def test_bad_stop_id(self):
@@ -833,6 +837,10 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                 self.assertNotRegexpMatches(result, destination_to_avoid)
         print 'Processing of Tweet took %0.3f ms\r\n' % ((t2 - t1) * 1000.0,)
 
+    #
+    # Core functionality tests
+    #
+
     def test_location(self):
         """
         Unit tests for WMTLocation object and the Tube database
@@ -878,6 +886,31 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertFalse(self.bot.geodata.direct_route_exists("East India", "All Saints", "DLR"))
         self.assertTrue(self.bot.geodata.is_correct_direction("Bank", "Beckton", "Eastbound", "DLR"))
         self.assertTrue(self.bot.geodata.is_correct_direction("Stratford", "Lewisham", "Southbound", "DLR"))
+
+    def test_textparser(self):
+        """
+        Tests for the natural language parser
+        """
+        (line_name, origin, destination, direction) = ('Victoria', 'Sloane Square', 'Upminster', 'Eastbound')
+        routes = [line_name]
+        self.assertEqual(self.bot.parser.parse_message(""),                                                     (None, None, None, None))
+        for route in (line_name, '%s Line' % line_name):
+            self.assertEqual(self.bot.parser.parse_message("%s" % (route,)),                                    (routes, None, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, direction)),                       (routes, None, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, origin, direction)),            (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s %s" % (route, origin, direction)),       (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, direction, origin)),            (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s from %s" % (route, direction, origin)),       (routes, origin, None, direction))
+
+    #
+    # Request-based tests
+    #
 
     def test_bad_line_name(self):
         """
@@ -953,27 +986,6 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'no_line_specified_to', 'Stockwell', 'Euston')
 
-    def test_textparser(self):
-        """
-        Tests for the natural language parser
-        """
-        (line_name, origin, destination, direction) = ('Victoria', 'Sloane Square', 'Upminster', 'Eastbound')
-        routes = [line_name]
-        self.assertEqual(self.bot.parser.parse_message(""),                                                     (None, None, None, None))
-        for route in (line_name, '%s Line' % line_name):
-            self.assertEqual(self.bot.parser.parse_message("%s" % (route,)),                                    (routes, None, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination, None))
-            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
-            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
-            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
-            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, direction)),                       (routes, None, None, direction))
-            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, origin, direction)),            (routes, origin, None, direction))
-            self.assertEqual(self.bot.parser.parse_message("%s from %s %s" % (route, origin, direction)),       (routes, origin, None, direction))
-            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, direction, origin)),            (routes, origin, None, direction))
-            self.assertEqual(self.bot.parser.parse_message("%s %s from %s" % (route, direction, origin)),       (routes, origin, None, direction))
-
     def test_known_problems(self):
         """
         Test known problematic inputs
@@ -1039,23 +1051,9 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
                 ("Lewisham [0-9]{4}",)),
         )
 
-    def test_known_problems(self):
-        """
-        No known problems specific to DLR so override with a return
-        """
-        return
-
-    def test_blank_tweet(self):
-        """
-        Override blank Tweet test as this is not needed
-        """
-        return
-
-    def test_no_line_specified(self):
-        """
-        Override No Line Specified as this is not needed for DLR
-        """
-        return
+    #
+    # Core functionality tests
+    #
 
     def test_textparser(self):
         """
@@ -1077,6 +1075,28 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
             self.assertEqual(self.bot.parser.parse_message("%s from %s %s" % (route, origin, direction)),       (routes, origin, None, direction))
             self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, direction, origin)),            (routes, origin, None, direction))
             self.assertEqual(self.bot.parser.parse_message("%s %s from %s" % (route, direction, origin)),       (routes, origin, None, direction))
+
+    #
+    # Request-based tests
+    #
+
+    def test_blank_tweet(self):
+        """
+        Override blank Tweet test as this is not needed
+        """
+        return
+
+    def test_no_line_specified(self):
+        """
+        Override No Line Specified as this is not needed for DLR
+        """
+        return
+
+    def test_known_problems(self):
+        """
+        No known problems specific to DLR so override with a return
+        """
+        return
 
 
 def run_tests():
