@@ -3,10 +3,11 @@
 """
 Location-finding service for WhensMyTransport
 """
-from math import sqrt
-import logging
-import os.path
 import cPickle as pickle
+import logging
+from math import sqrt
+import os.path
+from pprint import pprint
 
 from pygraph.algorithms.minmax import shortest_path
 
@@ -157,13 +158,23 @@ class WMTLocations():
         Return whether there is a direct route (i.e. one that does work without changing) between origin and destination on the line
         with code line_code (going via via if specified). If must_stop_at is specified, must also check that it stops at must_stop_at
 
-        via and must_stop_at are basically the same thing, for what it's worth, and are interchangeable
+        via and must_stop_at are subtly different - we force the route to go via via first, but then we check to see if it stops at must_stop_at
         """
+        # Non-existent origin or direction must mean no route possible
         if not origin or not destination:
             return False
+        # Trivial case - origin and destination being the same obviously True
+        if origin == destination:
+            return True
+
         path_taken = [stop[0] for stop in self.describe_route(origin, destination, line_code, via)]
+        # If no path possible, then of course return False
+        if not path_taken:
+            return False
+        # If must_stop_at not in the list, then return False
         if must_stop_at and must_stop_at not in path_taken:
             return False
+
         for i in range(1, len(path_taken)):
             # If same station twice in a row, then we must have a change
             if path_taken[i] == path_taken[i - 1]:
