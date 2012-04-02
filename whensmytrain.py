@@ -85,10 +85,10 @@ class WhensMyTrain(WhensMyTransport):
             station = self.get_station_by_geolocation(position, line_code)
             # There will always be a nearest station so no need to check for non-existence
         elif origin:
-            logging.debug("Attempting to get a fuzzy match on origin %s on line code %s", origin, line_code)
             station = self.get_station_by_station_name(origin, line_code)
             if not station:
                 raise WhensMyTransportException('rail_station_name_not_found', origin, line_name or "Tube")
+            logging.debug("Found match %s on requested destination %s on line code %s", station.name, origin, line_code)
         # XXX is the code for a station that does not have TrackerNet data on the API
         if station.code == "XXX":
             raise WhensMyTransportException('rail_station_not_in_system', station.name)
@@ -96,8 +96,8 @@ class WhensMyTrain(WhensMyTransport):
         # If user has specified a destination, work out what it is, and check a direct route to it exists
         destination_name = None
         if destination:
-            logging.debug("Attempting to get a fuzzy match on destination %s on line code %s", origin, line_code)
             destination_name = self.get_canonical_station_name(destination, line_code) or None
+            logging.debug("Found match %s on requested destination %s on line code %s", destination_name, destination, line_code)
 
         # Alternatively we may have had a direction given, so try that
         direction_name = None
