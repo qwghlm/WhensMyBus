@@ -804,22 +804,14 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             ("Circle Line from Edgware Road to Moorgate",
                 ("Eastbound Train",),
                 ("Hammersmith [0-9]{4}",)),
-            # Handle when there are no trains from a station
-            ('Waterloo & City Line from Bank',
-                (str(WhensMyTransportException('no_trains_shown', 'Waterloo & City Line', 'Bank')),),
-                ("Waterloo [0-9]{4}",)),
-            # Handle when there are no trains to a particular destination 
-            ('DLR from Lewisham to Poplar',
-                (str(WhensMyTransportException('no_trains_shown_to', 'DLR', 'Lewisham', 'Poplar')),),
-                ("Stratford [0-9]{4}",)),
-            # Handle when there are no trains in a particular direction 
-            ('Central Line from Fairlop Westbound',
-                (str(WhensMyTransportException('no_trains_shown_in_direction', 'Westbound', 'Central Line', 'Fairlop',)),),
-                ("West Ruislip [0-9]{4}",)),
-            # Handle ably when no line is specified
+            # Handle ably when no line is specified but only one line serves the origin
             ('Arsenal',
                 ('Cockfosters', 'Heathrow'),
                 (str(WhensMyTransportException('no_line_specified', 'Arsenal')),)),
+            # Handle ably when no line is specified but only one line serves both origin and destination
+            ('Waterloo to Bank',
+                ('Bank',),
+                (str(WhensMyTransportException('no_line_specified_to', 'Waterloo', 'Bank')),)),
         )
 
     def _test_correct_successes(self, tweet, _routes_specified, expected_origin, destination_to_avoid=''):
@@ -916,6 +908,41 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         network_name = self.bot.instance_name == "whensmytube" and "Tube" or "DLR"
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Wxitythr Park', network_name)
 
+    @unittest.skipIf('--live-data' in sys.argv, "No trains unit test will fail on live data")
+    def test_no_trains(self):
+        """
+        Test for when there are no trains at a station
+        """
+        # Handle when there are no trains from a station
+        message = 'Waterloo & City Line from Bank'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_trains_shown', 'Waterloo & City Line', 'Bank')
+        # Handle when there are no trains to a particular destination
+        message = 'DLR from Lewisham to Poplar'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_trains_shown_to', 'DLR', 'Lewisham', 'Poplar')
+        # Handle when there are no trains in a particular direction
+        message = 'Central Line from Fairlop Westbound'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_trains_shown_in_direction', 'Westbound', 'Central Line', 'Fairlop')
+
+    def test_no_line_specified(self):
+        """
+        Test for when no line is specified and it is impossible to deduce what the line is
+        """
+        # No direct line from Mansion House to Mornington Crescent
+        message = 'Mansion House to Mornington Crescent'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_direct_route', 'Mansion House', 'Mornington Crescent', 'Tube')
+        # Leicester Square has two lines, could be either
+        message = 'Leicester Square'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_line_specified', 'Leicester Square')
+        # Either Victoria or Northern Lines provide direct route from Stockwell to Euston
+        message = 'Stockwell to Euston'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_line_specified_to', 'Stockwell', 'Euston')
+
     def test_textparser(self):
         """
         Tests for the natural language parser
@@ -945,10 +972,6 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         message = 'District Victoria'
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'nonexistent_line', 'District Victoria')
-        # Leicester Square has two lines, could be either
-        message = 'Leicester Square'
-        tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'no_line_specified', 'Leicester Square')
 
     def test_standard_messages(self):
         """
@@ -962,7 +985,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
             # 2 types of origin (geotag, name) and 3 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " %(origin_name)s", " from %(origin_name)s")]
-            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s", " %(direction)s")] 
+            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s", " %(direction)s")]
             # DLR allows blank Tweets as standard
             if self.bot.username == 'whensmydlr' and line == 'DLR':
                 line_fragments = [value % test_variables for value in ("%(line)s", "")]
@@ -1064,7 +1087,7 @@ def run_tests():
         successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
     elif test_case_name == "WhensMyTube" or test_case_name == "WhensMyDLR":
         tube_errors = ('bad_line_name',)
-        station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch', 'known_problems')
+        station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch', 'no_trains', 'no_line_specified', 'known_problems')
         failures = format_errors + geotag_errors + tube_errors + station_errors
         successes = ('nonstandard_messages', 'standard_messages',)
     else:

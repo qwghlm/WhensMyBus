@@ -109,12 +109,15 @@ class WMTLocations():
         else:
             return None
 
-    def get_lines_serving(self, station_code):
+    def get_lines_serving(self, origin_code, destination_name=None):
         """
         Return an array of line codes that the station described by station_code is served by
         """
-        rows = self.database.get_rows("SELECT line FROM locations WHERE code=?", (station_code,))
-        return [row[0] for row in rows]
+        rows = self.database.get_rows("SELECT line, name FROM locations WHERE code=?", (origin_code,))
+        # If a destination exists, filter using it
+        if rows and destination_name:
+            rows = [(line_code, origin_name) for (line_code, origin_name) in rows if self.direct_route_exists(origin_name, destination_name, line_code)]
+        return [line_code for (line_code, origin_name) in rows]
 
     def describe_route(self, origin, destination, line_code='All', via=None):
         """

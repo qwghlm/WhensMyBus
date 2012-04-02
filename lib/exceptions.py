@@ -52,6 +52,7 @@ class WhensMyTransportException(Exception):
         'rail_station_not_in_system': "TfL don't provide live departure data for %s station :(",
         'tube_station_closed':        "%s station is currently closed %s",
         'no_line_specified':          "Please specify what line you need - e.g. '<line name> from %s'",
+        'no_line_specified_to':       "Please specify what line you need - e.g. '<line name> from %s to %s'",
     }
 
     def __init__(self, msgid='unknown_error', *string_params):

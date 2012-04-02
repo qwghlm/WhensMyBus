@@ -69,60 +69,63 @@ class WhensMyTrain(WhensMyTransport):
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it. Filter trains by destination, or direction
         """
-        # If no line name given, work out the nearest station first, then the lines
-        if not requested_line and self.instance_name == 'whensmytube':
-            if position:
-                logging.debug("Attempting to get closest to position: %s", position)
-                station = self.get_station_by_geolocation(position)
-            elif origin:
-                logging.debug("Attempting to get a fuzzy match on placename %s", origin)
-                station = self.get_station_by_station_name(origin)
-                if not station:
-                    raise WhensMyTransportException('rail_station_name_not_found', origin, "Tube")
-            # Get the lines serving; if more than one throw an exception due to ambiguity
-            lines = self.geodata.get_lines_serving(station.code)
-            if len(lines) > 1:
-                raise WhensMyTransportException('no_line_specified', origin)
-            line_code = lines[0][0]
-            line_name = get_line_name(line_code)
-            logging.debug("Have deduced that this station only has one line %s, using", line_name)
-
-        # Else, work out the line first and then the station
-        else:
-            line_name = self.line_lookup.get(requested_line, "") or get_best_fuzzy_match(requested_line, self.line_lookup.values())
+        # Try and work out line name and code if one has been requested
+        line_code, line_name = None, None
+        if requested_line:
+            line_name = self.line_lookup.get(requested_line, None) or get_best_fuzzy_match(requested_line, self.line_lookup.values())
             if not line_name:
                 raise WhensMyTransportException('nonexistent_line', requested_line)
             line_code = get_line_code(line_name)
             if line_name != 'DLR':
                 line_name += " Line"
 
-            # Dig out relevant departure station for this line from the geotag, if provided, or else the station name
-            if position:
-                logging.debug("Attempting to get closest to position: %s on line %s", position, line_code)
-                station = self.get_station_by_geolocation(position, line_code)
-                # There will always be a nearest station so no need to check for non-existence
-            else:
-                logging.debug("Attempting to get a fuzzy match on placename %s on line %s", origin, line_code)
-                station = self.get_station_by_station_name(origin, line_code)
-                if not station:
-                    raise WhensMyTransportException('rail_station_name_not_found', origin, line_name)
-
-        if station.code == "XXX":  # XXX is the code for a station that does not have TrackerNet data on the API
+        # Try and work out what departure station has been requested
+        if position:
+            logging.debug("Attempting to get closest to user's position: %s on line code %s", position, line_code)
+            station = self.get_station_by_geolocation(position, line_code)
+            # There will always be a nearest station so no need to check for non-existence
+        elif origin:
+            logging.debug("Attempting to get a fuzzy match on origin %s on line code %s", origin, line_code)
+            station = self.get_station_by_station_name(origin, line_code)
+            if not station:
+                raise WhensMyTransportException('rail_station_name_not_found', origin, line_name or "Tube")
+        # XXX is the code for a station that does not have TrackerNet data on the API
+        if station.code == "XXX":
             raise WhensMyTransportException('rail_station_not_in_system', station.name)
 
         # If user has specified a destination, work out what it is, and check a direct route to it exists
         destination_name = None
         if destination:
+            logging.debug("Attempting to get a fuzzy match on destination %s on line code %s", origin, line_code)
             destination_name = self.get_canonical_station_name(destination, line_code) or None
-        if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line_code):
-            raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
+        # Alternatively we may have had a direction given, so try that
         direction_name = None
         if not destination_name and direction:
             directions_lookup = {'n': 'Northbound', 'e': 'Eastbound', 'w': 'Westbound', 's': 'Southbound'}
             direction_name = directions_lookup.get(direction.lower()[0], None)
             if not direction_name:
                 raise WhensMyTransportException('invalid_direction', direction)
+
+        # We may not have been given a line - if so, try and work out what it might be from origin and destination
+        if not line_code:
+            lines = self.geodata.get_lines_serving(station.code, destination_name)
+            # If no lines produced, then there must be no direct route between origin and destination. This will never happen
+            # if there is no destination specified, as every origin has at least one line serving it
+            if not lines:
+                raise WhensMyTransportException('no_direct_route', station.name, destination_name, "Tube")
+            # If more than one throw an exception due to ambiguity, then we have to ask the user for clarity
+            if len(lines) > 1:
+                if destination_name:
+                    raise WhensMyTransportException('no_line_specified_to', station.name, destination_name)
+                else:
+                    raise WhensMyTransportException('no_line_specified', station.name)
+            line_code = lines[0]
+            line_name = get_line_name(line_code)
+
+        # Some sanity-checking, to make sure our train is actually direct
+        if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line_code):
+            raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
 
         # All being well, we can now get the departure data for this station and return it
         departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name, direction=direction_name)
@@ -131,12 +134,12 @@ class WhensMyTrain(WhensMyTransport):
         else:
             if destination_name:
                 raise WhensMyTransportException('no_trains_shown_to', line_name, station.name, destination_name)
-            elif direction:
-                raise WhensMyTransportException('no_trains_shown_in_direction', direction, line_name, station.name)
+            elif direction_name:
+                raise WhensMyTransportException('no_trains_shown_in_direction', direction_name, line_name, station.name)
             else:
                 raise WhensMyTransportException('no_trains_shown', line_name, station.name)
 
-    def get_station_by_geolocation(self, position, line_code=""):
+    def get_station_by_geolocation(self, position, line_code=None):
         """
         Take a line and a tuple specifying latitude & longitude, and works out closest station
         """
@@ -145,7 +148,7 @@ class WhensMyTrain(WhensMyTransport):
             params['line'] = line_code
         return self.geodata.find_closest(position, params, RailStation)
 
-    def get_station_by_station_name(self, station_name, line_code=""):
+    def get_station_by_station_name(self, station_name, line_code=None):
         """
         Take a line and a string specifying station name, and work out matching for that name
         """
