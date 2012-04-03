@@ -5,7 +5,7 @@ Location-finding service for WhensMyTransport
 """
 import cPickle as pickle
 import logging
-from math import sqrt
+from math import sqrt, ceil
 import os.path
 from pprint import pprint
 
@@ -116,10 +116,26 @@ class WMTLocations():
         """
         rows = self.database.get_rows("SELECT name,line FROM locations WHERE code=?", (origin.code,))
         stations = [(RailStation(name), line) for (name, line) in rows]
-        # If a destination exists, filter using it
-        if rows and destination:
-            stations = [(station, line_code) for (station, line_code) in stations if self.direct_route_exists(station, destination, line_code)]
-        return [line_code for (station, line_code) in stations]
+        # If a destination exists, filter using it. If multiple ways of getting to destination,
+        # sort by quickest and return line code for that
+        if stations and destination:
+            stations = [(station, line_code, self.length_of_route(station.name, destination.name, line_code)) for (station, line_code) in stations if self.direct_route_exists(station, destination, line_code)]
+            stations.sort(lambda (a, b, c), (d, e, f): cmp(c, f))
+            return [line_code for (station, line_code, time_taken) in stations][:1]
+        else:
+            return [line_code for (station, line_code) in stations]
+
+    def length_of_route(self, origin_name, destination_name, line_code='All'):
+        """
+        Return the amount of time (in minutes) it is estimated to take to get from origin_name to destination_name via the specified line (if any)
+        Returns -1 if there is no route between the two
+        """
+        # FIXME Unit test
+        origin_name += ":entrance"
+        destination_name += ":exit"
+        network = self.network[line_code]
+        shortest_path_times = shortest_path(network, origin_name)[1]
+        return shortest_path_times.get(destination_name, -1)
 
     def describe_route(self, origin_name, destination_name, line_code='All', via=None):
         """
@@ -139,7 +155,9 @@ class WMTLocations():
         destination_name += ":exit"
 
         network = self.network[line_code]
-        shortest_path_dictionary = shortest_path(network, origin_name)[0]
+        shortest_path_values = shortest_path(network, origin_name)
+        shortest_path_dictionary = shortest_path_values[0]
+
         if origin_name not in shortest_path_dictionary or destination_name not in shortest_path_dictionary:
             return []
         # Shortest path dictionary consists of a dictionary of node names as keys, with the values

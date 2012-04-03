@@ -816,6 +816,10 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             ("Earl's Court to Plaistow",
                 ('Upminster',),
                 (str(WhensMyTransportException('no_line_specified_to', "Earl's Court", "Plaistow")),)),
+            # Handle ably when no line is specified, there exists more than one line to get there, but we pick fastest
+            ("Stockwell to Euston",
+                ('Walthamstow Ctrl',),
+                (str(WhensMyTransportException('no_line_specified_to', "Stockwell", "Euston")),)),            
         )
 
     def _test_correct_successes(self, tweet, _routes_specified, expected_origin, destination_to_avoid=''):
@@ -995,10 +999,6 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         message = 'Leicester Square'
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'no_line_specified', 'Leicester Square')
-        # Either Victoria or Northern Lines provide direct route from Stockwell to Euston
-        message = 'Stockwell to Euston'
-        tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'no_line_specified_to', 'Stockwell', 'Euston')
 
     def test_known_problems(self):
         """
