@@ -11,10 +11,10 @@ from pprint import pprint
 
 from pygraph.algorithms.minmax import shortest_path
 
+from lib.models import RailStation
 from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
-from lib.models import RailStation
 
 
 DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/')
@@ -110,17 +110,18 @@ class WMTLocations():
         else:
             return None
 
-    def get_lines_serving(self, origin_code, destination_name=None):
+    def get_lines_serving(self, origin, destination=None):
         """
         Return an array of line codes that the station described by station_code is served by
         """
-        rows = self.database.get_rows("SELECT line, name FROM locations WHERE code=?", (origin_code,))
+        rows = self.database.get_rows("SELECT name,line FROM locations WHERE code=?", (origin.code,))
+        stations = [(RailStation(name), line) for (name, line) in rows]
         # If a destination exists, filter using it
-        if rows and destination_name:
-            rows = [(line_code, origin_name) for (line_code, origin_name) in rows if self.direct_route_exists(origin_name, destination_name, line_code)]
-        return [line_code for (line_code, origin_name) in rows]
+        if rows and destination:
+            stations = [(station, line_code) for (station, line_code) in stations if self.direct_route_exists(station, destination, line_code)]
+        return [line_code for (station, line_code) in stations]
 
-    def describe_route(self, origin, destination, line_code='All', via=None):
+    def describe_route(self, origin_name, destination_name, line_code='All', via=None):
         """
         Return the shortest route between origin and destination. Returns an list describing the route from start to finish
         Each element of the list is a tuple of form (station_name, direction, line_code)
@@ -128,26 +129,26 @@ class WMTLocations():
         if not self.network:
             return []
         if via:
-            first_half = self.describe_route(origin, via, line_code)
-            second_half = self.describe_route(via, destination, line_code)
+            first_half = self.describe_route(origin_name, via, line_code)
+            second_half = self.describe_route(via, destination_name, line_code)
             if first_half and second_half and second_half[0] == first_half[-1]:
                 del second_half[0]
             return first_half + second_half
 
-        origin += ":entrance"
-        destination += ":exit"
+        origin_name += ":entrance"
+        destination_name += ":exit"
 
         network = self.network[line_code]
-        shortest_path_dictionary = shortest_path(network, origin)[0]
-        if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
+        shortest_path_dictionary = shortest_path(network, origin_name)[0]
+        if origin_name not in shortest_path_dictionary or destination_name not in shortest_path_dictionary:
             return []
         # Shortest path dictionary consists of a dictionary of node names as keys, with the values
         # being the name of the node that preceded it in the shortest path
         # Count back from our destinaton, to the origin point
         path_taken = []
-        while destination:
-            path_taken.append(tuple(destination.split(":")))
-            destination = shortest_path_dictionary[destination]
+        while destination_name:
+            path_taken.append(tuple(destination_name.split(":")))
+            destination_name = shortest_path_dictionary[destination_name]
 
         # Trim off the entrance & exit nodes and reverse the list to get it in the right order
         path_taken = path_taken[1:-1][::-1]
@@ -167,12 +168,12 @@ class WMTLocations():
         if origin == destination:
             return True
 
-        path_taken = [stop[0] for stop in self.describe_route(origin, destination, line_code, via)]
+        path_taken = [stop[0] for stop in self.describe_route(origin.name, destination.name, line_code, via and via.name)]
         # If no path possible, then of course return False
         if not path_taken:
             return False
         # If must_stop_at not in the list, then return False
-        if must_stop_at and must_stop_at not in path_taken:
+        if must_stop_at and must_stop_at.name not in path_taken:
             return False
 
         for i in range(1, len(path_taken)):
@@ -184,26 +185,24 @@ class WMTLocations():
                 return False
         return True
 
-    def is_correct_direction(self, origin, destination, direction, line_code):
+    def is_correct_direction(self, direction, origin, destination, line_code):
         """
         Return True if a train going in this direction will directly reach the destination from the origin
         """
         if not direction:
             return False
+        # If we can't find a match, or there doesn't exist direct route between the two, then can't be correct direction
+        if not origin or not destination or not self.direct_route_exists(origin, destination, line_code):
+            return False
+
         if direction.endswith("bound"):
             direction = direction[:-len("bound")]
-        origin = self.find_fuzzy_match(origin, {'line': line_code}, RailStation)
-        destination = self.find_fuzzy_match(destination, {'line': line_code}, RailStation)
-
-        # If we can't find a match, or there doesn't exist direct route between the two, then can't be correct direction
-        if not origin or not destination or not self.direct_route_exists(origin.name, destination.name, line_code):
-            return False
 
         # Work out what direction we are going in via difference in east and west, and whether the
         # change in easting or northing is significant (in this case, it has to be at least half the change
         # in the other)
         east_diff = destination.location_easting - origin.location_easting
-        north_diff = destination.location_northing - origin.location_northing 
+        north_diff = destination.location_northing - origin.location_northing
         east_diff_significant = abs(east_diff) > abs(0.5 * north_diff)
         north_diff_significant = abs(north_diff) > abs(0.5 * east_diff)
         if (direction == "East" and east_diff > 0 and east_diff_significant) or \
@@ -214,14 +213,13 @@ class WMTLocations():
         else:
             return False
 
-    def does_train_stop_at(self, origin, desired_station, train):
+    def does_train_stop_at(self, train, origin, desired_station):
         """
-        Return True if a train from origin bound for destination and/or in direction on line will stop at
-        desired_station on the way
+        Return True if a Train train from RailStation origin will stop at RailStation desired_station on the way
         """
-        if train.destination and train.destination != "Unknown":
+        if train.destination:
             return self.direct_route_exists(origin, train.destination, train.line_code, via=train.via, must_stop_at=desired_station)
         elif train.direction:
-            return self.is_correct_direction(origin, desired_station, train.direction, train.line_code)
+            return self.is_correct_direction(train.direction, origin, desired_station, train.line_code)
         else:
             return False

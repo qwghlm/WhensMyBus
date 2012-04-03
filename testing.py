@@ -324,10 +324,10 @@ class WhensMyTransportTestCase(unittest.TestCase):
         departures.merge_common_slots()
         departures.cleanup(lambda platform: NullDeparture("from %s" % platform))
         self.assertEqual(str(departures), "Bank 1200 1207 1210, Tower Gateway 1203 1205; Lewisham 1200 1204 1208; None shown going from P4")
-        departures.filter(lambda train: train.destination != "Lewisham")
+        departures.filter(lambda train: train.get_destination() != "Lewisham")
         self.assertEqual(str(departures), "Bank 1200 1207 1210, Tower Gateway 1203 1205; None shown going from P4")
         departures["P4"] = []
-        departures.filter(lambda train: train.destination != "Tower Gateway", True)
+        departures.filter(lambda train: train.get_destination() != "Tower Gateway", True)
         self.assertEqual(str(departures), "Bank 1200 1207 1210")
 
     # Fundamental non-unit functionality tests. These need a WMT bot set up and are thus contingent on a
@@ -857,23 +857,33 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N", "Bank"))
 
         # Test route-testing works as expected
-        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "West Ruislip", "C"))
-        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Epping", "C"))
-        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault"))
-        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault", must_stop_at="Newbury Park"))
-        self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Wanstead", "C"))
-        self.assertFalse(self.bot.geodata.direct_route_exists("Heathrow Terminals 1, 2, 3", "Heathrow Terminal 4", "P"))
-        self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Whitechapel", "All"))
-        self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Whitechapel", "C"))
+        west_ruislip = self.bot.geodata.find_fuzzy_match("West Ruislip", {}, RailStation)
+        hainault = self.bot.geodata.find_fuzzy_match("Hainault", {}, RailStation)
+        roding_valley = self.bot.geodata.find_fuzzy_match("Roding Valley", {}, RailStation)
+        wanstead = self.bot.geodata.find_fuzzy_match("Wanstead", {}, RailStation)
+        snaresbrook = self.bot.geodata.find_fuzzy_match("Snaresbrook", {}, RailStation)
+        heathrow123 = self.bot.geodata.find_fuzzy_match("Heathrow Terminals 1, 2, 3", {}, RailStation)
+        heathrow4 = self.bot.geodata.find_fuzzy_match("Heathrow Terminal 4", {}, RailStation)
+        self.assertTrue(self.bot.geodata.direct_route_exists(west_ruislip, west_ruislip, "C"))
+        self.assertTrue(self.bot.geodata.direct_route_exists(west_ruislip, hainault, "C"))
+        self.assertTrue(self.bot.geodata.direct_route_exists(west_ruislip, roding_valley, "C", via=hainault))
+        self.assertTrue(self.bot.geodata.direct_route_exists(west_ruislip, roding_valley, "C", via=hainault, must_stop_at=wanstead))
+        self.assertFalse(self.bot.geodata.direct_route_exists(snaresbrook, wanstead, "C"))
+        self.assertFalse(self.bot.geodata.direct_route_exists(heathrow123, heathrow4, "P"))
+        self.assertFalse(self.bot.geodata.direct_route_exists(snaresbrook, heathrow123, "All"))
+        self.assertFalse(self.bot.geodata.direct_route_exists(snaresbrook, heathrow123, "C"))
 
         # Test direction-finding works as expected
-        self.assertTrue(self.bot.geodata.is_correct_direction("Oxford Circus", "Epping", "Eastbound", "C"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Epping", "Oxford Circus", "Westbound", "C"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Morden", "High Barnet", "Northbound", "N"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Hainault", "Wanstead", "Southbound", "C"))
-        self.assertFalse(self.bot.geodata.is_correct_direction("Epping", "Wanstead", "Southbound", "C"))
-        self.assertFalse(self.bot.geodata.is_correct_direction("Holborn", "Cockfosters", "Southbound", "P"))
+        morden = self.bot.geodata.find_fuzzy_match("Morden", {}, RailStation)
+        high_barnet = self.bot.geodata.find_fuzzy_match("High Barnet", {}, RailStation)
+        self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", west_ruislip, hainault, 'C'))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Westbound", hainault, west_ruislip, 'C'))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Northbound", morden, high_barnet, 'N'))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Southbound", hainault, wanstead, 'C'))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Southbound", snaresbrook, wanstead, 'C'))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Southbound", morden, high_barnet, 'N'))
 
+        # DLR Location tests
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'line': 'DLR'}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Limehouse", {}, RailStation).code, "lim")
@@ -882,10 +892,14 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertEqual(self.bot.geodata.find_fuzzy_match("W'wich Arsenal", {}, RailStation).code, "woa")
         self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton"))
         self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton", "DLR", "Poplar"))
-        self.assertTrue(self.bot.geodata.direct_route_exists("Bank", "Beckton", "DLR"))
-        self.assertFalse(self.bot.geodata.direct_route_exists("East India", "All Saints", "DLR"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Bank", "Beckton", "Eastbound", "DLR"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Stratford", "Lewisham", "Southbound", "DLR"))
+
+        limehouse = self.bot.geodata.find_fuzzy_match("Limehouse", {}, RailStation)
+        beckton = self.bot.geodata.find_fuzzy_match("Beckton", {}, RailStation)
+        all_saints = self.bot.geodata.find_fuzzy_match("All Saints", {}, RailStation)
+        self.assertTrue(self.bot.geodata.direct_route_exists(limehouse, beckton, "DLR"))
+        self.assertFalse(self.bot.geodata.direct_route_exists(limehouse, all_saints, "DLR"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", limehouse, beckton, "DLR"))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Eastbound", beckton, limehouse, "DLR"))
 
     def test_textparser(self):
         """

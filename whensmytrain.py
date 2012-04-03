@@ -64,7 +64,7 @@ class WhensMyTrain(WhensMyTransport):
         for ((_code, name), alternatives) in LINE_NAMES.items():
             self.line_lookup.update(dict([(alternative, name) for alternative in alternatives]))
 
-    def process_individual_request(self, requested_line, origin, destination, direction, position):
+    def process_individual_request(self, requested_line, requested_origin, requested_destination, requested_direction, position):
         """
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it. Filter trains by destination, or direction
@@ -82,62 +82,62 @@ class WhensMyTrain(WhensMyTransport):
         # Try and work out what departure station has been requested
         if position:
             logging.debug("Attempting to get closest to user's position: %s on line code %s", position, line_code)
-            station = self.get_station_by_geolocation(position, line_code)
+            origin = self.get_station_by_geolocation(position, line_code)
             # There will always be a nearest station so no need to check for non-existence
-        elif origin:
-            station = self.get_station_by_station_name(origin, line_code)
-            if not station:
-                raise WhensMyTransportException('rail_station_name_not_found', origin, line_name or "Tube")
-            logging.debug("Found match %s on requested destination %s on line code %s", station.name, origin, line_code)
+        elif requested_origin:
+            origin = self.get_station_by_station_name(requested_origin, line_code)
+            if not origin:
+                raise WhensMyTransportException('rail_station_name_not_found', requested_origin, line_name or "Tube")
+            logging.debug("Found match %s on requested destination %s on line code %s", origin.name, requested_origin, line_code)
         # XXX is the code for a station that does not have TrackerNet data on the API
-        if station.code == "XXX":
-            raise WhensMyTransportException('rail_station_not_in_system', station.name)
+        if origin.code == "XXX":
+            raise WhensMyTransportException('rail_station_not_in_system', origin.name)
 
         # If user has specified a destination, work out what it is, and check a direct route to it exists
-        destination_name = None
-        if destination:
-            destination_name = self.get_canonical_station_name(destination, line_code) or None
-            logging.debug("Found match %s on requested destination %s on line code %s", destination_name, destination, line_code)
+        destination = None
+        if requested_destination:
+            destination = self.get_station_by_station_name(requested_destination, line_code)
+            logging.debug("Found match %s on requested destination %s on line code %s", destination, requested_destination, line_code)
 
         # Alternatively we may have had a direction given, so try that
-        direction_name = None
-        if not destination_name and direction:
+        direction = None
+        if not destination and requested_direction:
             directions_lookup = {'n': 'Northbound', 'e': 'Eastbound', 'w': 'Westbound', 's': 'Southbound'}
-            direction_name = directions_lookup.get(direction.lower()[0], None)
-            if not direction_name:
-                raise WhensMyTransportException('invalid_direction', direction)
+            direction = directions_lookup.get(requested_direction.lower()[0], None)
+            if not direction:
+                raise WhensMyTransportException('invalid_direction', requested_direction)
 
         # We may not have been given a line - if so, try and work out what it might be from origin and destination
         if not line_code:
-            lines = self.geodata.get_lines_serving(station.code, destination_name)
+            lines = self.geodata.get_lines_serving(origin, destination)
             # If no lines produced, then there must be no direct route between origin and destination. This will never happen
             # if there is no destination specified, as every origin has at least one line serving it
             if not lines:
-                raise WhensMyTransportException('no_direct_route', station.name, destination_name, "Tube")
+                raise WhensMyTransportException('no_direct_route', origin.name, destination.name, "Tube")
             # If more than one throw an exception due to ambiguity, then we have to ask the user for clarity
             if len(lines) > 1:
-                if destination_name:
-                    raise WhensMyTransportException('no_line_specified_to', station.name, destination_name)
+                if destination:
+                    raise WhensMyTransportException('no_line_specified_to', origin.name, destination.name)
                 else:
-                    raise WhensMyTransportException('no_line_specified', station.name)
+                    raise WhensMyTransportException('no_line_specified', origin.name)
             line_code = lines[0]
             line_name = get_line_name(line_code)
 
         # Some sanity-checking, to make sure our train is actually direct
-        if destination_name and not self.geodata.direct_route_exists(station.name, destination_name, line_code):
-            raise WhensMyTransportException('no_direct_route', station.name, destination_name, line_name)
+        if destination and not self.geodata.direct_route_exists(origin, destination, line_code):
+            raise WhensMyTransportException('no_direct_route', origin.name, destination.name, line_name)
 
         # All being well, we can now get the departure data for this station and return it
-        departure_data = self.get_departure_data(station, line_code, must_stop_at=destination_name, direction=direction_name)
+        departure_data = self.get_departure_data(origin, line_code, must_stop_at=destination, direction=direction)
         if departure_data:
-            return "%s to %s" % (station.get_abbreviated_name(), str(departure_data))
+            return "%s to %s" % (origin.get_abbreviated_name(), str(departure_data))
         else:
-            if destination_name:
-                raise WhensMyTransportException('no_trains_shown_to', line_name, station.name, destination_name)
-            elif direction_name:
-                raise WhensMyTransportException('no_trains_shown_in_direction', direction_name, line_name, station.name)
+            if destination:
+                raise WhensMyTransportException('no_trains_shown_to', line_name, origin.name, destination.name)
+            elif direction:
+                raise WhensMyTransportException('no_trains_shown_in_direction', direction, line_name, origin.name)
             else:
-                raise WhensMyTransportException('no_trains_shown', line_name, station.name)
+                raise WhensMyTransportException('no_trains_shown', line_name, origin.name)
 
     def get_station_by_geolocation(self, position, line_code=None):
         """
@@ -164,61 +164,63 @@ class WhensMyTrain(WhensMyTransport):
         station_obj = self.get_station_by_station_name(station_name, line_code)
         return station_obj and station_obj.name or ""
 
-    def get_departure_data(self, station, line_code, must_stop_at=None, direction=None):
+    def get_departure_data(self, origin, line_code, must_stop_at=None, direction=None):
         """
-        Take a station object and a line ID, and get departure data for that station
+        Take a RailStation origin and a string line_code, and get departure data for that station
+        Optional args RailStation must_stop_at and string direction
+
         Returns a dictionary; keys are slot names (platform for DLR, direction for Tube), values lists of Train objects
         """
         #pylint: disable=W0108
         # Check if the station is open and if so (it will throw an exception if not), summon the data
-        self.check_station_is_open(station)
+        self.check_station_is_open(origin)
 
         # Circle line these days is coded H as it shares with the Hammersmith & City
         if line_code == 'O':
             line_code = 'H'
         # DLR and Tube have different APIs
         if line_code == 'DLR':
-            dlr_data = self.browser.fetch_xml_tree(self.urls.DLR_URL % station.code)
-            departures = parse_dlr_data(dlr_data, station)
+            dlr_data = self.browser.fetch_xml_tree(self.urls.DLR_URL % origin.code)
+            departures = parse_dlr_data(dlr_data, origin)
             null_constructor = lambda platform: NullDeparture("from " + platform)
         else:
-            tube_data = self.browser.fetch_xml_tree(self.urls.TUBE_URL % (line_code, station.code))
-            departures = parse_tube_data(tube_data, station, line_code)
+            tube_data = self.browser.fetch_xml_tree(self.urls.TUBE_URL % (line_code, origin.code))
+            departures = parse_tube_data(tube_data, origin, line_code)
             null_constructor = lambda direction: NullDeparture(direction)
 
         # Turn parsed destination & via names into canonical versions for this train so we can do lookups & checks
         for slot in departures:
             for train in departures[slot]:
-                if train.destination != "Unknown":
-                    train.destination = self.get_canonical_station_name(train.destination, line_code)
+                if train.destination:
+                    train.destination = self.get_station_by_station_name(train.get_destination_no_via(), line_code)
                 if train.via:
-                    train.via = self.get_canonical_station_name(train.via, line_code)
+                    train.via = self.get_station_by_station_name(train.get_via(), line_code)
 
         # Deal with any departures filed under "Unknown", slotting them into Eastbound/Westbound if their direction is not known
         # (By a stroke of luck, all the stations this applies to - North Acton, Edgware Road, Loughton, White City - are on an east/west line)
         if "Unknown" in departures:
             for train in departures["Unknown"]:
-                destination_station = self.get_station_by_station_name(train.destination, line_code)
+                destination_station = self.get_station_by_station_name(train.get_destination_no_via(), line_code)
                 if not destination_station:
                     continue
-                if destination_station.location_easting < station.location_easting:
+                if destination_station.location_easting < origin.location_easting:
                     departures.add_to_slot("Westbound", train)
                 else:
                     departures.add_to_slot("Eastbound", train)
             del departures["Unknown"]
 
         # For any non-empty list of departures, filter out any that terminate here. Note that existing empty lists remain empty and are not deleted
-        does_not_terminate_here = lambda train: train.destination != station.name
+        does_not_terminate_here = lambda train: train.get_destination_no_via() != origin.name
         departures.filter(does_not_terminate_here, delete_existing_empty_slots=False)
         # If we've specified a station to stop at, filter out any that do not stop at that station or are not in its direction
         # Note that unlike the above, this will turn all existing empty lists into Nones (and thus deletable) as well
         if must_stop_at:
-            filter_by_stop_at = lambda train: self.geodata.does_train_stop_at(station.name, must_stop_at, train)
+            filter_by_stop_at = lambda train: self.geodata.does_train_stop_at(train, origin, must_stop_at)
             departures.filter(filter_by_stop_at, delete_existing_empty_slots=True)
         # Else filter by direction - Tubs is already classified by direction, DLR is not direction-aware so must calculate manually
         elif direction:
             if line_code == 'DLR':
-                filter_by_direction = lambda train: self.geodata.is_correct_direction(station.name, train.destination, direction, line_code)
+                filter_by_direction = lambda train: self.geodata.is_correct_direction(direction, origin, train.destination, line_code)
                 departures.filter(filter_by_direction, delete_existing_empty_slots=True)
             else:
                 for slot in list(departures):
