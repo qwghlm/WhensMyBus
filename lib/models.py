@@ -340,8 +340,9 @@ class TubeTrain(Train):
             via = ""
 
         Train.__init__(self, destination_name, departure_time)
+        if via:
+            self.via = RailStation(via)
         self.direction = direction
-        self.via = RailStation(via)
         self.line_code = line_code
         self.set_number = set_number
 
