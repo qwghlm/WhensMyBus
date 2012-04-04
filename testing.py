@@ -191,7 +191,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertGreaterEqual(get_name_similarity(similarity_string, similarity_string[:-1]), 90)
         self.assertEqual(get_name_similarity(similarity_string, random_string(48, 57)), 0)
 
-        # Check to see most similar string gets picked out of an array of similar-looking strings, and that
+        # Check to see most similar string gets picked out of an list of similar-looking strings, and that
         # with very dissimilar strings, there is no candidate at all
         similarity_candidates = (similarity_string[:3], similarity_string[:5], similarity_string[:9], "z" * 10)
         self.assertEqual(get_best_fuzzy_match(similarity_string, similarity_candidates), similarity_candidates[-2])
@@ -856,9 +856,17 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Kings Cross", {'line': 'M'}, RailStation).code, "KXX")
 
         # Test route-tracing works as expected
-        self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
-        self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N"))
-        self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N", "Bank"))
+        stockwell = self.bot.geodata.find_fuzzy_match("Stockwell", {}, RailStation)
+        bank = self.bot.geodata.find_fuzzy_match("Bank", {}, RailStation)
+        euston = self.bot.geodata.find_fuzzy_match("Euston", {}, RailStation)
+        self.assertEqual(sorted(self.bot.geodata.get_lines_serving(stockwell)), ['N', 'V'])
+        self.assertEqual(sorted(self.bot.geodata.get_lines_serving(bank)), ['C', 'N', 'W'])
+        self.assertEqual(self.bot.geodata.length_of_route(stockwell, euston), 18)
+        self.assertEqual(self.bot.geodata.length_of_route(stockwell, euston, 'N'), 20)
+        self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route(stockwell, euston))
+        self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route(stockwell, euston, "N"))
+        self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route(stockwell, euston, "N", bank))
+
 
         # Test route-testing works as expected
         west_ruislip = self.bot.geodata.find_fuzzy_match("West Ruislip", {}, RailStation)
@@ -877,6 +885,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertFalse(self.bot.geodata.direct_route_exists(snaresbrook, heathrow123, "All"))
         self.assertFalse(self.bot.geodata.direct_route_exists(snaresbrook, heathrow123, "C"))
 
+
         # Test direction-finding works as expected
         morden = self.bot.geodata.find_fuzzy_match("Morden", {}, RailStation)
         high_barnet = self.bot.geodata.find_fuzzy_match("High Barnet", {}, RailStation)
@@ -894,11 +903,14 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Limehouse", {'line': 'DLR'}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Stratford Int", {}, RailStation).code, "sti")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("W'wich Arsenal", {}, RailStation).code, "woa")
-        self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton"))
-        self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton", "DLR", "Poplar"))
+
+        stratford = self.bot.geodata.find_fuzzy_match("Stratford", {}, RailStation)
+        beckton = self.bot.geodata.find_fuzzy_match("Beckton", {}, RailStation)
+        poplar = self.bot.geodata.find_fuzzy_match("Poplar", {}, RailStation)
+        self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route(stratford, beckton))
+        self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route(stratford, beckton, "DLR", poplar))
 
         limehouse = self.bot.geodata.find_fuzzy_match("Limehouse", {}, RailStation)
-        beckton = self.bot.geodata.find_fuzzy_match("Beckton", {}, RailStation)
         all_saints = self.bot.geodata.find_fuzzy_match("All Saints", {}, RailStation)
         self.assertTrue(self.bot.geodata.direct_route_exists(limehouse, beckton, "DLR"))
         self.assertFalse(self.bot.geodata.direct_route_exists(limehouse, all_saints, "DLR"))

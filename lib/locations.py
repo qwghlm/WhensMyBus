@@ -112,32 +112,33 @@ class WMTLocations():
 
     def get_lines_serving(self, origin, destination=None):
         """
-        Return an array of line codes that the station described by station_code is served by
+        Return a list of line codes that the RailStation origin is served by. If RailStation destination is specified, then
+        only the quickest line that directly goes from origin to destination is returned as a single element of that list
         """
         rows = self.database.get_rows("SELECT name,line FROM locations WHERE code=?", (origin.code,))
         stations = [(RailStation(name), line) for (name, line) in rows]
         # If a destination exists, filter using it. If multiple ways of getting to destination,
         # sort by quickest and return line code for that
         if stations and destination:
-            stations = [(station, line_code, self.length_of_route(station.name, destination.name, line_code)) for (station, line_code) in stations if self.direct_route_exists(station, destination, line_code)]
+            stations = [(station, line_code, self.length_of_route(station, destination, line_code)) for (station, line_code) in stations if self.direct_route_exists(station, destination, line_code)]
             stations.sort(lambda (a, b, c), (d, e, f): cmp(c, f))
             return [line_code for (station, line_code, time_taken) in stations][:1]
         else:
             return [line_code for (station, line_code) in stations]
 
-    def length_of_route(self, origin_name, destination_name, line_code='All'):
+    def length_of_route(self, origin, destination, line_code='All'):
         """
-        Return the amount of time (in minutes) it is estimated to take to get from origin_name to destination_name via the specified line (if any)
+        Return the amount of time (in minutes) it is estimated to take to get from RailStation origin to RailStation destination
+        via the specified line_code (if any)
         Returns -1 if there is no route between the two
         """
-        # FIXME Unit test
-        origin_name += ":entrance"
-        destination_name += ":exit"
+        origin_name = origin.name + ":entrance"
+        destination_name = destination.name + ":exit"
         network = self.network[line_code]
         shortest_path_times = shortest_path(network, origin_name)[1]
-        return shortest_path_times.get(destination_name, -1)
+        return int(ceil(shortest_path_times.get(destination_name, -1)))
 
-    def describe_route(self, origin_name, destination_name, line_code='All', via=None):
+    def describe_route(self, origin, destination, line_code='All', via=None):
         """
         Return the shortest route between origin and destination. Returns an list describing the route from start to finish
         Each element of the list is a tuple of form (station_name, direction, line_code)
@@ -145,14 +146,14 @@ class WMTLocations():
         if not self.network:
             return []
         if via:
-            first_half = self.describe_route(origin_name, via, line_code)
-            second_half = self.describe_route(via, destination_name, line_code)
+            first_half = self.describe_route(origin, via, line_code)
+            second_half = self.describe_route(via, destination, line_code)
             if first_half and second_half and second_half[0] == first_half[-1]:
                 del second_half[0]
             return first_half + second_half
 
-        origin_name += ":entrance"
-        destination_name += ":exit"
+        origin_name = origin.name + ":entrance"
+        destination_name = destination.name + ":exit"
 
         network = self.network[line_code]
         shortest_path_values = shortest_path(network, origin_name)
@@ -186,7 +187,7 @@ class WMTLocations():
         if origin == destination:
             return True
 
-        path_taken = [stop[0] for stop in self.describe_route(origin.name, destination.name, line_code, via and via.name)]
+        path_taken = [stop[0] for stop in self.describe_route(origin, destination, line_code, via)]
         # If no path possible, then of course return False
         if not path_taken:
             return False

@@ -117,6 +117,7 @@ class WhensMyTrain(WhensMyTransport):
             # If more than one throw an exception due to ambiguity, then we have to ask the user for clarity
             if len(lines) > 1:
                 if destination:
+                    # This may never happen, as get_lines_serving() returns at most one element if a destination is given
                     raise WhensMyTransportException('no_line_specified_to', origin.name, destination.name)
                 else:
                     raise WhensMyTransportException('no_line_specified', origin.name)
