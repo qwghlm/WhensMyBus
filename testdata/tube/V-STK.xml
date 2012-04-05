@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ROOT xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://trackernet.lul.co.uk">
+  <Disclaimer>This system is an INFORMATION ONLY system, relying entirely on 
+				information received from the relevant Operational Railway Control System(s). It is NOT 
+				considered a safety related system in the Railway Engineering sense. However, 
+				the information reported may trigger user intervention by staff regarding possible 
+				incidents on the railway, and confirmation of the situation observed should be obtained prior 
+				to any corrective action being taken.</Disclaimer>
+  <WhenCreated>3 Apr 2012 14:44:49</WhenCreated>
+  <Line>V</Line>
+  <LineName>Victoria Line</LineName>
+  <S Code="STK" Mess="" N="Stockwell." CurTime="14:44:49">
+    <P N="Northbound - Platform 1" Num="1" TrackCode="TV6774">
+      <T LCID="1014466" SetNo="244" TripNo="12" SecondsTo="68" TimeTo="1:30" Location="0" Destination="Walthamstow Central" DestCode="457" Order="0" DepartTime="13:44:46" DepartInterval="68" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6820_1" LN="V" />
+      <T LCID="1000026" SetNo="202" TripNo="1" SecondsTo="143" TimeTo="2:30" Location="At Brixton Sidings" Destination="Walthamstow Central" DestCode="457" Order="0" DepartTime="4:26:37" DepartInterval="143" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6829" LN="V" />
+    </P>
+    <P N="Southbound - Platform 4" Num="4" TrackCode="TV6775">
+      <T LCID="1014546" SetNo="224" TripNo="13" SecondsTo="112" TimeTo="2:00" Location="At Vauxhall" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:06" DepartInterval="112" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6725" LN="V" />
+      <T LCID="1020919" SetNo="220" TripNo="15" SecondsTo="255" TimeTo="4:30" Location="At Victoria" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="255" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6627_2" LN="V" />
+      <T LCID="1019503" SetNo="242" TripNo="11" SecondsTo="381" TimeTo="6:00" Location="Between Green Park and Victoria" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="381" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6611" LN="V" />
+      <T LCID="1021022" SetNo="243" TripNo="11" SecondsTo="511" TimeTo="9:00" Location="Approaching Green Park" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="511" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6563" LN="V" />
+      <T LCID="1022238" SetNo="240" TripNo="11" SecondsTo="680" TimeTo="11:00" Location="Between Oxford Circus and Warren Street" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="680" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6481" LN="V" />
+      <T LCID="1014849" SetNo="246" TripNo="11" SecondsTo="865" TimeTo="14:00" Location="Approaching Euston" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="865" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6389" LN="V" />
+      <T LCID="1013247" SetNo="232" TripNo="13" SecondsTo="972" TimeTo="16:00" Location="Between Highbury &amp; Islington and Kings Cross St. P" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:41" DepartInterval="972" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6361" LN="V" />
+      <T LCID="1012208" SetNo="223" TripNo="15" SecondsTo="1078" TimeTo="18:00" Location="Between Finsbury Park and Highbury &amp; Islington" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="1078" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6319" LN="V" />
+      <T LCID="1013332" SetNo="233" TripNo="13" SecondsTo="1148" TimeTo="19:00" Location="Approaching Finsbury Park" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="1148" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6265" LN="V" />
+      <T LCID="1018311" SetNo="245" TripNo="11" SecondsTo="1238" TimeTo="21:00" Location="Between Seven Sisters and Finsbury Park" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="1238" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6233" LN="V" />
+      <T LCID="1019866" SetNo="230" TripNo="13" SecondsTo="1250" TimeTo="21:00" Location="Departed Tottenham Hale" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:46" DepartInterval="1250" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6127" LN="V" />
+      <T LCID="1021362" SetNo="227" TripNo="13" SecondsTo="1443" TimeTo="24:00" Location="Between Walthamstow Central and Blackhorse Road" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:40" DepartInterval="1443" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6033" LN="V" />
+      <T LCID="1011573" SetNo="216" TripNo="15" SecondsTo="1482" TimeTo="25:00" Location="At Walthamstow Central" Destination="Brixton" DestCode="88" Order="0" DepartTime="13:44:26" DepartInterval="1482" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6024" LN="V" />
+      <T LCID="1000037" SetNo="206" TripNo="1" SecondsTo="1660" TimeTo="28:00" Location="Walthamstow Sidings" Destination="Brixton" DestCode="88" Order="0" DepartTime="5:28:59" DepartInterval="1660" Departed="0" Direction="0" IsStalled="0" TrackCode="TV6019" LN="V" />
+    </P>
+  </S>
+</ROOT>

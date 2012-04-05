@@ -3,18 +3,19 @@
 """
 Location-finding service for WhensMyTransport
 """
-from math import sqrt
-import logging
-import os.path
 import cPickle as pickle
+import logging
+from math import sqrt, ceil
+import os.path
+from pprint import pprint
 
 # http://code.google.com/p/python-graph/
 from pygraph.algorithms.minmax import shortest_path
 
+from lib.models import RailStation
 from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
-from lib.models import RailStation
 
 
 DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/')
@@ -110,12 +111,33 @@ class WMTLocations():
         else:
             return None
 
-    def get_lines_serving(self, station_code):
+    def get_lines_serving(self, origin, destination=None):
         """
-        Return an array of line codes that the station described by station_code is served by
+        Return a list of line codes that the RailStation origin is served by. If RailStation destination is specified, then
+        only the quickest line that directly goes from origin to destination is returned as a single element of that list
         """
-        rows = self.database.get_rows("SELECT line FROM locations WHERE code=?", (station_code,))
-        return [row[0] for row in rows]
+        rows = self.database.get_rows("SELECT name,line FROM locations WHERE code=?", (origin.code,))
+        stations = [(RailStation(name), line) for (name, line) in rows]
+        # If a destination exists, filter using it. If multiple ways of getting to destination,
+        # sort by quickest and return line code for that
+        if stations and destination:
+            stations = [(station, line_code, self.length_of_route(station, destination, line_code)) for (station, line_code) in stations if self.direct_route_exists(station, destination, line_code)]
+            stations.sort(lambda (a, b, c), (d, e, f): cmp(c, f))
+            return [line_code for (station, line_code, time_taken) in stations][:1]
+        else:
+            return [line_code for (station, line_code) in stations]
+
+    def length_of_route(self, origin, destination, line_code='All'):
+        """
+        Return the amount of time (in minutes) it is estimated to take to get from RailStation origin to RailStation destination
+        via the specified line_code (if any)
+        Returns -1 if there is no route between the two
+        """
+        origin_name = origin.name + ":entrance"
+        destination_name = destination.name + ":exit"
+        network = self.network[line_code]
+        shortest_path_times = shortest_path(network, origin_name)[1]
+        return int(ceil(shortest_path_times.get(destination_name, -1)))
 
     def describe_route(self, origin, destination, line_code='All', via=None):
         """
@@ -131,20 +153,22 @@ class WMTLocations():
                 del second_half[0]
             return first_half + second_half
 
-        origin += ":entrance"
-        destination += ":exit"
+        origin_name = origin.name + ":entrance"
+        destination_name = destination.name + ":exit"
 
         network = self.network[line_code]
-        shortest_path_dictionary = shortest_path(network, origin)[0]
-        if origin not in shortest_path_dictionary or destination not in shortest_path_dictionary:
+        shortest_path_values = shortest_path(network, origin_name)
+        shortest_path_dictionary = shortest_path_values[0]
+
+        if origin_name not in shortest_path_dictionary or destination_name not in shortest_path_dictionary:
             return []
         # Shortest path dictionary consists of a dictionary of node names as keys, with the values
         # being the name of the node that preceded it in the shortest path
         # Count back from our destinaton, to the origin point
         path_taken = []
-        while destination:
-            path_taken.append(tuple(destination.split(":")))
-            destination = shortest_path_dictionary[destination]
+        while destination_name:
+            path_taken.append(tuple(destination_name.split(":")))
+            destination_name = shortest_path_dictionary[destination_name]
 
         # Trim off the entrance & exit nodes and reverse the list to get it in the right order
         path_taken = path_taken[1:-1][::-1]
@@ -155,13 +179,23 @@ class WMTLocations():
         Return whether there is a direct route (i.e. one that does work without changing) between origin and destination on the line
         with code line_code (going via via if specified). If must_stop_at is specified, must also check that it stops at must_stop_at
 
-        via and must_stop_at are basically the same thing, for what it's worth, and are interchangeable
+        via and must_stop_at are subtly different - we force the route to go via via first, but then we check to see if it stops at must_stop_at
         """
+        # Non-existent origin or direction must mean no route possible
         if not origin or not destination:
             return False
+        # Trivial case - origin and destination being the same obviously True
+        if origin == destination:
+            return True
+
         path_taken = [stop[0] for stop in self.describe_route(origin, destination, line_code, via)]
-        if must_stop_at and must_stop_at not in path_taken:
+        # If no path possible, then of course return False
+        if not path_taken:
             return False
+        # If must_stop_at not in the list, then return False
+        if must_stop_at and must_stop_at.name not in path_taken:
+            return False
+
         for i in range(1, len(path_taken)):
             # If same station twice in a row, then we must have a change
             if path_taken[i] == path_taken[i - 1]:
@@ -171,26 +205,24 @@ class WMTLocations():
                 return False
         return True
 
-    def is_correct_direction(self, origin, destination, direction, line_code):
+    def is_correct_direction(self, direction, origin, destination, line_code):
         """
         Return True if a train going in this direction will directly reach the destination from the origin
         """
         if not direction:
             return False
+        # If we can't find a match, or there doesn't exist direct route between the two, then can't be correct direction
+        if not origin or not destination or not self.direct_route_exists(origin, destination, line_code):
+            return False
+
         if direction.endswith("bound"):
             direction = direction[:-len("bound")]
-        origin = self.find_fuzzy_match(origin, {'line': line_code}, RailStation)
-        destination = self.find_fuzzy_match(destination, {'line': line_code}, RailStation)
-
-        # If we can't find a match, or there doesn't exist direct route between the two, then can't be correct direction
-        if not origin or not destination or not self.direct_route_exists(origin.name, destination.name, line_code):
-            return False
 
         # Work out what direction we are going in via difference in east and west, and whether the
         # change in easting or northing is significant (in this case, it has to be at least half the change
         # in the other)
         east_diff = destination.location_easting - origin.location_easting
-        north_diff = destination.location_northing - origin.location_northing 
+        north_diff = destination.location_northing - origin.location_northing
         east_diff_significant = abs(east_diff) > abs(0.5 * north_diff)
         north_diff_significant = abs(north_diff) > abs(0.5 * east_diff)
         if (direction == "East" and east_diff > 0 and east_diff_significant) or \
@@ -201,14 +233,13 @@ class WMTLocations():
         else:
             return False
 
-    def does_train_stop_at(self, origin, desired_station, train):
+    def does_train_stop_at(self, train, origin, desired_station):
         """
-        Return True if a train from origin bound for destination and/or in direction on line will stop at
-        desired_station on the way
+        Return True if a Train train from RailStation origin will stop at RailStation desired_station on the way
         """
-        if train.destination and train.destination != "Unknown":
+        if train.destination:
             return self.direct_route_exists(origin, train.destination, train.line_code, via=train.via, must_stop_at=desired_station)
         elif train.direction:
-            return self.is_correct_direction(origin, desired_station, train.direction, train.line_code)
+            return self.is_correct_direction(train.direction, origin, desired_station, train.line_code)
         else:
             return False

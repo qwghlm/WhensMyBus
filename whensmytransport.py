@@ -101,8 +101,10 @@ class WhensMyTransport:
         access_token_secret = config.get(self.instance_name, 'secret')
         self.twitter_client = WMTTwitterClient(self.instance_name, consumer_key, consumer_secret, access_token, access_token_secret, testing)
 
-        # This can be overridden by child classes
+        # The following can be overridden by child classes - whether to allow blank tweets,
+        # and what the default route should be if none is given
         self.allow_blank_tweets = False
+        self.default_requested_route = None
 
     def check_tweets(self):
         """
@@ -186,15 +188,10 @@ class WhensMyTransport:
         logging.debug("Message from user: %s", message)
         (requested_routes, origin, destination, direction) = self.parser.parse_message(message)
 
-        # If no routes found, we may be able to deduce from origin or position if we are DLR/Tube
-        if not requested_routes:
-            if origin or self.tweet_has_geolocation(tweet):
-                if self.instance_name == 'whensmytube':
-                    logging.debug("No line name detected, going to try None for now and see if that works")
-                    requested_routes = [None]
-                elif self.instance_name == 'whensmydlr':
-                    logging.debug("No line name detected, falling back on default of DLR")
-                    requested_routes = ('DLR',)
+        # If no routes found, we may be able to deduce from origin or position if we have specified a default requested route
+        if not requested_routes and self.default_requested_route and (origin or self.tweet_has_geolocation(tweet)):
+            logging.debug("No line name detected, going to try %s for now and see if that works", self.default_requested_route)
+            requested_routes = [self.default_requested_route]
         if not requested_routes:
             logging.debug("No routes or lines detected on this Tweet, cannot determine position, skipping")
             return []

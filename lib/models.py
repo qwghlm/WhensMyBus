@@ -117,6 +117,9 @@ class RailStation(Location):
         self.location_northing = location_northing
         self.circular_directions = {'inner': inner, 'outer': outer}
 
+    def __eq__(self, other):
+        return self.name == other.name and self.code == other.code
+
     def get_abbreviated_name(self):
         """
         Take this station's name and abbreviate it to make it fit on Twitter better
@@ -260,27 +263,31 @@ class Train(Departure):
 
     Unlike Buses, trains can have unknown destinations or complicated destination names
     """
-    def __init__(self, destination, departure_time):
-        Departure.__init__(self, destination, departure_time)
+    def __init__(self, destination_name, departure_time):
+        Departure.__init__(self, destination_name, departure_time)
+        if destination_name == "Unknown":
+            self.destination = None
+        else:
+            self.destination = RailStation(destination_name)
+        self.via = None
         self.direction = ""
-        self.via = ""
         self.line_code = ""
 
     def get_destination_no_via(self):
         """
         Return this train's destination in suitably shortened format, without the via
         """
-        if self.destination == "Unknown":
-            destination = "%s Train" % self.direction
+        if self.destination:
+            destination = self.destination.get_abbreviated_name()
         else:
-            destination = RailStation(self.destination).get_abbreviated_name()
+            destination = "%s Train" % self.direction
         return destination
 
     def get_via(self):
         """
         Return the station this train is "via", if there is one
         """
-        return RailStation(self.via).get_abbreviated_name()
+        return self.via and self.via.get_abbreviated_name() or ""
 
     def get_destination(self):
         destination = self.get_destination_no_via()
@@ -296,18 +303,18 @@ class TubeTrain(Train):
     Class representing a Tube train
     """
     #pylint: disable=W0231
-    def __init__(self, destination, direction, departure_time, line_code, set_number):
+    def __init__(self, destination_name, direction, departure_time, line_code, set_number):
         manual_translations = {"Heathrow T123 + 5": "Heathrow Terminal 5",
                                "Olympia": "Kensington (Olympia)"}
-        destination = manual_translations.get(destination, destination)
+        destination_name = manual_translations.get(destination_name, destination_name)
         # Get rid of TfL's odd designations in the Destination field to make it compatible with our list of stations in the database
         # Destination names are full of garbage. What I would like is a database mapping codes to canonical names, but this does not exist
-        destination = re.sub(r"\band\b", "&", destination, flags=re.I)
+        destination_name = re.sub(r"\band\b", "&", destination_name, flags=re.I)
 
         # Destinations that are line names or Unknown get boiled down to Unknown
-        if destination in ("Unknown", "Circle & Hammersmith & City") or destination.startswith("Circle Line") \
-            or destination.endswith("Train") or destination.endswith("Line"):
-            destination = "Unknown"
+        if destination_name in ("Unknown", "Circle & Hammersmith & City") or destination_name.startswith("Circle Line") \
+            or destination_name.endswith("Train") or destination_name.endswith("Line"):
+            destination_name = "Unknown"
         else:
             # Regular expressions of instructions, depot names (presumably instructions for shunting after arrival), or platform numbers
             undesirables = ('\(rev to .*\)',
@@ -322,19 +329,20 @@ class TubeTrain(Train):
                             ' loop',
                             '\(circle\)',
                             '\(district\)',)
-            destination = cleanup_name_from_undesirables(destination, undesirables)
+            destination_name = cleanup_name_from_undesirables(destination_name, undesirables)
 
-        via_match = re.search(" \(?via (.*)\)?$", destination, flags=re.I)
+        via_match = re.search(" \(?via (.*)\)?$", destination_name, flags=re.I)
         if via_match:
             manual_translations = {"CX": "Charing Cross", "T4": "Heathrow Terminal 4"}
             via = manual_translations.get(via_match.group(1), via_match.group(1))
-            destination = re.sub(" \(?via .*$", "", destination, flags=re.I)
+            destination_name = re.sub(" \(?via .*$", "", destination_name, flags=re.I)
         else:
             via = ""
 
-        Train.__init__(self, destination, departure_time)
+        Train.__init__(self, destination_name, departure_time)
+        if via:
+            self.via = RailStation(via)
         self.direction = direction
-        self.via = via
         self.line_code = line_code
         self.set_number = set_number
 
@@ -342,7 +350,7 @@ class TubeTrain(Train):
         """
         Return hash value to enable ability to use as dictionary key
         """
-        return hash(' '.join([self.set_number, self.destination, self.via, self.get_departure_time()]))
+        return hash('-'.join([self.set_number, self.get_destination(), self.get_departure_time()]))
 
 
 class DLRTrain(Train):
@@ -401,20 +409,20 @@ class DepartureCollection:
         """
         if not self.departure_data:
             return ""
+        # This is a dictionary, each key a slot, each value a { destination:[list of times] } dictionary itself
         departures_output = {}
-        # Output is a dictionary, each key a slot, each item a { destination:[list of times] } dictionary itself
         for slot in sorted(self.departure_data.keys()):
-            departures_output[slot] = {}
             # Group by departure within each slot
-            for departure in unique_values(sorted(self.departure_data[slot]))[:5]:
-                destination = departure.get_destination()
-                departures_output[slot][destination] = departures_output[slot].get(destination, []) + [departure.get_departure_time()]
+            departures = unique_values(sorted(self.departure_data[slot]))[:5]
+            destinations = unique_values([departure.get_destination() for departure in departures])
+            departures_by_destination = {}
+            for destination in destinations:
+                departures_by_destination[destination] = [departure.get_departure_time() for departure in departures if departure.get_destination() == destination]
             # Then sort grouped departures, earliest first within the slot. Different destinations separated by commas
-            sort_earliest_departure_first = lambda pair1, pair2: cmp(pair1[1][0], pair2[1][0])
-            destinations_and_times = sorted(departures_output[slot].items(), sort_earliest_departure_first)
-            departures_output[slot] = ["%s %s" % (destination, ' '.join(times[:3])) for (destination, times) in destinations_and_times]
-
-            departures_output[slot] = ', '.join([departure.strip() for departure in departures_output[slot]])
+            sort_earliest_departure_first = lambda (destination1, times1), (destination2, times2): cmp(times1[0], times2[0])
+            destinations_and_times = sorted(departures_by_destination.items(), sort_earliest_departure_first)
+            departures_for_this_slot = ["%s %s" % (destination, ' '.join(times[:3])) for (destination, times) in destinations_and_times]
+            departures_output[slot] = ', '.join([departure.strip() for departure in departures_for_this_slot])
             # Bus stops get their names included as well, if there is a departure
             if isinstance(slot, BusStop) and not departures_output[slot].startswith("None shown"):
                 departures_output[slot] = "%s to %s" % (slot.get_clean_name(), departures_output[slot])
@@ -441,7 +449,7 @@ class DepartureCollection:
         """
         slot_pairs = [(slot1, slot2) for slot1 in self.departure_data.keys() for slot2 in self.departure_data.keys() if slot1 < slot2]
         common_slots = [(slot1, slot2) for (slot1, slot2) in slot_pairs
-                             if set([t.destination for t in self.departure_data[slot1]]).intersection([t.destination for t in self.departure_data[slot2]])]
+                             if set([t.get_destination() for t in self.departure_data[slot1]]).intersection([t.get_destination() for t in self.departure_data[slot2]])]
         for (slot1, slot2) in common_slots[:1]:
             logging.debug("Merging platforms %s and %s", slot1, slot2)
             self.departure_data[slot1 + ' & ' + slot2] = unique_values(self.departure_data[slot1] + self.departure_data[slot2])

@@ -191,7 +191,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertGreaterEqual(get_name_similarity(similarity_string, similarity_string[:-1]), 90)
         self.assertEqual(get_name_similarity(similarity_string, random_string(48, 57)), 0)
 
-        # Check to see most similar string gets picked out of an array of similar-looking strings, and that
+        # Check to see most similar string gets picked out of an list of similar-looking strings, and that
         # with very dissimilar strings, there is no candidate at all
         similarity_candidates = (similarity_string[:3], similarity_string[:5], similarity_string[:9], "z" * 10)
         self.assertEqual(get_best_fuzzy_match(similarity_string, similarity_candidates), similarity_candidates[-2])
@@ -324,10 +324,10 @@ class WhensMyTransportTestCase(unittest.TestCase):
         departures.merge_common_slots()
         departures.cleanup(lambda platform: NullDeparture("from %s" % platform))
         self.assertEqual(str(departures), "Bank 1200 1207 1210, Tower Gateway 1203 1205; Lewisham 1200 1204 1208; None shown going from P4")
-        departures.filter(lambda train: train.destination != "Lewisham")
+        departures.filter(lambda train: train.get_destination() != "Lewisham")
         self.assertEqual(str(departures), "Bank 1200 1207 1210, Tower Gateway 1203 1205; None shown going from P4")
         departures["P4"] = []
-        departures.filter(lambda train: train.destination != "Tower Gateway", True)
+        departures.filter(lambda train: train.get_destination() != "Tower Gateway", True)
         self.assertEqual(str(departures), "Bank 1200 1207 1210")
 
     # Fundamental non-unit functionality tests. These need a WMT bot set up and are thus contingent on a
@@ -447,6 +447,9 @@ class WhensMyTransportTestCase(unittest.TestCase):
         self.assertEqual(test_time, self.bot.twitter_client.settings.get_setting("_test_time"))
 
     def test_twitter_tools(self):
+        """
+        Test to see if Twitter helper functions such as message splitting work properly
+        """
         (message1, message2) = ("486 Charlton Stn / Charlton Church Lane to Bexleyheath Ctr 1935",
                                 "Charlton Stn / Charlton Church Lane to North Greenwich 1934")
         message = "%s; %s" % (message1, message2)
@@ -646,7 +649,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         print 'Processing of Tweet took %0.3f ms\r\n' % ((t2 - t1) * 1000.0,)
 
     #
-    # Bus-specific tests
+    # Core functionality tests
     #
 
     def test_location(self):
@@ -695,8 +698,9 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
         self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
         self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
+
     #
-    # Stop-related errors
+    # Request-based tests
     #
 
     def test_bad_stop_id(self):
@@ -805,22 +809,18 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
             ("Circle Line from Edgware Road to Moorgate",
                 ("Eastbound Train",),
                 ("Hammersmith [0-9]{4}",)),
-            # Handle when there are no trains from a station
-            ('Waterloo & City Line from Bank',
-                (str(WhensMyTransportException('no_trains_shown', 'Waterloo & City Line', 'Bank')),),
-                ("Waterloo [0-9]{4}",)),
-            # Handle when there are no trains to a particular destination 
-            ('DLR from Lewisham to Poplar',
-                (str(WhensMyTransportException('no_trains_shown_to', 'DLR', 'Lewisham', 'Poplar')),),
-                ("Stratford [0-9]{4}",)),
-            # Handle when there are no trains in a particular direction 
-            ('Central Line from Fairlop Westbound',
-                (str(WhensMyTransportException('no_trains_shown_in_direction', 'Westbound', 'Central Line', 'Fairlop',)),),
-                ("West Ruislip [0-9]{4}",)),
-            # Handle ably when no line is specified
+            # Handle ably when no line is specified but only one line serves the origin
             ('Arsenal',
                 ('Cockfosters', 'Heathrow'),
                 (str(WhensMyTransportException('no_line_specified', 'Arsenal')),)),
+            # Handle ably when no line is specified but only one line serves both origin and destination
+            ("Earl's Court to Plaistow",
+                ('Upminster',),
+                (str(WhensMyTransportException('no_line_specified_to', "Earl's Court", "Plaistow")),)),
+            # Handle ably when no line is specified, there exists more than one line to get there, but we pick fastest
+            ("Stockwell to Euston",
+                ('Walthamstow Ctrl',),
+                (str(WhensMyTransportException('no_line_specified_to', "Stockwell", "Euston")),)),            
         )
 
     def _test_correct_successes(self, tweet, _routes_specified, expected_origin, destination_to_avoid=''):
@@ -842,41 +842,106 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
                 self.assertNotRegexpMatches(result, destination_to_avoid)
         print 'Processing of Tweet took %0.3f ms\r\n' % ((t2 - t1) * 1000.0,)
 
+    #
+    # Core functionality tests
+    #
+
     def test_location(self):
         """
         Unit tests for WMTLocation object and the Tube database
         """
+        # Test station-finding works
         self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_closest((51.529444, -0.126944), {'line': 'M'}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Kings Cross", {}, RailStation).code, "KXX")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Kings Cross", {'line': 'M'}, RailStation).code, "KXX")
-        self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route("Stockwell", "Euston"))
-        self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N"))
-        self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route("Stockwell", "Euston", "N", "Bank"))
-        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Epping", "C"))
-        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault"))
-        self.assertTrue(self.bot.geodata.direct_route_exists("West Ruislip", "Roding Valley", "C", via="Hainault", must_stop_at="Newbury Park"))
-        self.assertFalse(self.bot.geodata.direct_route_exists("Snaresbrook", "Wanstead", "C"))
-        self.assertFalse(self.bot.geodata.direct_route_exists("Heathrow Terminals 1, 2, 3", "Heathrow Terminal 4", "P"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Oxford Circus", "Epping", "Eastbound", "C"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Epping", "Oxford Circus", "Westbound", "C"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Morden", "High Barnet", "Northbound", "N"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Hainault", "Wanstead", "Southbound", "C"))
-        self.assertFalse(self.bot.geodata.is_correct_direction("Epping", "Wanstead", "Southbound", "C"))
-        self.assertFalse(self.bot.geodata.is_correct_direction("Holborn", "Cockfosters", "Southbound", "P"))
 
+        # Test route-tracing works as expected
+        stockwell = self.bot.geodata.find_fuzzy_match("Stockwell", {}, RailStation)
+        bank = self.bot.geodata.find_fuzzy_match("Bank", {}, RailStation)
+        euston = self.bot.geodata.find_fuzzy_match("Euston", {}, RailStation)
+        self.assertEqual(sorted(self.bot.geodata.get_lines_serving(stockwell)), ['N', 'V'])
+        self.assertEqual(sorted(self.bot.geodata.get_lines_serving(bank)), ['C', 'N', 'W'])
+        self.assertEqual(self.bot.geodata.length_of_route(stockwell, euston), 18)
+        self.assertEqual(self.bot.geodata.length_of_route(stockwell, euston, 'N'), 20)
+        self.assertIn(('Oxford Circus', '', 'Victoria'), self.bot.geodata.describe_route(stockwell, euston))
+        self.assertIn(('Charing Cross', '', 'Northern'), self.bot.geodata.describe_route(stockwell, euston, "N"))
+        self.assertIn(('Bank', '', 'Northern'), self.bot.geodata.describe_route(stockwell, euston, "N", bank))
+
+
+        # Test route-testing works as expected
+        west_ruislip = self.bot.geodata.find_fuzzy_match("West Ruislip", {}, RailStation)
+        hainault = self.bot.geodata.find_fuzzy_match("Hainault", {}, RailStation)
+        roding_valley = self.bot.geodata.find_fuzzy_match("Roding Valley", {}, RailStation)
+        wanstead = self.bot.geodata.find_fuzzy_match("Wanstead", {}, RailStation)
+        snaresbrook = self.bot.geodata.find_fuzzy_match("Snaresbrook", {}, RailStation)
+        heathrow123 = self.bot.geodata.find_fuzzy_match("Heathrow Terminals 1, 2, 3", {}, RailStation)
+        heathrow4 = self.bot.geodata.find_fuzzy_match("Heathrow Terminal 4", {}, RailStation)
+        self.assertTrue(self.bot.geodata.direct_route_exists(west_ruislip, west_ruislip, "C"))
+        self.assertTrue(self.bot.geodata.direct_route_exists(west_ruislip, hainault, "C"))
+        self.assertTrue(self.bot.geodata.direct_route_exists(west_ruislip, roding_valley, "C", via=hainault))
+        self.assertTrue(self.bot.geodata.direct_route_exists(west_ruislip, roding_valley, "C", via=hainault, must_stop_at=wanstead))
+        self.assertFalse(self.bot.geodata.direct_route_exists(snaresbrook, wanstead, "C"))
+        self.assertFalse(self.bot.geodata.direct_route_exists(heathrow123, heathrow4, "P"))
+        self.assertFalse(self.bot.geodata.direct_route_exists(snaresbrook, heathrow123, "All"))
+        self.assertFalse(self.bot.geodata.direct_route_exists(snaresbrook, heathrow123, "C"))
+
+
+        # Test direction-finding works as expected
+        morden = self.bot.geodata.find_fuzzy_match("Morden", {}, RailStation)
+        high_barnet = self.bot.geodata.find_fuzzy_match("High Barnet", {}, RailStation)
+        self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", west_ruislip, hainault, 'C'))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Westbound", hainault, west_ruislip, 'C'))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Northbound", morden, high_barnet, 'N'))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Southbound", hainault, wanstead, 'C'))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Southbound", snaresbrook, wanstead, 'C'))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Southbound", morden, high_barnet, 'N'))
+
+        # DLR Location tests
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_closest((51.5124, -0.0397), {'line': 'DLR'}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Limehouse", {}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Limehouse", {'line': 'DLR'}, RailStation).code, "lim")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("Stratford Int", {}, RailStation).code, "sti")
         self.assertEqual(self.bot.geodata.find_fuzzy_match("W'wich Arsenal", {}, RailStation).code, "woa")
-        self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton"))
-        self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route("Stratford", "Beckton", "DLR", "Poplar"))
-        self.assertTrue(self.bot.geodata.direct_route_exists("Bank", "Beckton", "DLR"))
-        self.assertFalse(self.bot.geodata.direct_route_exists("East India", "All Saints", "DLR"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Bank", "Beckton", "Eastbound", "DLR"))
-        self.assertTrue(self.bot.geodata.is_correct_direction("Stratford", "Lewisham", "Southbound", "DLR"))
+
+        stratford = self.bot.geodata.find_fuzzy_match("Stratford", {}, RailStation)
+        beckton = self.bot.geodata.find_fuzzy_match("Beckton", {}, RailStation)
+        poplar = self.bot.geodata.find_fuzzy_match("Poplar", {}, RailStation)
+        self.assertIn(('West Ham', '', 'DLR'), self.bot.geodata.describe_route(stratford, beckton))
+        self.assertIn(('Blackwall', '', 'DLR'), self.bot.geodata.describe_route(stratford, beckton, "DLR", poplar))
+
+        limehouse = self.bot.geodata.find_fuzzy_match("Limehouse", {}, RailStation)
+        all_saints = self.bot.geodata.find_fuzzy_match("All Saints", {}, RailStation)
+        self.assertTrue(self.bot.geodata.direct_route_exists(limehouse, beckton, "DLR"))
+        self.assertFalse(self.bot.geodata.direct_route_exists(limehouse, all_saints, "DLR"))
+        self.assertTrue(self.bot.geodata.is_correct_direction("Eastbound", limehouse, beckton, "DLR"))
+        self.assertFalse(self.bot.geodata.is_correct_direction("Eastbound", beckton, limehouse, "DLR"))
+
+    def test_textparser(self):
+        """
+        Tests for the natural language parser
+        """
+        (line_name, origin, destination, direction) = ('Victoria', 'Sloane Square', 'Upminster', 'Eastbound')
+        routes = [line_name]
+        self.assertEqual(self.bot.parser.parse_message(""),                                                     (None, None, None, None))
+        for route in (line_name, '%s Line' % line_name):
+            self.assertEqual(self.bot.parser.parse_message("%s" % (route,)),                                    (routes, None, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None, None))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
+            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, direction)),                       (routes, None, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, origin, direction)),            (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s from %s %s" % (route, origin, direction)),       (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, direction, origin)),            (routes, origin, None, direction))
+            self.assertEqual(self.bot.parser.parse_message("%s %s from %s" % (route, direction, origin)),       (routes, origin, None, direction))
+
+    #
+    # Request-based tests
+    #
 
     def test_bad_line_name(self):
         """
@@ -914,42 +979,53 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Ealing Broadway', 'DLR')
         message = 'Wxitythr Park'
         tweet = FakeTweet(self.at_reply + message)
-        network_name = self.bot.instance_name == "whensmytube" and "Tube" or "DLR"
+        network_name = self.bot.default_requested_route  # Either 'Tube' or 'DLR'
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Wxitythr Park', network_name)
 
-    def test_textparser(self):
+    @unittest.skipIf('--live-data' in sys.argv, "No trains unit test will fail on live data")
+    def test_no_trains(self):
         """
-        Tests for the natural language parser
+        Test for when there are no trains at a station
         """
-        (line_name, origin, destination, direction) = ('Victoria', 'Sloane Square', 'Upminster', 'Eastbound')
-        routes = [line_name]
-        self.assertEqual(self.bot.parser.parse_message(""),                                                     (None, None, None, None))
-        for route in (line_name, '%s Line' % line_name):
-            self.assertEqual(self.bot.parser.parse_message("%s" % (route,)),                                    (routes, None, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, origin)),                          (routes, origin, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s %s to %s" % (route, origin, destination)),       (routes, origin, destination, None))
-            self.assertEqual(self.bot.parser.parse_message("%s from %s" % (route, origin)),                     (routes, origin, None, None))
-            self.assertEqual(self.bot.parser.parse_message("%s from %s to %s" % (route, origin, destination)),  (routes, origin, destination, None))
-            self.assertEqual(self.bot.parser.parse_message("%s to %s" % (route, destination)),                  (routes, None, destination, None))
-            self.assertEqual(self.bot.parser.parse_message("%s to %s from %s" % (route, destination, origin)),  (routes, origin, destination, None))
-            self.assertEqual(self.bot.parser.parse_message("%s %s" % (route, direction)),                       (routes, None, None, direction))
-            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, origin, direction)),            (routes, origin, None, direction))
-            self.assertEqual(self.bot.parser.parse_message("%s from %s %s" % (route, origin, direction)),       (routes, origin, None, direction))
-            self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, direction, origin)),            (routes, origin, None, direction))
-            self.assertEqual(self.bot.parser.parse_message("%s %s from %s" % (route, direction, origin)),       (routes, origin, None, direction))
+        # Handle when there are no trains from a station
+        message = 'Waterloo & City Line from Bank'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_trains_shown', 'Waterloo & City Line', 'Bank')
+        # Handle when there are no trains to a particular destination
+        message = 'DLR from Lewisham to Poplar'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_trains_shown_to', 'DLR', 'Lewisham', 'Poplar')
+        # Handle when there are no trains in a particular direction
+        message = 'Central Line from Fairlop Westbound'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_trains_shown_in_direction', 'Westbound', 'Central Line', 'Fairlop')
+
+    def test_no_line_specified(self):
+        """
+        Test for when no line is specified and it is impossible to deduce what the line is
+        """
+        # No direct line from Mansion House to Mornington Crescent
+        message = 'Mansion House to Mornington Crescent'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_direct_route', 'Mansion House', 'Mornington Crescent', 'Tube')
+        # Leicester Square has two lines, could be either
+        message = 'Leicester Square'
+        tweet = FakeTweet(self.at_reply + message)
+        self._test_correct_exception_produced(tweet, 'no_line_specified', 'Leicester Square')
 
     def test_known_problems(self):
         """
         Test known problematic inputs
         """
+        # TODO Ideally, this function should be blank
         # District line from Victoria, or District & Victoria lines?
         message = 'District Victoria'
         tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'nonexistent_line', 'District Victoria')
-        # Leicester Square has two lines, could be either
-        message = 'Leicester Square'
+        self._test_correct_exception_produced(tweet, 'nonexistent_line', message)
+        # Not sure if "Waterloo to Bank" or "Waterloo & City Line to Bank"
+        message = 'Waterloo to Bank'
         tweet = FakeTweet(self.at_reply + message)
-        self._test_correct_exception_produced(tweet, 'no_line_specified', 'Leicester Square')
+        self._test_correct_exception_produced(tweet, 'no_geotag', message)
 
     def test_standard_messages(self):
         """
@@ -963,7 +1039,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
 
             # 2 types of origin (geotag, name) and 3 types of destination (none, name)
             from_fragments = [value % test_variables for value in ("", " %(origin_name)s", " from %(origin_name)s")]
-            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s", " %(direction)s")] 
+            to_fragments = [value % test_variables for value in ("", " to %(destination_name)s", " %(direction)s")]
             # DLR allows blank Tweets as standard
             if self.bot.username == 'whensmydlr' and line == 'DLR':
                 line_fragments = [value % test_variables for value in ("%(line)s", "")]
@@ -1008,17 +1084,9 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
                 ("Lewisham [0-9]{4}",)),
         )
 
-    def test_known_problems(self):
-        """
-        No known problems specific to DLR so override with a return
-        """
-        return
-
-    def test_blank_tweet(self):
-        """
-        Override blank Tweet test as this is not needed
-        """
-        return
+    #
+    # Core functionality tests
+    #
 
     def test_textparser(self):
         """
@@ -1040,6 +1108,28 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
             self.assertEqual(self.bot.parser.parse_message("%s from %s %s" % (route, origin, direction)),       (routes, origin, None, direction))
             self.assertEqual(self.bot.parser.parse_message("%s %s %s" % (route, direction, origin)),            (routes, origin, None, direction))
             self.assertEqual(self.bot.parser.parse_message("%s %s from %s" % (route, direction, origin)),       (routes, origin, None, direction))
+
+    #
+    # Request-based tests
+    #
+
+    def test_blank_tweet(self):
+        """
+        Override blank Tweet test as this is not needed
+        """
+        return
+
+    def test_no_line_specified(self):
+        """
+        Override No Line Specified as this is not needed for DLR
+        """
+        return
+
+    def test_known_problems(self):
+        """
+        No known problems specific to DLR so override with a return
+        """
+        return
 
 
 def run_tests():
@@ -1071,7 +1161,7 @@ def run_tests():
         successes = ('nonstandard_messages', 'standard_messages', 'multiple_routes',)
     elif test_case_name == "WhensMyTube" or test_case_name == "WhensMyDLR":
         tube_errors = ('bad_line_name',)
-        station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch', 'known_problems')
+        station_errors = ('bad_routing', 'missing_station_data', 'station_line_mismatch', 'no_trains', 'no_line_specified', 'known_problems')
         failures = format_errors + geotag_errors + tube_errors + station_errors
         successes = ('nonstandard_messages', 'standard_messages',)
     else:
