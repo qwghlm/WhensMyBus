@@ -409,9 +409,8 @@ class DepartureCollection:
         """
         if not self.departure_data:
             return ""
+        # This is a dictionary, each key a slot, each value a { destination:[list of times] } dictionary itself
         departures_output = {}
-        # Output is a dictionary, each key a slot, each value a { destination:[list of times] } dictionary itself
-
         for slot in sorted(self.departure_data.keys()):
             # Group by departure within each slot
             departures = unique_values(sorted(self.departure_data[slot]))[:5]
@@ -419,13 +418,11 @@ class DepartureCollection:
             departures_by_destination = {}
             for destination in destinations:
                 departures_by_destination[destination] = [departure.get_departure_time() for departure in departures if departure.get_destination() == destination]
-
             # Then sort grouped departures, earliest first within the slot. Different destinations separated by commas
             sort_earliest_departure_first = lambda (destination1, times1), (destination2, times2): cmp(times1[0], times2[0])
             destinations_and_times = sorted(departures_by_destination.items(), sort_earliest_departure_first)
             departures_for_this_slot = ["%s %s" % (destination, ' '.join(times[:3])) for (destination, times) in destinations_and_times]
             departures_output[slot] = ', '.join([departure.strip() for departure in departures_for_this_slot])
-
             # Bus stops get their names included as well, if there is a departure
             if isinstance(slot, BusStop) and not departures_output[slot].startswith("None shown"):
                 departures_output[slot] = "%s to %s" % (slot.get_clean_name(), departures_output[slot])
