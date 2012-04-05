@@ -120,6 +120,12 @@ class RailStation(Location):
     def __eq__(self, other):
         return self.name == other.name and self.code == other.code
 
+    def get_name(self):
+        """
+        Return this station's name
+        """
+        return self.name
+
     def get_abbreviated_name(self):
         """
         Take this station's name and abbreviate it to make it fit on Twitter better
@@ -210,7 +216,7 @@ class Departure():
     def __str__(self):
         return "%s %s" % (self.get_destination(), self.get_departure_time())
 
-    def get_destination(self):
+    def get_destination(self, abbreviated=False):
         """
         Returns destination (this usually get overridden)
         """
@@ -232,7 +238,7 @@ class NullDeparture(Departure):
         Departure.__init__(self, "None", datetime.now().strftime("%H%M"))
         self.direction = direction
 
-    def get_destination(self):
+    def get_destination(self, abbreviated=False):
         """
         Returns destination (which in this case is an error message of sorts)
         """
@@ -273,29 +279,36 @@ class Train(Departure):
         self.direction = ""
         self.line_code = ""
 
-    def get_destination_no_via(self):
-        """
-        Return this train's destination in suitably shortened format, without the via
-        """
-        if self.destination:
-            destination = self.destination.get_abbreviated_name()
-        else:
-            destination = "%s Train" % self.direction
-        return destination
-
-    def get_via(self):
-        """
-        Return the station this train is "via", if there is one
-        """
-        return self.via and self.via.get_abbreviated_name() or ""
-
-    def get_destination(self):
-        destination = self.get_destination_no_via()
-        via = self.get_via()
+    def get_destination(self, abbreviated=False):
+        destination = self.get_destination_no_via(abbreviated)
+        via = self.get_via(abbreviated)
         if via:
             return "%s via %s" % (destination, via)
         else:
             return destination
+
+    def get_destination_no_via(self, abbreviated=False):
+        """
+        Return this train's destination in suitably shortened format, without the via
+        """
+        if self.destination:
+            if abbreviated:
+                destination = self.destination.get_abbreviated_name()
+            else:                
+                destination = self.destination.get_name()
+        else:
+            destination = "%s Train" % self.direction
+        return destination
+
+    def get_via(self, abbreviated=False):
+        """
+        Return the station this train is "via", if there is one
+        """
+        if abbreviated:
+            return self.via and self.via.get_abbreviated_name() or ""
+        else:
+            return self.via and self.via.get_name() or ""
+
 
 
 class TubeTrain(Train):
@@ -325,13 +338,14 @@ class TubeTrain(Train):
                             '\(ex .*\)',
                             '/ london road',
                             '27 Road',
+                            r'24r/25r',
                             '\(plat\. [0-9]+\)',
                             ' loop',
                             '\(circle\)',
                             '\(district\)',)
             destination_name = cleanup_name_from_undesirables(destination_name, undesirables)
 
-        via_match = re.search(" \(?via (.*)\)?$", destination_name, flags=re.I)
+        via_match = re.search(" \(?via ([^)]*)\)?$", destination_name, flags=re.I)
         if via_match:
             manual_translations = {"CX": "Charing Cross", "T4": "Heathrow Terminal 4"}
             via = manual_translations.get(via_match.group(1), via_match.group(1))
@@ -414,10 +428,10 @@ class DepartureCollection:
         for slot in sorted(self.departure_data.keys()):
             # Group by departure within each slot
             departures = unique_values(sorted(self.departure_data[slot]))[:5]
-            destinations = unique_values([departure.get_destination() for departure in departures])
+            destinations = unique_values([departure.get_destination(True) for departure in departures])
             departures_by_destination = {}
             for destination in destinations:
-                departures_by_destination[destination] = [departure.get_departure_time() for departure in departures if departure.get_destination() == destination]
+                departures_by_destination[destination] = [departure.get_departure_time() for departure in departures if departure.get_destination(True) == destination]
             # Then sort grouped departures, earliest first within the slot. Different destinations separated by commas
             sort_earliest_departure_first = lambda (destination1, times1), (destination2, times2): cmp(times1[0], times2[0])
             destinations_and_times = sorted(departures_by_destination.items(), sort_earliest_departure_first)
