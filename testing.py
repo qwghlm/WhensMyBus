@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+    #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #pylint: disable=C0103,W0142,R0904,W0141,R0915,C0302
 """
@@ -279,7 +279,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         train = Train("Charing Cross via Bank", "2359")
         train2 = Train("Charing Cross via Bank", "0001")
         self.assertLess(train, train2)  # Fails if test run at 0000-0059
-        self.assertEqual(train.get_destination(), "Charing X via Bank")
+        self.assertEqual(train.get_destination(), "Charing Cross via Bank")
 
         # TubeTrain
         tube_train = TubeTrain("Charing Cross via Bank", "Northbound", "2359", "N", "001")
@@ -287,11 +287,16 @@ class WhensMyTransportTestCase(unittest.TestCase):
         tube_train3 = TubeTrain("Northern Line", "Northbound", "2359", "N", "001")
         tube_train4 = TubeTrain("Heathrow T123 + 5", "Westbound", "2359", "P", "001")
         self.assertEqual(hash(tube_train), hash(tube_train2))
-        self.assertEqual(tube_train.get_destination(), "Charing X via Bank")
+        self.assertEqual(tube_train.get_destination(), "Charing Cross via Bank")
+        self.assertEqual(tube_train.get_destination(True), "Charing X via Bank")
         self.assertEqual(tube_train3.get_destination(), "Northbound Train")
-        self.assertEqual(tube_train4.get_destination(), "Heathrow T 5")
-        self.assertEqual(tube_train.get_destination_no_via(), "Charing X")
+        self.assertEqual(tube_train3.get_destination(True), "Northbound Train")
+        self.assertEqual(tube_train4.get_destination(), "Heathrow Terminal 5")
+        self.assertEqual(tube_train4.get_destination(True), "Heathrow T 5")
+        self.assertEqual(tube_train.get_destination_no_via(), "Charing Cross")
+        self.assertEqual(tube_train.get_destination_no_via(True), "Charing X")
         self.assertEqual(tube_train.get_via(), "Bank")
+        self.assertEqual(tube_train.get_via(True), "Bank")
 
         # DLRTrain
         dlr_train = DLRTrain("Beckton", "1200")
