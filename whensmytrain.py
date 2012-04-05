@@ -52,16 +52,13 @@ class WhensMyTrain(WhensMyTransport):
     __metaclass__ = ABCMeta
 
     def __init__(self, instance_name, testing=False):
-        """
-        Constructor
-        """
         WhensMyTransport.__init__(self, instance_name, testing)
         self.allow_blank_tweets = True
+        # Default route we request if none is specified. Also double as the official "name" of the network
         if instance_name == 'whensmydlr':
             self.default_requested_route = 'DLR'
         else:
             self.default_requested_route = 'Tube'
-
         self.parser = WMTTrainParser()
 
         # Create lookup dict for line names
@@ -73,6 +70,9 @@ class WhensMyTrain(WhensMyTransport):
         """
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it. Filter trains by destination, or direction
+
+        All arguments are strings apart from position, which is a (latitude, longitude) tuple. Return a string of
+        departure data ready to send back to the user
         """
         # Try and work out line name and code if one has been requested ('Tube' is the default when we don't know)
         line_code, line_name = None, None
@@ -147,7 +147,7 @@ class WhensMyTrain(WhensMyTransport):
 
     def get_station_by_geolocation(self, position, line_code=None):
         """
-        Take a line and a tuple specifying latitude & longitude, and works out closest station
+        Take a (latitude, longitude) tuple and optional line_code, and return closest station as a RailStation
         """
         params = {}
         if line_code:
@@ -156,7 +156,8 @@ class WhensMyTrain(WhensMyTransport):
 
     def get_station_by_station_name(self, station_name, line_code=None):
         """
-        Take a line and a string specifying station name, and work out matching for that name
+        Take a string specifying station name and optional line_code, and return best match as a RailStation
+        If no match can be found, returns None
         """
         params = {}
         if line_code:
@@ -165,7 +166,8 @@ class WhensMyTrain(WhensMyTransport):
 
     def get_canonical_station_name(self, station_name, line_code):
         """
-        Return just the string matching for a line code and station name, or blank if none exists
+        Take a string specifying station name and optional line_code, and return canonical name of closest matching station
+        If no match can be found, returns empty string
         """
         station_obj = self.get_station_by_station_name(station_name, line_code)
         return station_obj and station_obj.name or ""
@@ -175,16 +177,15 @@ class WhensMyTrain(WhensMyTransport):
         Take a RailStation origin and a string line_code, and get departure data for that station
         Optional args RailStation must_stop_at and string direction
 
-        Returns a dictionary; keys are slot names (platform for DLR, direction for Tube), values lists of Train objects
+        Return a dictionary; keys are slot names (platform for DLR, direction for Tube), values lists of Train objects
         """
         #pylint: disable=W0108
         # Check if the station is open and if so (it will throw an exception if not), summon the data
         self.check_station_is_open(origin)
-
-        # Circle line these days is coded H as it shares with the Hammersmith & City
+        # Circle line is coded H as it shares with the Hammersmith & City
         if line_code == 'O':
             line_code = 'H'
-        # DLR and Tube have different APIs
+        # DLR and Tube have different APIs and different structures (Tube data contains compass directions, DLR does not)
         if line_code == 'DLR':
             dlr_data = self.browser.fetch_xml_tree(self.urls.DLR_URL % origin.code)
             departures = parse_dlr_data(dlr_data, origin)
@@ -194,7 +195,7 @@ class WhensMyTrain(WhensMyTransport):
             departures = parse_tube_data(tube_data, origin, line_code)
             null_constructor = lambda direction: NullDeparture(direction)
 
-        # Turn parsed destination & via names into canonical versions for this train so we can do lookups & checks
+        # Turn parsed destination & via station names into canonical versions for this train so we can do lookups & checks
         for slot in departures:
             for train in departures[slot]:
                 if train.destination:
@@ -237,7 +238,7 @@ class WhensMyTrain(WhensMyTransport):
 
     def check_station_is_open(self, station):
         """
-        Check to see if a station is open, return True if so, throw an exception if not
+        Check to see if a RailStation station is open, return True if so, throw an exception if not
         """
         # If we get an exception with fetching this data, don't worry about it
         try:
@@ -255,7 +256,7 @@ class WhensMyTrain(WhensMyTransport):
 
 def get_line_code(line_name):
     """
-    Return the TfL line code for the line requested
+    Return the TfL line code for the line name requested
     """
     lookup = dict([(name, code) for (code, name) in LINE_NAMES.keys()])
     return lookup.get(line_name, None)
@@ -263,7 +264,7 @@ def get_line_code(line_name):
 
 def get_line_name(line_code):
     """
-    Return the full official Line name for the line code requested
+    Return the full official line name for the line code requested
     """
     lookup = dict([(code, name) for (code, name) in LINE_NAMES.keys()])
     return lookup.get(line_code, None)
