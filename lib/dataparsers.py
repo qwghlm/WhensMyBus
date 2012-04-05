@@ -148,7 +148,8 @@ def filter_tube_train(train_tag):
     location = train_tag.attrib.get('Location', '')
     # 546 and 749 appear to be codes for Out of Service http://wiki.opentfl.co.uk/TrackerNet_predictions_detailed
     # 433 is code for Triangle sidings depot (only used at night?)
-    if destination_code in ('546', '749', '433'):
+    # 775 is code for an Empty Neasden depot train
+    if destination_code in ('546', '749', '433', '775'):
         return False
     # Trains in sidings are not much use to us
     if destination_code == '0' and location.find('Sidings') > -1:
