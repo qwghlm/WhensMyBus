@@ -978,7 +978,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Ealing Broadway', 'DLR')
         message = 'Wxitythr Park'
         tweet = FakeTweet(self.at_reply + message)
-        network_name = self.bot.instance_name == "whensmytube" and "Tube" or "DLR"
+        network_name = self.bot.default_requested_route  # Either 'Tube' or 'DLR'
         self._test_correct_exception_produced(tweet, 'rail_station_name_not_found', 'Wxitythr Park', network_name)
 
     @unittest.skipIf('--live-data' in sys.argv, "No trains unit test will fail on live data")

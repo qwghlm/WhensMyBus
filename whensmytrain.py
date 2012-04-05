@@ -57,6 +57,11 @@ class WhensMyTrain(WhensMyTransport):
         """
         WhensMyTransport.__init__(self, instance_name, testing)
         self.allow_blank_tweets = True
+        if instance_name == 'whensmydlr':
+            self.default_requested_route = 'DLR'
+        else:
+            self.default_requested_route = 'Tube'
+
         self.parser = WMTTrainParser()
 
         # Create lookup dict for line names
@@ -69,9 +74,9 @@ class WhensMyTrain(WhensMyTransport):
         Take an individual line, with either origin or position, and work out which station the user is
         referring to, and then get times for it. Filter trains by destination, or direction
         """
-        # Try and work out line name and code if one has been requested
+        # Try and work out line name and code if one has been requested ('Tube' is the default when we don't know)
         line_code, line_name = None, None
-        if requested_line:
+        if requested_line != 'Tube':
             line_name = self.line_lookup.get(requested_line, None) or get_best_fuzzy_match(requested_line, self.line_lookup.values())
             if not line_name:
                 raise WhensMyTransportException('nonexistent_line', requested_line)
