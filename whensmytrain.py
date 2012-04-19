@@ -22,7 +22,8 @@ from pprint import pprint
 from whensmytransport import WhensMyTransport
 from lib.dataparsers import parse_dlr_data, parse_tube_data
 from lib.exceptions import WhensMyTransportException
-from lib.models import RailStation, NullDeparture
+from lib.locations import RailStationLocations
+from lib.models import NullDeparture
 from lib.stringutils import get_best_fuzzy_match
 from lib.textparser import WMTTrainParser
 
@@ -60,6 +61,7 @@ class WhensMyTrain(WhensMyTransport):
         else:
             self.default_requested_route = 'Tube'
         self.parser = WMTTrainParser()
+        self.geodata = RailStationLocations()
 
         # Create lookup dict for line names
         self.line_lookup = dict([(name, name) for (_code, name) in LINE_NAMES.keys()])
@@ -152,7 +154,7 @@ class WhensMyTrain(WhensMyTransport):
         params = {}
         if line_code:
             params['line'] = line_code
-        return self.geodata.find_closest(position, params, RailStation)
+        return self.geodata.find_closest(position, params)
 
     def get_station_by_station_name(self, station_name, line_code=None):
         """
@@ -162,7 +164,7 @@ class WhensMyTrain(WhensMyTransport):
         params = {}
         if line_code:
             params['line'] = line_code
-        return self.geodata.find_fuzzy_match(station_name, params, RailStation)
+        return self.geodata.find_fuzzy_match(station_name, params)
 
     def get_canonical_station_name(self, station_name, line_code):
         """

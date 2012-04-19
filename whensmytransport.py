@@ -29,7 +29,6 @@ from pprint import pprint # For debugging
 from lib.browser import WMTBrowser, WMTURLProvider
 from lib.exceptions import WhensMyTransportException
 from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
-from lib.locations import WMTLocations
 from lib.logger import setup_logging
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
@@ -79,14 +78,12 @@ class WhensMyTransport:
         # Name of the admin so we know who to alert if there is an issue
         self.admin_name = config.get(self.instance_name, 'admin_name')
 
-        # Setup database of stops/stations and their locations
-        self.geodata = WMTLocations(self.instance_name)
-
         # Setup browser for JSON & XML
         self.browser = WMTBrowser()
         self.urls = WMTURLProvider(use_test_data=(testing == TESTING_TEST_LOCAL_DATA))
 
-        # This gets overridden
+        # These get overridden by subclasses
+        self.geodata = None
         self.parser = None
 
         # Setup geocoder for looking up place names
