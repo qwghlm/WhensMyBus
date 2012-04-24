@@ -583,7 +583,10 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         except RuntimeError as exc:
             print exc
             self.tearDown()
-            sys.exit(1)
+            self.fail("Sorry, a RuntimeError was encountered")
+
+        if not self.bot.geocoder:
+            self.fail("Sorry, this needs a geocoder in order to validate tests properly")
 
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
@@ -782,7 +785,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         except RuntimeError as exc:
             print exc
             self.tearDown()
-            sys.exit(1)
+            self.fail("Sorry, a RuntimeError was encountered")
 
         self.at_reply = '@%s ' % self.bot.username
         self.geodata_table_names = ('locations', )
