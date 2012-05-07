@@ -12,7 +12,7 @@ from pprint import pprint
 # http://code.google.com/p/python-graph/
 from pygraph.algorithms.minmax import shortest_path
 
-from lib.models import RailStation
+from lib.models import Location, BusStop, RailStation
 from lib.stringutils import get_best_fuzzy_match
 from lib.database import WMTDatabase
 from lib.geo import convertWGS84toOSEastingNorthing
@@ -24,27 +24,14 @@ DB_PATH = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../db/
 class WMTLocations():
     """
     Service object used to find stops or stations (locations) - given a position, exact match or fuzzy match,
-    will return the best matching stop
+    will return the best matching stop. Subclassed and not called directly
     """
-    def __init__(self, instance_name, load_network=True):
+    def __init__(self, instance_name):
+        self.database = WMTDatabase('%s.geodata.db' % instance_name)
+        self.network = None
+        self.returned_object = Location
 
-        if instance_name == 'whensmybus':
-            filename = 'whensmybus'
-        elif instance_name == 'whensmytube' or instance_name == 'whensmydlr':
-            filename = 'whensmytrain'
-        else:
-            logging.error("No data files exist for instance name %s, aborting", instance_name)
-            raise RuntimeError("No data files exist for instance name %s, aborting" % instance_name)
-
-        self.database = WMTDatabase('%s.geodata.db' % filename)
-        network_file = DB_PATH + '/%s.network.gr' % filename
-        if load_network and os.path.exists(network_file):
-            logging.debug("Opening network node data %s", os.path.basename(network_file))
-            self.network = pickle.load(open(network_file))
-        else:
-            self.network = None
-
-    def find_closest(self, position, params, returned_object):
+    def find_closest(self, position, params):
         """
         Find the closest location to the (lat, long) position specified, querying the database with dictionary params, of the format
         { Column Name : value }. Returns an object of class returned_object, or None if none found nearby
@@ -68,14 +55,14 @@ class WMTLocations():
                 """ % (easting, easting, northing, northing, where_statement)
         row = self.database.get_row(query, where_values)
         if row:
-            obj = returned_object(Distance=sqrt(row['dist_squared']), **row)
+            obj = self.returned_object(Distance=sqrt(row['dist_squared']), **row)
             logging.debug("Have found nearest location %s", obj)
             return obj
         else:
             logging.debug("No location found near %s, sorry", position)
             return None
 
-    def find_fuzzy_match(self, stop_or_station_name, params, returned_object):
+    def find_fuzzy_match(self, stop_or_station_name, params):
         """
         Find the best fuzzy match to the query_string, querying the database with dictionary params, of the format
         { Column Name : value, }. Returns an object of class returned_object, or None if no fuzzy match found
@@ -85,21 +72,21 @@ class WMTLocations():
         # Try to get an exact match first against station names in database
         exact_params = params.copy()
         exact_params.update({'name': stop_or_station_name})
-        exact_match = self.find_exact_match(exact_params, returned_object)
+        exact_match = self.find_exact_match(exact_params)
         if exact_match:
             return exact_match
 
         # Users may not give exact details, so we try to match fuzzily
         (where_statement, where_values) = self.database.make_where_statement('locations', params)
         rows = self.database.get_rows("SELECT * FROM locations WHERE %s" % where_statement, where_values)
-        possible_matches = [returned_object(**row) for row in rows]
+        possible_matches = [self.returned_object(**row) for row in rows]
         best_match = get_best_fuzzy_match(stop_or_station_name, possible_matches)
         if best_match:
             return best_match
         else:
             return None
 
-    def find_exact_match(self, params, returned_object):
+    def find_exact_match(self, params):
         """
         Find the exact match for an item matching params. Returns an object of class returned_object, or None if no
         fuzzy match found
@@ -107,9 +94,30 @@ class WMTLocations():
         (where_statement, where_values) = self.database.make_where_statement('locations', params)
         row = self.database.get_row("SELECT * FROM locations WHERE %s LIMIT 1" % where_statement, where_values)
         if row:
-            return returned_object(**row)
+            return self.returned_object(**row)
         else:
             return None
+
+
+class BusStopLocations(WMTLocations):
+    """
+    Service object used to find bus stop - given a position, exact match or fuzzy match, will return the best matching BusStop
+    """
+    def __init__(self):
+        WMTLocations.__init__(self, 'whensmybus')
+        self.returned_object = BusStop
+
+
+class RailStationLocations(WMTLocations):
+    """
+    Service object used to find rail stations - given a position, exact match or fuzzy match, will return the best matching RailStation
+    """
+    def __init__(self):
+        WMTLocations.__init__(self, 'whensmytrain')
+        network_file = DB_PATH + '/whensmytrain.network.gr'
+        logging.debug("Opening network node data %s", os.path.basename(network_file))
+        self.network = pickle.load(open(network_file))
+        self.returned_object = RailStation
 
     def get_lines_serving(self, origin, destination=None):
         """

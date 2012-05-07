@@ -25,10 +25,10 @@ URL_SETS = {
         'STATUS_URL': "http://cloud.tfl.gov.uk/TrackerNet/StationStatus/IncidentsOnly",
     },
     'test': {
-        'BUS_URL':  "file://" + HOME_DIR + "/testdata/bus/%s.json",
-        'DLR_URL':  "file://" + HOME_DIR + "/testdata/dlr/%s.xml",
-        'TUBE_URL': "file://" + HOME_DIR + "/testdata/tube/%s-%s.xml",
-        'STATUS_URL': "file://" + HOME_DIR + "/testdata/tube/status.xml",
+        'BUS_URL':  "file://" + HOME_DIR + "/tests/data/bus/%s.json",
+        'DLR_URL':  "file://" + HOME_DIR + "/tests/data/dlr/%s.xml",
+        'TUBE_URL': "file://" + HOME_DIR + "/tests/data/tube/%s-%s.xml",
+        'STATUS_URL': "file://" + HOME_DIR + "/tests/data/tube/status.xml",
     }
 }
 CACHE_MAXIMUM_AGE = 30  # 30 seconds maximum cache age

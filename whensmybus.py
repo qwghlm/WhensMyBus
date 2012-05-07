@@ -24,7 +24,8 @@ from whensmytransport import WhensMyTransport
 from lib.dataparsers import parse_bus_data
 from lib.geo import heading_to_direction
 from lib.exceptions import WhensMyTransportException
-from lib.models import BusStop, NullDeparture, DepartureCollection
+from lib.locations import BusStopLocations
+from lib.models import NullDeparture, DepartureCollection
 from lib.textparser import WMTBusParser
 
 
@@ -39,6 +40,7 @@ class WhensMyBus(WhensMyTransport):
         """
         WhensMyTransport.__init__(self, 'whensmybus', testing)
         self.parser = WMTBusParser()
+        self.geodata = BusStopLocations()
 
     def process_individual_request(self, route_number, origin, destination, direction, position=None):
         """
@@ -102,7 +104,7 @@ class WhensMyBus(WhensMyTransport):
         logging.debug("Have found total of %s runs", max_runs)
         relevant_stops = {}
         for run in range(1, max_runs + 1):
-            stop = self.geodata.find_closest(position, {'route': route_number, 'run': run}, BusStop)
+            stop = self.geodata.find_closest(position, {'route': route_number, 'run': run})
             if stop:
                 relevant_stops[run] = stop
         logging.debug("Have found stop numbers: %s", ', '.join([stop.number for stop in relevant_stops.values()]))
@@ -119,7 +121,7 @@ class WhensMyBus(WhensMyTransport):
 
         # Try and get a match on it
         logging.debug("Attempting to get an exact match on stop SMS ID %s", stop_number)
-        stop = self.geodata.find_exact_match({'bus_stop_code': stop_number, 'route': route_number}, BusStop)
+        stop = self.geodata.find_exact_match({'bus_stop_code': stop_number, 'route': route_number})
         if stop:
             logging.debug("Have found stop number: %s", stop.number)
             return {stop.run: stop}
@@ -146,7 +148,7 @@ class WhensMyBus(WhensMyTransport):
         # A route typically has two "runs" (e.g. one eastbound, one west) but some have more than that, so work out how many we have to check
         max_runs = self.geodata.database.get_max_value('locations', 'run', {'route': route_number})
         for run in range(1, max_runs + 1):
-            best_match = self.geodata.find_fuzzy_match(stop_name, {'route': route_number, 'run': run}, BusStop)
+            best_match = self.geodata.find_fuzzy_match(stop_name, {'route': route_number, 'run': run})
             if best_match:
                 logging.info("Found stop name %s for Run %s by fuzzy matching", best_match.name, best_match.run)
                 relevant_stops[run] = best_match

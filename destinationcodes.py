@@ -9,8 +9,8 @@ from pprint import pprint
 from datatools import get_tfl_prediction_summaries
 from lib.database import WMTDatabase
 from lib.dataparsers import filter_tube_train
-from lib.locations import WMTLocations
-from lib.models import TubeTrain, RailStation
+from lib.locations import RailStationLocations
+from lib.models import TubeTrain
 
 
 def scrape_tfl_destination_codes():
@@ -38,7 +38,7 @@ def check_tfl_destination_codes():
     Audit codes we have recorded and make sure that they are all fine
     """
     # Check to see if destination is in our database
-    geodata = WMTLocations('whensmytube')
+    geodata = RailStationLocations()
     database = WMTDatabase("whensmytube.destinationcodes.db")
 
     rows = database.get_rows("SELECT destination_name, destination_code, line_code FROM destination_codes")
