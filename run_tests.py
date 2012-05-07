@@ -46,15 +46,18 @@ def run_tests():
     else:
         test_names = unit_tests + local_tests + failures + successes
 
-    test_level = parser.parse_args().test_level
-    if test_level == TESTING_TEST_LIVE_DATA:
+    testing_level = parser.parse_args().test_level
+    if testing_level == TESTING_TEST_LIVE_DATA:
         print "Testing with live TfL data"
         failfast_level = 0
     else:
         print "Testing with local test data"
         failfast_level = 1
 
-    suite = unittest.TestSuite(map(eval(test_case_name + 'TestCase'), ['test_%s' % t for t in test_names]))
+    suite = unittest.TestSuite()
+    test_case = eval(test_case_name + 'TestCase')
+    for test_name in test_names:
+        suite.addTest(test_case(methodName='test_%s' % test_name, testing_level=testing_level))
     runner = unittest.TextTestRunner(verbosity=2, failfast=failfast_level, buffer=True)
     result = runner.run(suite)
     return result.wasSuccessful()

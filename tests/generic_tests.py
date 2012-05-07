@@ -28,6 +28,7 @@ try:
     from lib.twitterclient import split_message_for_twitter
 
     from whensmytrain import LINE_NAMES, get_line_code, get_line_name
+    from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
 
 except ImportError as err:
     print """
@@ -77,6 +78,13 @@ class WhensMyTransportTestCase(unittest.TestCase):
     """
     Parent Test case for all When's My * bots
     """
+    def __init__(self, methodName, testing_level):
+        """
+        Override of the TestCase so we can also apply a testing level
+        """
+        self.testing_level = testing_level
+        super(WhensMyTransportTestCase, self).__init__(methodName)
+
     def setUp(self):
         """
         Setup test

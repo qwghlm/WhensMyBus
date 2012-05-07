@@ -9,9 +9,6 @@ IMPORTANT: These unit tests require Python 2.7, although When's My Bus will happ
 import time
 from tests.generic_tests import WhensMyTransportTestCase, FakeTweet, FakeDirectMessage
 from whensmybus import WhensMyBus
-from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
-
-testing_level = TESTING_TEST_LOCAL_DATA
 
 
 class WhensMyBusTestCase(WhensMyTransportTestCase):
@@ -24,7 +21,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         Setup test
         """
         try:
-            self.bot = WhensMyBus(testing=testing_level)
+            self.bot = WhensMyBus(testing=self.testing_level)
         except RuntimeError as exc:
             print exc
             self.tearDown()
@@ -55,9 +52,13 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             ('103 from Romford Station',
                 ('Romford Station',),
                 ('None shown',)),
-            # Dodgy
+            # Ignore use of the definite article
             ('the 15 from st pauls churchyard',
                 ("St Paul's Churchyard",),
+                ('None shown',)),
+            # Ignore unknown words like directions before the "from"
+            ('243 north bound from Hoxton Station please',
+                ("Hoxton Station",),
                 ('None shown',)),
         )
 

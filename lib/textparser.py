@@ -117,6 +117,11 @@ class WMTBusParser(WMTTextParser):
         """
         Fix tagged tokens that are tagged "UNKNOWN"
         """
+        # Any unknown tokens before a FROM get deleted
+        from_pos = first_occurrence_of_tag(tagged_tokens, 'FROM')
+        if from_pos > -1:
+            no_unknowns = lambda (token, tag): tag != 'UNKNOWN'
+            tagged_tokens = filter(no_unknowns, tagged_tokens[:from_pos]) + tagged_tokens[from_pos:]
         # Any tokens that are unknown or a bus number, after the chain of route numbers at the start, must be Bus Stop words
         for i in range(last_occurence_of_tag_chain(tagged_tokens, 'ROUTE_NUMBER') + 1, len(tagged_tokens)):
             if tagged_tokens[i][1] in ('UNKNOWN', 'ROUTE_NUMBER'):

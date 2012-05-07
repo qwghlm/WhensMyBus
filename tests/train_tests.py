@@ -12,9 +12,6 @@ import time
 import unittest
 from whensmytrain import WhensMyTrain
 from lib.exceptions import WhensMyTransportException
-from whensmytransport import TESTING_TEST_LOCAL_DATA, TESTING_TEST_LIVE_DATA
-
-testing_level = TESTING_TEST_LOCAL_DATA
 
 
 class WhensMyTubeTestCase(WhensMyTransportTestCase):
@@ -26,7 +23,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         Setup test
         """
         try:
-            self.bot = WhensMyTrain("whensmytube", testing=testing_level)
+            self.bot = WhensMyTrain("whensmytube", testing=self.testing_level)
         except RuntimeError as exc:
             print exc
             self.tearDown()
