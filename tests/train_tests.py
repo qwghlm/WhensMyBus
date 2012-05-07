@@ -318,7 +318,7 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
         Setup test
         """
         WhensMyTubeTestCase.setUp(self)
-        self.bot = WhensMyTrain("whensmydlr", testing=TEST_LEVEL)
+        self.bot = WhensMyTrain("whensmydlr", testing=self.testing_level)
         self.at_reply = '@%s ' % self.bot.username
         self.nonstandard_test_data = (
             # Handle when there are no trains
