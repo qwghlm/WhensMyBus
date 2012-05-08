@@ -56,8 +56,9 @@ def run_tests():
 
     suite = unittest.TestSuite()
     test_case = eval(test_case_name + 'TestCase')
+    test_case.setupClass(testing_level=testing_level)
     for test_name in test_names:
-        suite.addTest(test_case(methodName='test_%s' % test_name, testing_level=testing_level))
+        suite.addTest(test_case(methodName='test_%s' % test_name))
     runner = unittest.TextTestRunner(verbosity=2, failfast=failfast_level, buffer=True)
     result = runner.run(suite)
     return result.wasSuccessful()

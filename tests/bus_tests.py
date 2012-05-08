@@ -15,24 +15,29 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
     """
     Main Test Case for When's My Bus
     """
+    @classmethod
+    def setupClass(cls, testing_level):
+        """
+        Setup class with expensive-to-load objects
+        """
+        try:
+            cls.bot = WhensMyBus(testing=testing_level)
+        except RuntimeError as exc:
+            print exc
+            cls.tearDown()
+            cls.fail("Sorry, a RuntimeError was encountered")
+
+        if not cls.bot.geocoder:
+            cls.fail("Sorry, this needs a geocoder in order to validate tests properly")
+
+        cls.at_reply = '@%s ' % cls.bot.username
+        cls.geodata_table_names = ('locations', )
+
     #pylint: disable=R0904
     def setUp(self):
         """
         Setup test
         """
-        try:
-            self.bot = WhensMyBus(testing=self.testing_level)
-        except RuntimeError as exc:
-            print exc
-            self.tearDown()
-            self.fail("Sorry, a RuntimeError was encountered")
-
-        if not self.bot.geocoder:
-            self.fail("Sorry, this needs a geocoder in order to validate tests properly")
-
-        self.at_reply = '@%s ' % self.bot.username
-        self.geodata_table_names = ('locations', )
-
         # Route Number, Origin Name, Origin Number, Origin Longitude, Origin Latitude, Dest Name, Dest Number, Expected Origin, Unwanted Destination
         self.standard_test_data = (
             ('15',         'Limehouse Station', '53452', 51.5124, -0.0397, 'Poplar',           '73923', 'Limehouse Station', 'Regent Street'),

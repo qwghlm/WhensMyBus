@@ -18,20 +18,25 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
     """
     Main Test Case for When's My Tube
     """
+    @classmethod
+    def setupClass(cls, testing_level):
+        """
+        Setup class with expensive-to-load objects
+        """
+        try:
+            cls.bot = WhensMyTrain("whensmytube", testing=testing_level)
+        except RuntimeError as exc:
+            print exc
+            cls.tearDown()
+            cls.fail("Sorry, a RuntimeError was encountered")
+
+        cls.at_reply = '@%s ' % cls.bot.username
+        cls.geodata_table_names = ('locations', )
+
     def setUp(self):
         """
         Setup test
         """
-        try:
-            self.bot = WhensMyTrain("whensmytube", testing=self.testing_level)
-        except RuntimeError as exc:
-            print exc
-            self.tearDown()
-            self.fail("Sorry, a RuntimeError was encountered")
-
-        self.at_reply = '@%s ' % self.bot.username
-        self.geodata_table_names = ('locations', )
-
         # Regular test data
         #
         # Line, requested stop, latitude, longitude, destination, direction, correct stop name, unwanted destination (if destination or direction specified)
@@ -313,13 +318,26 @@ class WhensMyDLRTestCase(WhensMyTubeTestCase):
     """
     A sub-test Case for When's My DLR
     """
+    @classmethod
+    def setupClass(cls, testing_level):
+        """
+        Setup class with expensive-to-load objects
+        """
+        try:
+            cls.bot = WhensMyTrain("whensmydlr", testing=testing_level)
+        except RuntimeError as exc:
+            print exc
+            cls.tearDown()
+            cls.fail("Sorry, a RuntimeError was encountered")
+
+        cls.at_reply = '@%s ' % cls.bot.username
+        cls.geodata_table_names = ('locations', )
+
     def setUp(self):
         """
         Setup test
         """
         WhensMyTubeTestCase.setUp(self)
-        self.bot = WhensMyTrain("whensmydlr", testing=self.testing_level)
-        self.at_reply = '@%s ' % self.bot.username
         self.nonstandard_test_data = (
             # Handle when there are no trains
             ('DLR from Lewisham to Poplar',

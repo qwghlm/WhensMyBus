@@ -78,13 +78,6 @@ class WhensMyTransportTestCase(unittest.TestCase):
     """
     Parent Test case for all When's My * bots
     """
-    def __init__(self, methodName, testing_level):
-        """
-        Override of the TestCase so we can also apply a testing level
-        """
-        self.testing_level = testing_level
-        super(WhensMyTransportTestCase, self).__init__(methodName)
-
     def setUp(self):
         """
         Setup test
