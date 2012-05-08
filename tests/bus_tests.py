@@ -56,8 +56,8 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
             ('the 15 from st pauls churchyard',
                 ("St Paul's Churchyard",),
                 ('None shown',)),
-            # Ignore unknown words like directions before the "from"
-            ('243 north bound from Hoxton Station please',
+            # Ignore unknown words like directions before the "from" or "to"
+            ('243 north bound to Clerkenwell from Hoxton Station please',
                 ("Hoxton Station",),
                 ('None shown',)),
         )
@@ -196,15 +196,19 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
 
             for from_fragment in from_fragments:
                 for to_fragment in to_fragments:
-                    message = (self.at_reply + route + from_fragment + to_fragment)
-                    if not from_fragment:
-                        tweet = FakeTweet(message, (lat, lon))
-                    else:
-                        tweet = FakeTweet(message)
-                    if (from_fragment.find(origin_id) > -1) or to_fragment:
-                        self._test_correct_successes(tweet, route, expected_origin, destination_to_avoid)
-                    else:
-                        self._test_correct_successes(tweet, route, expected_origin)
+                    messages = [(self.at_reply + route + from_fragment + to_fragment)]
+                    # Also try "to" first, "from" second, if there is a "from" in the from fragment
+                    if to_fragment and from_fragment.find("from") > -1:
+                        messages.append(self.at_reply + route + to_fragment + from_fragment)
+                    for message in messages:
+                        if not from_fragment:
+                            tweet = FakeTweet(message, (lat, lon))
+                        else:
+                            tweet = FakeTweet(message)
+                        if (from_fragment.find(origin_id) > -1) or to_fragment:
+                            self._test_correct_successes(tweet, route, expected_origin, destination_to_avoid)
+                        else:
+                            self._test_correct_successes(tweet, route, expected_origin)
 
     def test_multiple_routes(self):
         """
