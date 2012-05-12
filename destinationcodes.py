@@ -50,10 +50,10 @@ def check_tfl_destination_codes():
             continue
         train = TubeTrain(destination_name, "Northbound", "1200", "C", "001")
         destination = train.get_destination_no_via()
-        if not destination.endswith("Train") and not geodata.find_fuzzy_match(destination, {}, RailStation):
+        if not destination.endswith("Train") and not geodata.find_fuzzy_match(destination, {}):
             print "Destination %s (%s) on %s not found in locations database" % (destination, destination_code, line_code)
         via = train.get_via()
-        if via and not geodata.find_fuzzy_match(via, {}, RailStation):
+        if via and not geodata.find_fuzzy_match(via, {}):
             print "Via %s (%s) on %s not found in locations database" % (via, destination_code, line_code)
 
 if __name__ == "__main__":
