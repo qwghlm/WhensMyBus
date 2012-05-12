@@ -352,13 +352,14 @@ class WhensMyTransportTestCase(unittest.TestCase):
             self.assertIn(url, self.bot.browser.cache)
 
         for filename in ("test_broken.json", "test_broken.xml"):
-            url = "file://" + HOME_DIR + "/data/" + filename
+            url = "file://" + HOME_DIR + "/data/unit/" + filename
             try:
                 if filename.endswith('json'):
                     data = self.bot.browser.fetch_json(url)
                 elif filename.endswith('xml'):
                     data = self.bot.browser.fetch_xml_tree(url)
-            except WhensMyTransportException:
+            except WhensMyTransportException as exc:
+                self.assertEqual('tfl_server_down', exc.msgid)
                 continue
             finally:
                 self.assertNotIn(url, self.bot.browser.cache)
