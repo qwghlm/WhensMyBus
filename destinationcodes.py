@@ -10,7 +10,7 @@ from datatools import get_tfl_prediction_summaries
 from lib.database import WMTDatabase
 from lib.dataparsers import filter_tube_train
 from lib.locations import RailStationLocations
-from lib.models import TubeTrain
+from lib.models import TubeTrain, RailStation
 
 
 def scrape_tfl_destination_codes():
