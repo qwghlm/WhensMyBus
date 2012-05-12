@@ -142,10 +142,11 @@ def filter_tube_train(train_tag):
     destination = train_tag.attrib['Destination']
     destination_code = train_tag.attrib['DestCode']
     location = train_tag.attrib.get('Location', '')
-    # 546 and 749 appear to be codes for Out of Service http://wiki.opentfl.co.uk/TrackerNet_predictions_detailed
+    # 341 & 342 are codes for Northumberland Park depot
     # 433 is code for Triangle sidings depot (only used at night?)
+    # 546 and 749 appear to be codes for Out of Service http://wiki.opentfl.co.uk/TrackerNet_predictions_detailed
     # 775 is code for an Empty Neasden depot train
-    if destination_code in ('546', '749', '433', '775'):
+    if destination_code in ('261', '341', '342', '433', '546', '749', '775'):
         return False
     # Trains in sidings are not much use to us
     if destination_code == '0' and location.find('Sidings') > -1:
@@ -154,6 +155,6 @@ def filter_tube_train(train_tag):
     if destination in ('Special', 'Out Of Service'):
         return False
     # National Rail trains on Bakerloo & Metropolitan lines not that useful in this case
-    if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC'):
+    if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC', 'Chiltern Goods', 'TOC'):
         return False
     return True
