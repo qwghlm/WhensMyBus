@@ -23,6 +23,7 @@ import ConfigParser
 import logging
 import os
 import re
+import traceback
 from pprint import pprint # For debugging
 
 # From library modules in this package
@@ -122,6 +123,8 @@ class WhensMyTransport:
             except WhensMyTransportException as exc:
                 replies = (exc.get_user_message(),)
             except Exception as exc:
+                logging.error("Exception encountered: %s", exc.__class__.__name__)
+                logging.error("Traceback:\r\n%s" % traceback.format_exc())
                 self.alert_admin_about_exception(tweet, exc.__class__.__name__)
                 replies = (WhensMyTransportException('unknown_error').get_user_message(),)
 
