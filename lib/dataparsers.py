@@ -25,11 +25,7 @@ def parse_bus_data(bus_data, route_number):
     # Do the user a favour - check for both number and possible Night Bus version of the bus
     relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
                                                 and a['isRealTime'] and not a['isCancelled']]
-    relevant_buses = []
-    if relevant_arrivals:
-        for arrival in relevant_arrivals[:3]:
-            scheduled_time = gmt_to_localtime(arrival['scheduledTime'])
-            relevant_buses.append(Bus(arrival['destination'], scheduled_time))
+    relevant_buses = [Bus(a['destination'], gmt_to_localtime(a['scheduledTime'])) for a in relevant_arrivals[:3]]
     return relevant_buses
 
 
