@@ -25,6 +25,11 @@ def parse_bus_data(bus_data, route_number):
     # Do the user a favour - check for both number and possible Night Bus version of the bus
     relevant_arrivals = [a for a in arrivals if (a['routeName'] == route_number or a['routeName'] == 'N' + route_number)
                                                 and a['isRealTime'] and not a['isCancelled']]
+
+    # FIXME Temporary logging code
+    for a in relevant_arrivals[:3]:
+        logging.debug("Found bus %s going to %s at %s" % (a['routeName'], a['destination'], a['scheduledTime']))
+
     relevant_buses = [Bus(a['destination'], gmt_to_localtime(a['scheduledTime'])) for a in relevant_arrivals[:3]]
     return relevant_buses
 
