@@ -200,9 +200,11 @@ class WhensMyTransportTestCase(unittest.TestCase):
         if time.localtime().tm_isdst:
             self.assertEqual(gmt_to_localtime("2359"), "0059")
             self.assertEqual(gmt_to_localtime("23:59"), "0059")
+            self.assertEqual(gmt_to_localtime("Tue 00:01"), "0101")
         else:
             self.assertEqual(gmt_to_localtime("2359"), "2359")
-            self.assertEqual(gmt_to_localtime("23:59"), "0059")
+            self.assertEqual(gmt_to_localtime("23:59"), "2359")
+            self.assertEqual(gmt_to_localtime("Tue 00:01"), "0001")
 
     def test_tubeutils(self):
         """
