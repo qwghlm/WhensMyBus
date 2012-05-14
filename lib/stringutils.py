@@ -63,11 +63,15 @@ def get_best_fuzzy_match(search_term, possible_items, minimum_confidence=70):
         return None
 
 
-def gmt_to_localtime(time_string):
+def gmt_to_localtime(date_and_time_string):
     """
-    Takes a string of a possible GMT time and turns it into a representation in the locality - i.e. if BST
+    Takes a string of a possible GMT date/time and turns it into a representation in the locality - i.e. if BST
     is in operation, the time has an hour added on. If we are in GMT, nothing happens
+
+    The string is normally just hour and minute (e.g. "12:34") but if it is just before to midnight GMT, then the
+    string can possibly be "Tue 00:01" so we need to take this into account
     """
+    time_string = date_and_time_string.split(' ')[-1]
     time_string = time_string.replace(':', '')
     hour = int(time_string[0:2])
     minute = int(time_string[2:4])
