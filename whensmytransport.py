@@ -230,10 +230,12 @@ class WhensMyTransport:
         """
         Takes a message string, scrub out the @username of this bot and any #hashtags, and return the sanitized messages
         """
-        # Remove hashtags and @username
+        # Remove hashtags and kisses at end
         message = re.sub(r"\s#\w+\b", '', message)
+        message = re.sub(r"\sx+$", '', message)
+        # Remove usernames
         if message.lower().startswith('@%s' % self.username.lower()):
-            message = message[len('@%s ' % self.username):].lstrip()
+            message = message[len('@%s ' % self.username):].strip()
         else:
             message = message.strip()
 

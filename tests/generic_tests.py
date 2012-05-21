@@ -492,17 +492,25 @@ class WhensMyTransportTestCase(unittest.TestCase):
         tweet = FakeTweet(self.at_reply + self.standard_test_data[0][0], username=self.bot.username)
         self.assertFalse(self.bot.validate_tweet(tweet))
 
+    def test_sanitize_message(self):
+        """
+        Test to confirm we are sanitizing messages correctly
+        """
+        basic_message = "X100 from Fox Street to Brixton"
+        for decoration in ('', '#hashtag', 'x', 'xxx'):
+            message = '%s %s %s' % (self.at_reply, basic_message, decoration)
+            self.assertEquals(self.bot.sanitize_message(message), basic_message)
+
     def test_blank_tweet(self):
         """
         Test to confirm we are ignoring blank replies
         """
-        for message in ('',
-                     ' ',
-                     '         '):
+        for message in ('', ' ', '         '):
             tweet = FakeTweet(self.at_reply + message)
-            self._test_correct_exception_produced(tweet, 'blank_%s_tweet' % self.bot.instance_name.replace('whensmy', ''))
+            exception_type = self.bot.instance_name.replace('whensmy', '')
+            self._test_correct_exception_produced(tweet, 'blank_%s_tweet' % exception_type)
             direct_message = FakeDirectMessage(message)
-            self._test_correct_exception_produced(direct_message, 'blank_%s_tweet' % self.bot.instance_name.replace('whensmy', ''))
+            self._test_correct_exception_produced(direct_message, 'blank_%s_tweet' % exception_type)
 
     #
     # Geotagging tests
@@ -580,5 +588,5 @@ local_tests = ('init', 'browser', 'database', 'dataparsers', 'location', 'logger
 remote_tests = ('geocoder', 'twitter_client',)
 
 # Common errors for all
-format_errors = ('politeness', 'talking_to_myself', 'mention', 'blank_tweet',)
+format_errors = ('politeness', 'talking_to_myself', 'mention', 'sanitize_message', 'blank_tweet',)
 geotag_errors = ('no_geotag', 'placeinfo_only', 'not_in_uk', 'not_in_london',)
