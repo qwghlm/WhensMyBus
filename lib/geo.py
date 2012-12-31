@@ -92,9 +92,11 @@ class YahooGeocoder(BaseGeocoder):
         """
         Given a JSON object of geodata for a query, return list of matching place(s), each represented by a (latitude, longitude) tuple
         """
-        if obj['ResultSet']['Error'] or obj['ResultSet']['Found'] == 0:
+        if obj['ResultSet']['Error'] and int(obj['ResultSet']['Error']):
             return []
-
+        if obj['ResultSet']['Found'] == 0:
+            return []
+        
         # Filter out non-UK results and the default object representing London
         resources = [o for o in obj['ResultSet']['Results'] if o['country'] == "United Kingdom" and o['woeid'] != 44418]
         points = [(float(r['latitude']), float(r['longitude'])) for r in resources]
