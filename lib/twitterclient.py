@@ -25,6 +25,7 @@ class WMTTwitterClient():
         self.api = tweepy.API(auth)
         self.settings = WMTSettings(instance_name)
         self.testing = testing
+        self.report_twitter_limit_status()
 
     def check_followers(self):
         """
@@ -71,14 +72,16 @@ class WMTTwitterClient():
         Fetch Tweets that are replies & direct messages to us and return as a list
         """
         # Get the IDs of the Tweets and Direct Message we last answered
-        last_answered_tweet = self.settings.get_setting('last_answered_tweet')
-        last_answered_direct_message = self.settings.get_setting('last_answered_direct_message')
+        last_answered_tweet = self.settings.get_setting('last_answered_tweet') or 1
+        last_answered_direct_message = self.settings.get_setting('last_answered_direct_message') or 1
 
         # Fetch those Tweets and DMs. This is most likely to fail if OAuth is not correctly set up
         try:
-            tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items()
-            direct_messages = tweepy.Cursor(self.api.direct_messages, since_id=last_answered_direct_message).items()
-        except tweepy.error.TweepError:
+            tweets = self.api.mentions(since_id=last_answered_tweet)
+            direct_messages = self.api.direct_messages(since_id=last_answered_direct_message)
+            #tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items(10)
+            #direct_messages = tweepy.Cursor(self.api.direct_messages, since_id=last_answered_direct_message).items(10)
+        except tweepy.error.TweepError, e:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
             raise RuntimeError("Error: OAuth connection to Twitter failed, probably due to an invalid token")
 
