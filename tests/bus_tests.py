@@ -110,7 +110,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         self.assertEqual(self.bot.geodata.find_exact_match({'run': '1', 'route': '15', 'name': 'LIMEHOUSE TOWN HALL'}).number, "48264")
         self.assertTrue(self.bot.geodata.database.check_existence_of('locations', 'bus_stop_code', '47001'))
         self.assertFalse(self.bot.geodata.database.check_existence_of('locations', 'bus_stop_code', '47000'))
-        self.assertEqual(self.bot.geodata.database.get_max_value('locations', 'run', {}), 4)
+        self.assertEqual(self.bot.geodata.database.get_max_value('locations', 'run', {}), 6)
 
     def test_no_bus_number(self):
         """
