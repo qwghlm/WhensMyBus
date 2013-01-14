@@ -98,7 +98,7 @@ class YahooGeocoder(BaseGeocoder):
             return []
 
         # Filter out non-UK results and the default object representing London
-        resources = [o for o in obj['ResultSet']['Results'] if o['country'] == "United Kingdom" and o['woeid'] != 44418]
+        resources = [o for o in obj['ResultSet']['Results'] if o['country'] == "United Kingdom" and o['woeid'] != '44418']
         points = [(float(r['latitude']), float(r['longitude'])) for r in resources]
         return points
 
