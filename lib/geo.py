@@ -6,9 +6,9 @@ to convert between different co-ordinate systems
 """
 import math
 import urllib
+from pprint import pprint
 
 # Geocoders Define the URL and how to parse the resulting JSON object
-
 
 class BaseGeocoder():
     """
@@ -132,6 +132,7 @@ class GoogleGeocoder(BaseGeocoder):
             return []
 
         results = obj['results']
+        results = [r for r in results if r.get('formatted_address', '') != 'London, UK']
         points = [(r['geometry']['location']['lat'], r['geometry']['location']['lng']) for r in results]
         return points
 
