@@ -60,7 +60,8 @@ class WhensMyTransport:
             config_file = 'config.cfg'
             open(HOME_DIR + '/' + config_file)
             config = ConfigParser.SafeConfigParser({'debug_level': 'INFO',
-                                                    'yahoo_app_id': None})
+                                                    'yahoo_app_id': None,
+                                                    'silent_mode' : 0 })
             config.read(HOME_DIR + '/' + config_file)
             config.get(self.instance_name, 'debug_level')
 
