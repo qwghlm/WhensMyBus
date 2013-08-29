@@ -63,6 +63,7 @@ class WhensMyTransport:
                                                     'yahoo_app_id': None})
             config.read(HOME_DIR + '/' + config_file)
             config.get(self.instance_name, 'debug_level')
+
         except (ConfigParser.Error, IOError):
             error_string = "Fatal error: can't find a valid config file for %s." % self.instance_name
             error_string += " Please make sure there is a %s file in this directory" % config_file
@@ -71,6 +72,7 @@ class WhensMyTransport:
         # Setup debugging
         debug_level = config.get(self.instance_name, 'debug_level')
         setup_logging(self.instance_name, testing, debug_level)
+
         if testing == TESTING_TEST_LOCAL_DATA:
             logging.info("In TEST MODE - No Tweets will be made and local test data will be used!")
         elif testing == TESTING_TEST_LIVE_DATA:
@@ -91,12 +93,19 @@ class WhensMyTransport:
         self.geocoder = GoogleGeocoder()
 
         # Setup Twitter client
+
+        # Silent mode is true if we are testing, or if we are live but the user has overridden
+        # in the config file
+        silent_mode = testing
+        if silent_mode == TESTING_NONE and config.get(self.instance_name, 'silent_mode'):
+            silent_mode = config.get(self.instance_name, 'silent_mode')
+
         self.username = config.get(self.instance_name, 'username')
         consumer_key = config.get(self.instance_name, 'consumer_key')
         consumer_secret = config.get(self.instance_name, 'consumer_secret')
         access_token = config.get(self.instance_name, 'key')
         access_token_secret = config.get(self.instance_name, 'secret')
-        self.twitter_client = WMTTwitterClient(self.instance_name, consumer_key, consumer_secret, access_token, access_token_secret, testing)
+        self.twitter_client = WMTTwitterClient(self.instance_name, consumer_key, consumer_secret, access_token, access_token_secret, silent_mode)
 
         # The following can be overridden by child classes - whether to allow blank tweets,
         # and what the default route should be if none is given

@@ -13,13 +13,9 @@ secret :
 # Your Username - so the bot can DM you with error messages. Just a string, no @ sign (e.g. qwghlm). Make sure you're following it!
 admin_name : 
 
-## Geo config
-# Yahoo PlaceFinder app ID (8 characters, optional but needed for geocoding of addresses to work)
-yahoo_app_id : 
-
 # Optional
 # debug_level : INFO|DEBUG
-# test_mode : False|True
+# silent_mode : False|True
 
 [whensmytube]
 ## Twitter config
@@ -38,7 +34,7 @@ admin_name :
 
 # Optional
 # debug_level : INFO|DEBUG
-# test_mode : False|True
+# silent_mode : False|True
 
 [whensmydlr]
 ## Twitter config
@@ -57,4 +53,4 @@ admin_name :
 
 # Optional
 # debug_level : INFO|DEBUG
-# test_mode : False|True
+# silent_mode : False|True
