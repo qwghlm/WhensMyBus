@@ -29,7 +29,7 @@ from pprint import pprint # For debugging
 # From library modules in this package
 from lib.browser import WMTBrowser, WMTURLProvider
 from lib.exceptions import WhensMyTransportException
-from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, YahooGeocoder
+from lib.geo import convertWGS84toOSEastingNorthing, gridrefNumToLet, GoogleGeocoder
 from lib.logger import setup_logging
 from lib.twitterclient import WMTTwitterClient, is_direct_message
 
@@ -88,8 +88,7 @@ class WhensMyTransport:
         self.parser = None
 
         # Setup geocoder for looking up place names
-        yahoo_app_id = config.get(self.instance_name, 'yahoo_app_id')
-        self.geocoder = yahoo_app_id and YahooGeocoder(yahoo_app_id)
+        self.geocoder = GoogleGeocoder()
 
         # Setup Twitter client
         self.username = config.get(self.instance_name, 'username')
