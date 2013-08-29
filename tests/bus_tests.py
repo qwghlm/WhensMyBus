@@ -6,7 +6,9 @@ A set of unit tests for When's My Bus?
 
 IMPORTANT: These unit tests require Python 2.7, although When's My Bus will happily run in Python 2.6
 """
+import sys
 import time
+import unittest
 from tests.generic_tests import WhensMyTransportTestCase, FakeTweet, FakeDirectMessage
 from whensmybus import WhensMyBus
 
@@ -180,6 +182,7 @@ class WhensMyBusTestCase(WhensMyTransportTestCase):
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'stop_name_not_found', '15', 'Eucgekewf78')
 
+    @unittest.skipIf('--live-data' in sys.argv, "Expected responses to messages not replicable with live data")
     def test_standard_messages(self):
         """
         Generic test for standard-issue messages

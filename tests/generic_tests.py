@@ -420,7 +420,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
         if not self.bot.geocoder:
             return
         test_locations = {"Blackfriars station": (51.5116, -0.1036),
-                          "Buckingham Palace": (51.5012, -0.1425),
+                          "Buckingham Palace": (51.5012, -0.1420),
                           "Wembley Stadium": (51.5558, -0.2797),
                           "qwerty": None}
         for (name, value) in test_locations.items():
@@ -430,6 +430,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
             if value is None:
                 self.assertFalse(points)
             else:
+                self.assertTrue(points)
                 self.assertAlmostEqual(points[0][0], value[0], places=3)
                 self.assertAlmostEqual(points[0][1], value[1], places=3)
 
@@ -569,7 +570,7 @@ class WhensMyTransportTestCase(unittest.TestCase):
             self.assertTrue(results)
             for result in results:
                 print result
-                # Result exists, no TfL garbag  e please, and no all-caps either
+                # Result exists, no TfL garbage please, and no all-caps either
                 self.assertTrue(result)
                 for unwanted in ('<>', '#', '\[DLR\]', '>T<'):
                     self.assertNotRegexpMatches(result, unwanted)
