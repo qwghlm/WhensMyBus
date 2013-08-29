@@ -26,6 +26,12 @@ class WMTTwitterClient():
         self.api = tweepy.API(auth)
         self.settings = WMTSettings(instance_name)
         self.testing = testing
+
+        # By default, we check all streams, checking limit status may change this however
+        self.do_check_followers = True
+        self.do_fetch_replies = True
+        self.do_fetch_direct_messages = True
+
         if not self.testing:
             self.report_twitter_limit_status()
 
@@ -33,10 +39,16 @@ class WMTTwitterClient():
         """
         Check my followers. If any of them are not following me, try to follow them back
         """
+
+        # Don't bother if we have run out of follower checks
+        if not self.do_check_followers:
+            return
+
         # Don't bother if we have checked in the last hour
         last_follower_check = self.settings.get_setting("last_follower_check") or 0
         if time.time() - last_follower_check < 3600:
             return
+
         logging.info("Checking to see if I have any new followers...")
         self.settings.update_setting("last_follower_check", time.time())
 
@@ -67,7 +79,6 @@ class WMTTwitterClient():
                 continue
 
         self.settings.update_setting("protected_users_to_ignore", protected_users_to_ignore)
-        self.report_twitter_limit_status()
 
     def fetch_tweets(self):
         """
@@ -79,8 +90,19 @@ class WMTTwitterClient():
 
         # Fetch those Tweets and DMs. This is most likely to fail if OAuth is not correctly set up
         try:
-            tweets = self.api.mentions_timeline(since_id=last_answered_tweet)
-            direct_messages = self.api.direct_messages(since_id=last_answered_direct_message)
+            if self.do_fetch_replies:
+                logging.info("Fetching replies...")
+                tweets = self.api.mentions_timeline(since_id=last_answered_tweet)
+            else:
+                logging.info("Skipping replies, endpoint exhausted")
+                tweets = []
+
+            if self.do_fetch_direct_messages:
+                logging.info("Fetching DMs...")
+                direct_messages = self.api.direct_messages(since_id=last_answered_direct_message)
+            else:
+                logging.info("Skipping DMs, endpoint exhausted")
+                direct_messages = []
 
         except tweepy.error.TweepError, e:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
@@ -109,30 +131,30 @@ class WMTTwitterClient():
             error = e.message and e.message[0].get('message', default_error) or default_error
             logging.info("Error checking Twitter API: %s" % error)
             sys.exit(1)
+
         resources = limit_status.get('resources', {})
-
-        # Check remaining resources
-        application = resources.get('application', {}).get('/application/rate_limit_status', {})
-        if application['remaining'] == 0:
-            logging.info("No more API calls left until %s GMT, exiting application" % format_unix_time(application['reset']))
+        if not resources:
+            logging.info("Error checking Twitter resources object, quitting")
             sys.exit(1)
-        logging.info("This application has %s out of %s API accesses remaining until %s GMT",
-            application['remaining'], application['limit'], format_unix_time(application['reset']))
 
-        #
-        # TODO: Set flags so we don't bother checking exhausted endpoints
-        #
+        # Check availaibility of each endpoint
         followers = resources.get('followers', {}).get('/followers/ids', {})
         logging.info("I have %s out of %s follow checks remaining until %s GMT",
             followers['remaining'], followers['limit'], format_unix_time(followers['reset']))
+        if followers['remaining'] == 0:
+            self.do_check_followers = False
 
         direct_messages = resources.get('direct_messages', {}).get('/direct_messages', {})
         logging.info("This application has %s out of %s direct message checks remaining until %s GMT",
             direct_messages['remaining'], direct_messages['limit'], format_unix_time(direct_messages['reset']))
+        if direct_messages['remaining'] == 0:
+            self.do_fetch_direct_messages = False
 
         replies = resources.get('statuses', {}).get('/statuses/home_timeline', {})
         logging.info("This application has %s out of %s @ reply checks remaining until %s GMT",
             replies['remaining'], replies['limit'], format_unix_time(replies['reset']))
+        if replies['remaining'] == 0:
+            self.do_fetch_replies = False
 
     def send_reply_back(self, reply, username, send_direct_message, in_reply_to_status_id=None):
         """
