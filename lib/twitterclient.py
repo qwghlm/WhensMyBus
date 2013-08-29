@@ -8,6 +8,7 @@ import sys
 import ConfigParser
 import logging
 import time
+from pprint import pprint
 
 # Tweepy is a Twitter API library available from https://github.com/tweepy/tweepy
 import tweepy
@@ -101,13 +102,26 @@ class WMTTwitterClient():
         """
         Log what our Twitter API hit count & limit is
         """
-        limit_status = self.api.rate_limit_status()
+        try:
+            limit_status = self.api.rate_limit_status()
+        except tweepy.error.TweepError as e:
+            default_error = "Unknown Tweepy error"
+            error = e.message and e.message[0].get('message', default_error) or default_error
+            logging.info("Error checking Twitter API: %s" % error)
+            sys.exit(1)
         resources = limit_status.get('resources', {})
 
+        # Check remaining resources
         application = resources.get('application', {}).get('/application/rate_limit_status', {})
+        if application['remaining'] == 0:
+            logging.info("No more API calls left until %s GMT, exiting application" % format_unix_time(application['reset']))
+            sys.exit(1)
         logging.info("This application has %s out of %s API accesses remaining until %s GMT",
             application['remaining'], application['limit'], format_unix_time(application['reset']))
 
+        #
+        # TODO: Set flags so we don't bother checking exhausted endpoints
+        #
         followers = resources.get('followers', {}).get('/followers/ids', {})
         logging.info("I have %s out of %s follow checks remaining until %s GMT",
             followers['remaining'], followers['limit'], format_unix_time(followers['reset']))

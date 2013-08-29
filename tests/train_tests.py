@@ -270,6 +270,7 @@ class WhensMyTubeTestCase(WhensMyTransportTestCase):
         tweet = FakeTweet(self.at_reply + message)
         self._test_correct_exception_produced(tweet, 'no_geotag', message)
 
+    @unittest.skipIf('--live-data' in sys.argv, "Expected responses to messages not replicable with live data")
     def test_standard_messages(self):
         """
         Generic test for standard-issue messages
