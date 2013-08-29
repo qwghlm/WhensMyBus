@@ -342,7 +342,8 @@ class TubeTrain(Train):
                             '\(plat\. [0-9]+\)',
                             ' loop',
                             '\(circle\)',
-                            '\(district\)',)
+                            '\(district\)',
+                            ' TOC',)
             destination_name = cleanup_name_from_undesirables(destination_name, undesirables)
 
         via_match = re.search(" \(?via ([^)]*)\)?$", destination_name, flags=re.I)

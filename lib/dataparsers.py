@@ -161,6 +161,6 @@ def filter_tube_train(train_tag):
     if destination in ('Special', 'Out Of Service'):
         return False
     # National Rail trains on Bakerloo & Metropolitan lines not that useful in this case
-    if destination.startswith('BR') or destination in ('Network Rail', 'Chiltern TOC', 'Chiltern Goods', 'TOC'):
+    if destination.startswith('BR') or destination in ('Network Rail', 'Network Rail TOC', 'Chiltern TOC', 'Chiltern Goods', 'TOC'):
         return False
     return True
