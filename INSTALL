@@ -6,18 +6,22 @@ Python 2.6 or greater to run the bot. Python 2.7 required for unit testing. Not 
 
 Also needs the following supporting libraries:
 
- * nltk: http://nltk.github.com/install.html
- * pygraph: http://code.google.com/p/python-graph/
- * tweepy: http://code.google.com/p/tweepy/
+ * nltk (v2.0): http://nltk.github.com/install.html
+ * pygraph (v1.8.2): http://code.google.com/p/python-graph/
+ * tweepy (v2.1): http://code.google.com/p/tweepy/
 
 Installation:
 
-1. Make sure you have installed the above libraries first
+1. Make sure you have installed the above libraries first. Assuming you have easy_install and pip already installed:
+
+    $ sudo pip install -U pyyaml nltk
+    $ sudo easy_install python-graph-core
+    $ sudo pip install tweepy
 
 2. Download the code & data for WhensMyBus (this contains code for all three bots) from Github:
 
-    > git clone git://github.com/qwghlm/WhensMyBus.git
-    > cd WhensMyBus
+    $ git clone git://github.com/qwghlm/WhensMyBus.git
+    $ cd WhensMyBus
 
 All the geodata is there, you do however need to set up Twitter account and access keys separately
 
@@ -29,9 +33,6 @@ All the geodata is there, you do however need to set up Twitter account and acce
 
 6. Once your App is set up, create an access token for your own account
 
-7. WhensMyBus only: If you want to add the ability to geocode addresses, you will need an App ID from Yahoo. Get one from Yahoo!
-PlaceFinder: http://developer.yahoo.com/geo/placefinder/
-
 8. Edit the whensmytransport.cfg.sample, go the relevant section ([whensmybus], [whensmytube], [whensmydlr]). Fill in the Twitter username, consumer key & secret, user key & secret, plus the Yahoo app id (optional, see above) and save as whensmytransport.cfg
 
 9. You can also change the debug_level to DEBUG (more messages) and test_mode to True (it will read
@@ -39,9 +40,9 @@ Tweets, but not Tweet back at the users who made them)
 
 10. You now have a working bot! To test it, try the following test:
 
-    $ python testing.py WhensMyBus --remote-apis
-    $ python testing.py WhensMyTube --remote-apis
-    $ python testing.py WhensMyDLR --remote-apis
+    $ python run_tests.py WhensMyBus --remote-apis
+    $ python run_tests.py WhensMyTube --remote-apis
+    $ python run_tests.py WhensMyDLR --remote-apis
 
   All tests should clear if a geocoder is installed and Twitter OAuth is correctly set up; if you don't care about these, try running without the --remote-apis flags
 
