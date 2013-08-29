@@ -159,7 +159,7 @@ class WhensMyBus(WhensMyTransport):
                 logging.debug("No match found for run %s, attempting to get geocode placename %s", run, stop_name)
                 geocode_url = self.geocoder.get_geocode_url(stop_name)
                 try:
-                    geodata = self.browser.fetch_json(geocode_url)
+                    geodata = self.browser.fetch_json(geocode_url, 'geocoder_server_down')
                 except WhensMyTransportException:
                     logging.debug("Error connecting to geocoder, skipping")
                     continue

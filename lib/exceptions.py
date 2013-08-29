@@ -26,6 +26,9 @@ class WhensMyTransportException(Exception):
         'not_in_london':    "You do not appear to be located in the London area",
         'unknown_error':    "An unknown error occurred processing your Tweet. My creator has been informed",
 
+        # Geocoder fatal errors
+        'geocoder_server_down':  "The geocoder server seems to be down",
+
         # WhensMyBus fatal errors
         'blank_bus_tweet':  "I need to have a bus number in order to find the times for it",
         'bad_stop_id':      "I couldn't recognise the number you gave me (%s) as a valid bus stop ID",
