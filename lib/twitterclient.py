@@ -25,15 +25,16 @@ class WMTTwitterClient():
         self.api = tweepy.API(auth)
         self.settings = WMTSettings(instance_name)
         self.testing = testing
-        self.report_twitter_limit_status()
+        if not self.testing:
+            self.report_twitter_limit_status()
 
     def check_followers(self):
         """
         Check my followers. If any of them are not following me, try to follow them back
         """
-        # Don't bother if we have checked in the last ten minutes
+        # Don't bother if we have checked in the last hour
         last_follower_check = self.settings.get_setting("last_follower_check") or 0
-        if time.time() - last_follower_check < 600:
+        if time.time() - last_follower_check < 3600:
             return
         logging.info("Checking to see if I have any new followers...")
         self.settings.update_setting("last_follower_check", time.time())
@@ -52,9 +53,9 @@ class WMTTwitterClient():
         protected_users_to_ignore = self.settings.get_setting("protected_users_to_ignore") or []
 
         # Work out the difference between the two, and also ignore protected users we have already requested
-        # Twitter gives us these in reverse order, so we pick the final twenty (i.e the earliest to follow)
+        # Twitter gives us these in reverse order, so we pick the final ten (i.e the earliest to follow)
         # reverse these to give them in normal order, and follow each one back!
-        twitter_ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-20:]
+        twitter_ids_to_follow = [f for f in followers_ids if f not in friends_ids and f not in protected_users_to_ignore][-5:]
         for twitter_id in twitter_ids_to_follow[::-1]:
             try:
                 person = self.api.create_friendship(twitter_id)
@@ -77,10 +78,9 @@ class WMTTwitterClient():
 
         # Fetch those Tweets and DMs. This is most likely to fail if OAuth is not correctly set up
         try:
-            tweets = self.api.mentions(since_id=last_answered_tweet)
+            tweets = self.api.mentions_timeline(since_id=last_answered_tweet)
             direct_messages = self.api.direct_messages(since_id=last_answered_direct_message)
-            #tweets = tweepy.Cursor(self.api.mentions, since_id=last_answered_tweet).items(10)
-            #direct_messages = tweepy.Cursor(self.api.direct_messages, since_id=last_answered_direct_message).items(10)
+
         except tweepy.error.TweepError, e:
             logging.error("Error: OAuth connection to Twitter failed, probably due to an invalid token")
             raise RuntimeError("Error: OAuth connection to Twitter failed, probably due to an invalid token")
@@ -95,8 +95,6 @@ class WMTTwitterClient():
         else:
             logging.info("%s replies and %s direct messages received!", len(tweets), len(direct_messages))
 
-        # Keep an eye on our rate limit, for science
-        self.report_twitter_limit_status()
         return direct_messages + tweets
 
     def report_twitter_limit_status(self):
@@ -104,8 +102,23 @@ class WMTTwitterClient():
         Log what our Twitter API hit count & limit is
         """
         limit_status = self.api.rate_limit_status()
-        logging.info("I have %s out of %s hits remaining this hour", limit_status['remaining_hits'], limit_status['hourly_limit'])
-        logging.debug("Next reset time is %s", (limit_status['reset_time']))
+        resources = limit_status.get('resources', {})
+
+        application = resources.get('application', {}).get('/application/rate_limit_status', {})
+        logging.info("This application has %s out of %s API accesses remaining until %s GMT",
+            application['remaining'], application['limit'], format_unix_time(application['reset']))
+
+        followers = resources.get('followers', {}).get('/followers/ids', {})
+        logging.info("I have %s out of %s follow checks remaining until %s GMT",
+            followers['remaining'], followers['limit'], format_unix_time(followers['reset']))
+
+        direct_messages = resources.get('direct_messages', {}).get('/direct_messages', {})
+        logging.info("This application has %s out of %s direct message checks remaining until %s GMT",
+            direct_messages['remaining'], direct_messages['limit'], format_unix_time(direct_messages['reset']))
+
+        replies = resources.get('statuses', {}).get('/statuses/home_timeline', {})
+        logging.info("This application has %s out of %s @ reply checks remaining until %s GMT",
+            replies['remaining'], replies['limit'], format_unix_time(replies['reset']))
 
     def send_reply_back(self, reply, username, send_direct_message, in_reply_to_status_id=None):
         """
@@ -135,6 +148,9 @@ class WMTTwitterClient():
             except tweepy.error.TweepError:
                 continue
 
+
+def format_unix_time(timestamp):
+    return time.asctime(time.gmtime(float(timestamp)))
 
 def split_message_for_twitter(message, username):
     """
@@ -176,7 +192,7 @@ def make_oauth_key(instance_name):
     Twitter's OAuth servers provide you to get a key/secret pair
     """
     config = ConfigParser.SafeConfigParser()
-    config.read('whensmytransport.cfg')
+    config.read('config.cfg')
 
     consumer_key = config.get(instance_name, 'consumer_key')
     consumer_secret = config.get(instance_name, 'consumer_secret')
