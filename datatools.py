@@ -57,7 +57,7 @@ def import_bus_csv_to_db():
     writer = csv.DictWriter(outputfile, output_fieldnames, delimiter=";")
 
     for line in reader:
-        if not line:
+        if not line or not line.get('Run', ''):
             continue
         for field in fields_to_delete:
             del line[field]
